@@ -17,11 +17,9 @@ final class LibraryViewModel {
     var isLoading: Bool = false
     
     // MARK: - Dependencies
-    private unowned let coordinator: AppCoordinator
     private let mathMaterialRepository: MathMaterialProtocol
     
-    init(coordinator: AppCoordinator, mathMaterialRepository: MathMaterialProtocol) {
-        self.coordinator = coordinator
+    init(mathMaterialRepository: MathMaterialProtocol) {
         self.mathMaterialRepository = mathMaterialRepository
     }
 

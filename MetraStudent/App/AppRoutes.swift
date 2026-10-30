@@ -8,7 +8,5 @@
 import Foundation
 
 enum AppRoutes: Hashable {
-    case classroom
-    case library
     case materialDetail
 }

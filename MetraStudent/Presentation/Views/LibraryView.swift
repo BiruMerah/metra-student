@@ -10,48 +10,58 @@ import SwiftData
 
 struct LibraryView: View {
     // MARK: - Test SwiftData implementation purpose only
-        @Environment(\.modelContext) private var modelContext
-        @Query private var materials: [MathMaterialEntity]
-        
-        // MARK: - Dependencies
-        @Bindable var viewModel: LibraryViewModel
+    @Environment(\.modelContext) private var modelContext
+    @Query private var materials: [MathMaterialEntity]
+    
+    // MARK: - Dependencies
+    @Bindable var viewModel: LibraryViewModel
     
     var body: some View {
-            List {
-                if viewModel.materials.isEmpty {
-                    ContentUnavailableView(
-                        "No Materials Yet",
-                        systemImage: "tray",
-                        description: Text("Tap 'Add Test Item' to test SwiftData insertion.")
-                    )
-                } else {
-                    ForEach(viewModel.materials) { item in
-                        VStack(alignment: .leading) {
-                            Text(item.title)
-                                .font(.headline)
-                            Text(item.id.uuidString)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .onDelete { offsets in
-                        viewModel.deleteMaterial(at: offsets)
-                        
+        List {
+            if viewModel.materials.isEmpty {
+                ContentUnavailableView(
+                    "No Materials Yet",
+                    systemImage: "tray",
+                    description: Text("Tap 'Add Test Item' to test SwiftData insertion.")
+                )
+            } else {
+                ForEach(viewModel.materials) { item in
+                    VStack(alignment: .leading) {
+                        Text(item.title)
+                            .font(.headline)
+                        Text(item.id.uuidString)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
                 }
-            }
-            .navigationTitle("Saved Materials")
-            .toolbar {
-                Button("Add Test Item") {
-                    viewModel.addSavedMaterial()
+                .onDelete { offsets in
+                    viewModel.deleteMaterial(at: offsets)
+                    
                 }
-            }
-            .task {
-                viewModel.loadMaterials()
             }
         }
+        .navigationTitle("Pustaka")
+        .toolbar {
+            Button("Add Test Item") {
+                viewModel.addSavedMaterial()
+            }
+        }
+        .task {
+            viewModel.loadMaterials()
+        }
+    }
 }
 
-//#Preview {
-//    LibraryView()
-//}
+#Preview {
+    let coordinator = AppCoordinator(
+        networkManager: NetworkManager(),
+        mathMaterialRepository: MathMaterialRepository(
+            modelContext: ModelContext(
+                try! ModelContainer(for: DatabaseSchema.schema)
+            )
+        )
+    )
+    return NavigationStack {
+        coordinator.buildLibrary()
+    }
+}

@@ -35,12 +35,10 @@ final class ClassroomViewModel {
     }
     
     // MARK: - Dependencies
-    private unowned let coordinator: AppCoordinator
     private let networkManager: NetworkProtocol
     private let mathMaterialRepository: MathMaterialProtocol
     
-    init(coordinator: AppCoordinator, networkManager: NetworkProtocol, mathMaterialRepository: MathMaterialProtocol) {
-        self.coordinator = coordinator
+    init(networkManager: NetworkProtocol, mathMaterialRepository: MathMaterialProtocol) {
         self.networkManager = networkManager
         self.mathMaterialRepository = mathMaterialRepository
         
@@ -83,20 +81,17 @@ final class ClassroomViewModel {
         }
     }
     
-    //
+    // TODO - Code checking
     func saveMaterialToLibrary(_ material: MathMaterialModel) {
         do {
             try mathMaterialRepository.addSavedMaterial(material: material)
+            
         } catch {
             errorMessage = error.localizedDescription
         }
     }
     
-    func goToLibrary() {
-        coordinator.navigate(to: .library)
-    }
-    
-    //
+    // TODO - Code checking
     private func bindNetworkEvents() {
         networkManager.onEvent = { [weak self] event in
             guard let self else { return }

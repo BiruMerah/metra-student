@@ -12,53 +12,94 @@ import SwiftUI
 @Observable
 @MainActor
 final class AppCoordinator {
-    var path = NavigationPath()
+    // MARK: - Navigation State
+    var selectedTab: AppTab = .classroom
+    var classroomPath = NavigationPath()
+    var libraryPath = NavigationPath()
     
+    // MARK: - Dependencies
     let networkManager: NetworkProtocol
     let mathMaterialRepository: MathMaterialProtocol
     
+    // MARK: - ViewModels
     @ObservationIgnored
-    lazy var classroomViewModel = ClassroomViewModel(
-        coordinator: self,
+    lazy var classroomViewModel: ClassroomViewModel = ClassroomViewModel(
         networkManager: networkManager,
         mathMaterialRepository: mathMaterialRepository
     )
     
+    @ObservationIgnored
+    lazy var libraryViewModel = LibraryViewModel(
+        mathMaterialRepository: mathMaterialRepository
+    )
+    
+    // MARK: - Initialization
     init(networkManager: NetworkProtocol, mathMaterialRepository: MathMaterialProtocol) {
         self.networkManager = networkManager
         self.mathMaterialRepository = mathMaterialRepository
     }
     
-    func navigate(to route: AppRoutes) {
-        path.append(route)
-    }
-    
-    func navigateBack() {
-        if !path.isEmpty {
-            path.removeLast()
+    // MARK: - Tab Management
+    func selectTab(_ tab: AppTab) {
+        if selectedTab == tab {
+            popToRoot(in: tab)
+            
+        } else {
+            selectedTab = tab
         }
     }
     
-    func popToRoot() {
-        path.removeLast(path.count)
+    // MARK: - Stack Navigation
+    func navigate(to route: AppRoutes, in tab: AppTab? = nil) {
+        let targetTab = tab ?? selectedTab
+        switch targetTab {
+        case .classroom:
+            classroomPath.append(route)
+            
+        case .library:
+            libraryPath.append(route)
+        }
     }
     
+    func navigateBack(in tab: AppTab? = nil) {
+        let targetTab = tab ?? selectedTab
+        switch targetTab {
+        case .classroom:
+            if !classroomPath.isEmpty {
+                classroomPath.removeLast()
+            }
+            
+        case .library:
+            if !libraryPath.isEmpty {
+                libraryPath.removeLast()
+            }
+        }
+    }
+    
+    func popToRoot(in tab: AppTab) {
+        switch tab {
+        case .classroom:
+            classroomPath.removeLast(classroomPath.count)
+            
+        case .library:
+            libraryPath.removeLast(libraryPath.count)
+        }
+    }
+    
+    // MARK: - View Builders
     @ViewBuilder
     func buildClassroom() -> some View {
         ClassroomView(viewModel: classroomViewModel)
     }
     
     @ViewBuilder
-    func buildView(route: AppRoutes) -> some View {
+    func buildLibrary() -> some View {
+        LibraryView(viewModel: libraryViewModel)
+    }
+    
+    @ViewBuilder
+    func buildDestination(for route: AppRoutes) -> some View {
         switch route {
-        case .classroom:
-            ClassroomView(viewModel: classroomViewModel)
-            
-        case .library:
-            // TODO: Need to change like classroomViewModel above!
-            let viewModel = LibraryViewModel(coordinator: self, mathMaterialRepository: mathMaterialRepository)
-            LibraryView(viewModel: viewModel)
-            
         case .materialDetail:
             MaterialDetailView()
         }

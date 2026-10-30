@@ -37,7 +37,7 @@ struct ClassroomView: View {
                     }
                 }
             } header: {
-                Text("Discovered Classrooms (\(viewModel.discoveredClassrooms.count))")
+                Text("Daftar ruang kelas (\(viewModel.discoveredClassrooms.count))")
             } footer: {
                 if !viewModel.discoveredClassrooms.isEmpty {
                     Text(viewModel.statusMessage)
@@ -60,17 +60,8 @@ struct ClassroomView: View {
                     }
                 }
             }
-            
-            Section {
-                Button("Go to Library") {
-                    viewModel.goToLibrary()
-                }
-                .buttonStyle(.glassProminent)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .listRowBackground(Color.clear)
-            }
         }
-        .navigationTitle("Classroom")
+        .navigationTitle("Ruang Kelas")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
