@@ -101,7 +101,7 @@ final class ClassroomViewModel {
     // MARK: - Navigation Actions
     func openMaterialDetail(_ material: MathMaterialModel) {
         self.selectedMaterial = material
-        coordinator?.navigate(to: .materialDetail, in: .classroom)
+        coordinator?.navigate(to: .materialDetail(material), in: .classroom)
     }
     
     // TODO - Code checking
@@ -124,8 +124,8 @@ final class ClassroomViewModel {
                 self.discoveredClassrooms = updatedClasrooms
                 if !self.isStudentConnected && self.connectingClassroomIDs.isEmpty {
                     self.statusMessage = updatedClasrooms.isEmpty
-                        ? "Sedang mencari ruang kelas..."
-                        : "\(updatedClasrooms.count) ruang kelas ditemukan"
+                    ? "Sedang mencari ruang kelas..."
+                    : "\(updatedClasrooms.count) ruang kelas ditemukan"
                 }
                 for item in updatedClasrooms where !previousIDs.contains(item.id) {
                     AccessibilityNotification.Announcement("Ruang kelas \(item.classroomName) ditemukan").post()

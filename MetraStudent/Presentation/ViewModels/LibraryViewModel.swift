@@ -13,14 +13,20 @@ import Observation
 final class LibraryViewModel {
     // MARK: - Published variables
     var materials: [MathMaterialModel] = []
+    var selectedMaterial: MathMaterialModel?
     var errorMessage: String?
     var isLoading: Bool = false
     
     // MARK: - Dependencies
     private let mathMaterialRepository: MathMaterialProtocol
+    weak var coordinator: AppCoordinator?
     
-    init(mathMaterialRepository: MathMaterialProtocol) {
+    init(
+        mathMaterialRepository: MathMaterialProtocol,
+        coordinator: AppCoordinator? = nil
+    ) {
         self.mathMaterialRepository = mathMaterialRepository
+        self.coordinator = coordinator
     }
 
     // MARK: - Functions
@@ -35,16 +41,6 @@ final class LibraryViewModel {
         isLoading = false
     }
     
-    func addSavedMaterial() {
-        let newMaterial = MathMaterialModel(title: "Math Topic #\(materials.count + 1)")
-        do {
-            try mathMaterialRepository.addSavedMaterial(material: newMaterial)
-            loadMaterials() // Refresh list
-        } catch {
-            self.errorMessage = error.localizedDescription
-        }
-    }
-    
     func deleteMaterial(at offsets: IndexSet) {
         for index in offsets {
             let item = materials[index]
@@ -55,5 +51,11 @@ final class LibraryViewModel {
             }
         }
         loadMaterials() // Refresh list
+    }
+    
+    // MARK: - Navigation Actions
+    func openMaterialDetail(_ material: MathMaterialModel) {
+        self.selectedMaterial = material
+        coordinator?.navigate(to: .materialDetail(material), in: .library)
     }
 }

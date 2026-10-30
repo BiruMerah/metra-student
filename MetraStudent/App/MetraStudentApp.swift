@@ -20,7 +20,7 @@ struct MetraStudentApp: App {
             modelContainer = try ModelContainer(for: DatabaseSchema.schema, configurations: config)
         } catch {
             print("SwiftData migration error: \(error). Falling back to in-memory store.")
-            let fallbackConfig = ModelConfiguration(schema: DatabaseSchema.schema, isStoredInMemoryOnly: false)
+            let fallbackConfig = ModelConfiguration(schema: DatabaseSchema.schema, isStoredInMemoryOnly: true)
             modelContainer = try! ModelContainer(for: DatabaseSchema.schema, configurations: fallbackConfig)
         }
         let mathMaterialRepository = MathMaterialRepository(modelContext: modelContainer.mainContext)

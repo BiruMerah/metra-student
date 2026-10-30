@@ -31,7 +31,8 @@ final class AppCoordinator {
     
     @ObservationIgnored
     lazy var libraryViewModel = LibraryViewModel(
-        mathMaterialRepository: mathMaterialRepository
+        mathMaterialRepository: mathMaterialRepository,
+        coordinator: self
     )
     
     // MARK: - Initialization
@@ -101,8 +102,13 @@ final class AppCoordinator {
     @ViewBuilder
     func buildDestination(for route: AppRoutes) -> some View {
         switch route {
-        case .materialDetail:
-            MaterialDetailView()
+        case .materialDetail(let material):
+            MaterialDetailView(
+                viewModel: MaterialDetailViewModel(
+                    material: material,
+                    mathMaterialRepository: mathMaterialRepository
+                )
+            )
         }
     }
 }

@@ -8,5 +8,5 @@
 import Foundation
 
 enum AppRoutes: Hashable {
-    case materialDetail
+    case materialDetail(MathMaterialModel)
 }

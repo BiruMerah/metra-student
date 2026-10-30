@@ -9,44 +9,53 @@ import SwiftUI
 import SwiftData
 
 struct LibraryView: View {
-    // MARK: - Test SwiftData implementation purpose only
-    @Environment(\.modelContext) private var modelContext
-    @Query private var materials: [MathMaterialEntity]
-    
-    // MARK: - Dependencies
     @Bindable var viewModel: LibraryViewModel
     
     var body: some View {
         List {
-            if viewModel.materials.isEmpty {
-                ContentUnavailableView(
-                    "No Materials Yet",
-                    systemImage: "tray",
-                    description: Text("Tap 'Add Test Item' to test SwiftData insertion.")
-                )
-            } else {
-                ForEach(viewModel.materials) { item in
-                    VStack(alignment: .leading) {
-                        Text(item.title)
-                            .font(.headline)
-                        Text(item.id.uuidString)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+            Section {
+                if viewModel.materials.isEmpty {
+                    Text("Belum ada materi pembelajaran yang disimpan")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
+                        .accessibilityLabel("Belum ada materi pembelajaran yang disimpan di pustaka.")
+                } else {
+                    ForEach(viewModel.materials) { material in
+                        Button {
+                            viewModel.openMaterialDetail(material)
+                        } label: {
+                            HStack {
+                                Text(material.title)
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Materi tersimpan: \(material.title)")
+                        .accessibilityHint("Ketuk dua kali untuk membuka detail materi pembelajaran")
+                    }
+                    .onDelete { offsets in
+                        viewModel.deleteMaterial(at: offsets)
                     }
                 }
-                .onDelete { offsets in
-                    viewModel.deleteMaterial(at: offsets)
-                    
-                }
+            } header: {
+                Text("Materi Tersimpan")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .textCase(nil)
+                    .listRowInsets(EdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0))
             }
+            .headerProminence(.increased)
         }
         .navigationTitle("Pustaka")
-        .toolbar {
-            Button("Add Test Item") {
-                viewModel.addSavedMaterial()
-            }
-        }
-        .task {
+        .onAppear {
             viewModel.loadMaterials()
         }
     }
@@ -63,5 +72,8 @@ struct LibraryView: View {
     )
     return NavigationStack {
         coordinator.buildLibrary()
+            .navigationDestination(for: AppRoutes.self) { route in
+                coordinator.buildDestination(for: route)
+            }
     }
 }
