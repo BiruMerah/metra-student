@@ -25,7 +25,8 @@ final class AppCoordinator {
     @ObservationIgnored
     lazy var classroomViewModel: ClassroomViewModel = ClassroomViewModel(
         networkManager: networkManager,
-        mathMaterialRepository: mathMaterialRepository
+        mathMaterialRepository: mathMaterialRepository,
+        coordinator: self
     )
     
     @ObservationIgnored

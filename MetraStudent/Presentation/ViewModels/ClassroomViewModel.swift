@@ -28,6 +28,7 @@ final class ClassroomViewModel {
     var connectedClassroomName: String?
     var connectedTeacherName: String?
     var receivedMaterials: [MathMaterialModel] = []
+    var selectedMaterial: MathMaterialModel?
     var statusMessage: String = "Idle"
     var errorMessage: String?
     var isStudentConnected: Bool {
@@ -37,10 +38,16 @@ final class ClassroomViewModel {
     // MARK: - Dependencies
     private let networkManager: NetworkProtocol
     private let mathMaterialRepository: MathMaterialProtocol
+    weak var coordinator: AppCoordinator?
     
-    init(networkManager: NetworkProtocol, mathMaterialRepository: MathMaterialProtocol) {
+    init(
+        networkManager: NetworkProtocol,
+        mathMaterialRepository: MathMaterialProtocol,
+        coordinator: AppCoordinator? = nil
+    ) {
         self.networkManager = networkManager
         self.mathMaterialRepository = mathMaterialRepository
+        self.coordinator = coordinator
         
         let savedName = UserDefaults.standard.string(forKey: Self.displayNameKey)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -89,6 +96,12 @@ final class ClassroomViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+    
+    // MARK: - Navigation Actions
+    func openMaterialDetail(_ material: MathMaterialModel) {
+        self.selectedMaterial = material
+        coordinator?.navigate(to: .materialDetail, in: .classroom)
     }
     
     // TODO - Code checking

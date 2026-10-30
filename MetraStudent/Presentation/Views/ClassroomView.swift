@@ -11,23 +11,52 @@ import SwiftData
 struct ClassroomView: View {
     @Bindable var viewModel: ClassroomViewModel
     
+    private var displayedClassrooms: [DiscoveredClassroom] {
+        if let connectedID = viewModel.connectedClassroomID {
+            let connectedList = viewModel.discoveredClassrooms.filter { $0.id == connectedID }
+            if !connectedList.isEmpty {
+                return connectedList
+            }
+            if let name = viewModel.connectedClassroomName, let teacher = viewModel.connectedTeacherName {
+                return [DiscoveredClassroom(id: connectedID, classroomName: name, teacherName: teacher)]
+            }
+        }
+        return viewModel.discoveredClassrooms
+    }
+    
+    private var emptyClassroomsMessage: String {
+        if viewModel.isSearching {
+            return "Sedang mencari ruang kelas di sekitar..."
+        } else if viewModel.statusMessage == "Idle" || viewModel.statusMessage == "Disconnected" {
+            return "Belum ada ruang kelas yang ditemukan"
+        } else {
+            return viewModel.statusMessage
+        }
+    }
+    
     var body: some View {
         List {
             Section {
-                if viewModel.discoveredClassrooms.isEmpty {
-                    HStack(spacing: 14) {
+                if displayedClassrooms.isEmpty {
+                    HStack(spacing: 12) {
                         if viewModel.isSearching {
                             ProgressView()
                                 .accessibilityHidden(true)
                         }
                         
-                        Text(viewModel.statusMessage)
-                            .font(.title3.weight(.semibold))
+                        Text(emptyClassroomsMessage)
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 8)
                     .accessibilityElement(children: .combine)
+                    .accessibilityLabel(
+                        viewModel.isSearching
+                        ? "Sedang mencari ruang kelas di sekitar. Mohon tunggu."
+                        : "Belum ada ruang kelas yang ditemukan."
+                    )
                 } else {
-                    ForEach(viewModel.discoveredClassrooms) { classroom in
+                    ForEach(displayedClassrooms) { classroom in
                         ClassroomRowView(
                             classroom: classroom,
                             state: viewModel.connectionState(for: classroom),
@@ -37,111 +66,57 @@ struct ClassroomView: View {
                     }
                 }
             } header: {
-                Text("Daftar ruang kelas (\(viewModel.discoveredClassrooms.count))")
-            } footer: {
-                if !viewModel.discoveredClassrooms.isEmpty {
-                    Text(viewModel.statusMessage)
-                }
+                Text(viewModel.isStudentConnected ? "Ruang Kelas Terhubung" : "Daftar Ruang Kelas")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .textCase(nil)
+                    .listRowInsets(EdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0))
             }
+            .headerProminence(.increased)
             
             if viewModel.isStudentConnected {
-                Section("Materials") {
+                Section {
                     if viewModel.receivedMaterials.isEmpty {
-                        Text("No Materials Yet")
-                            .font(.title3.weight(.medium))
+                        Text("Belum ada materi pembelajaran yang dibagikan")
+                            .font(.body)
                             .foregroundStyle(.secondary)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 8)
+                            .accessibilityLabel("Belum ada materi pembelajaran yang dibagikan oleh guru.")
                     } else {
                         ForEach(viewModel.receivedMaterials) { material in
-                            Text(material.title)
-                                .font(.title3.bold())
-                                .padding(.vertical, 8)
+                            Button {
+                                viewModel.openMaterialDetail(material)
+                            } label: {
+                                HStack {
+                                    Text(material.title)
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .padding(.vertical, 6)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Materi: \(material.title)")
+                            .accessibilityHint("Ketuk dua kali untuk membuka detail materi pembelajaran")
                         }
                     }
+                } header: {
+                    Text("Materi Pembelajaran")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .textCase(nil)
+                        .listRowInsets(EdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0))
                 }
+                .headerProminence(.increased)
             }
         }
         .navigationTitle("Ruang Kelas")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    viewModel.startSearching()
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-            }
-        }
         .task {
             viewModel.onAppear()
-        }
-    }
-}
-
-private struct ClassroomRowView: View {
-    let classroom: DiscoveredClassroom
-    let state: ClassroomConnectionState
-    let onJoin: () -> Void
-    let onLeave: () -> Void
-    
-    var body: some View {
-        Button {
-            switch state {
-            case .connected:
-                onLeave()
-            case .notConnected:
-                onJoin()
-            case .connecting:
-                break
-            }
-        } label: {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(classroom.classroomName)
-                        .font(.title3.bold())
-                        .foregroundStyle(.primary)
-                    
-                    Text(classroom.teacherName)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-                
-                switch state {
-                case .connected:
-                    Text("Leave")
-                        .font(.headline)
-                        .foregroundStyle(.red)
-                    
-                case .connecting:
-                    Text("Joining...")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    
-                case .notConnected:
-                    Text("Join")
-                        .font(.headline)
-                        .foregroundStyle(.blue)
-                }
-            }
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(state == .connecting)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
-        .accessibilityAddTraits(.isButton)
-    }
-    
-    private var accessibilityText: String {
-        switch state {
-        case .connected:
-            return "Terhubung ke \(classroom.classroomName), \(classroom.teacherName). Ketuk dua kali untuk keluar."
-        case .connecting:
-            return "Bergabung ke \(classroom.classroomName)"
-        case .notConnected:
-            return "Gabung ke \(classroom.classroomName), \(classroom.teacherName)"
         }
     }
 }
@@ -154,5 +129,10 @@ private struct ClassroomRowView: View {
             )
         )
     )
-    coordinator.buildClassroom()
+    return NavigationStack {
+        coordinator.buildClassroom()
+            .navigationDestination(for: AppRoutes.self) { route in
+                coordinator.buildDestination(for: route)
+            }
+    }
 }

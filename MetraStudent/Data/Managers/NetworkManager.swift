@@ -79,7 +79,8 @@ final class NetworkManager: NetworkProtocol {
         let studentID = localPeerID
         studentConnectionTask = Task { [weak self] in
             guard let self else { return }
-            let connection = NetworkConnection(to: discoveredClassroom.endpoint) {
+            guard let endpoint = discoveredClassroom.endpoint else { return }
+            let connection = NetworkConnection(to: endpoint) {
                 Coder(ClassroomNetworkMessage.self, using: .json) {
                     TCP()
                 }

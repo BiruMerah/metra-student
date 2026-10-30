@@ -9,7 +9,12 @@ import SwiftUI
 
 struct MaterialDetailView: View {
     var body: some View {
-        Text("Hello, This is MaterialDetailView!")
+        VStack {
+            Text("Hello, This is MaterialDetailView!")
+        }
+        .navigationTitle("Detail Materi")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 
