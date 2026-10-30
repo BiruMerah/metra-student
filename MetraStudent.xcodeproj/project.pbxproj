@@ -93,11 +93,12 @@
 				};
 			};
 			buildConfigurationList = 5F15BAD13092417C00275EE7 /* Build configuration list for PBXProject "MetraStudent" */;
-			developmentRegion = en;
+			developmentRegion = id;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				id,
 			);
 			mainGroup = 5F15BACD3092417C00275EE7;
 			minimizedProjectReferenceProxies = 1;
