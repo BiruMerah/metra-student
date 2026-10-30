@@ -10,9 +10,22 @@
 		5F15BAD63092417C00275EE7 /* MetraStudent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetraStudent.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5F80841B30944ACD00432B2A /* Exceptions for "MetraStudent" folder in "MetraStudent" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5F15BAD53092417C00275EE7 /* MetraStudent */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5F15BAD83092417C00275EE7 /* MetraStudent */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5F80841B30944ACD00432B2A /* Exceptions for "MetraStudent" folder in "MetraStudent" target */,
+			);
 			path = MetraStudent;
 			sourceTree = "<group>";
 		};
@@ -244,7 +257,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Metra: App for Student";
+				INFOPLIST_FILE = MetraStudent/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Student;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra Student uses the local network so Students can discover and join a Teacher's classroom network room and receive study materials.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -289,7 +304,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Metra: App for Student";
+				INFOPLIST_FILE = MetraStudent/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Student;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra Student uses the local network so Students can discover and join a Teacher's classroom network room and receive study materials.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

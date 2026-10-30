@@ -24,7 +24,10 @@ final class MathMaterialEntity {
     func toDomain() -> MathMaterialModel {
         MathMaterialModel(
             id: self.id,
-            title: self.title
+            title: self.title,
+            category: "Tester",
+            content: "Tester Content",
+            createdAt: .now
         )
     }
     

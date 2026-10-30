@@ -24,9 +24,11 @@ struct MetraStudentApp: App {
             modelContainer = try! ModelContainer(for: DatabaseSchema.schema, configurations: fallbackConfig)
         }
         let mathMaterialRepository = MathMaterialRepository(modelContext: modelContainer.mainContext)
+        let networkManager = NetworkManager()
         
         // MARK: - Presentation Layer setup
         let initialCoordinator = AppCoordinator(
+            networkManager: networkManager,
             mathMaterialRepository: mathMaterialRepository
         )
         _coordinator = State(wrappedValue: initialCoordinator)

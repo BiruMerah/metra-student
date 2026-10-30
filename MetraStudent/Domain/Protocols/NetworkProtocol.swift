@@ -7,14 +7,18 @@
 
 import Foundation
 
-protocol NetworkProtocol {
-    func startSearchingRooms()
+protocol NetworkProtocol: AnyObject {
+    var onEvent: ((NetworkEvent) -> Void)? { get set }
     
-    func stopSearchingRooms()
+    func startSearchingClassrooms()
+    
+    func stopSearchingClassrooms()
     
     func ensureSearchingIfNeeded()
     
-    func stopAll()
+    func joinClassroom(_ discoveredClassroom: DiscoveredClassroom, studentName: String)
     
-    func joinRoom(_ room: DiscoveredRoom)
+    func leaveCurrentClassroom()
+    
+    func stopAll()
 }

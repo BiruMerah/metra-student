@@ -14,9 +14,18 @@ import SwiftUI
 final class AppCoordinator {
     var path = NavigationPath()
     
+    let networkManager: NetworkProtocol
     let mathMaterialRepository: MathMaterialProtocol
     
-    init(mathMaterialRepository: MathMaterialProtocol) {
+    @ObservationIgnored
+    lazy var classroomViewModel = ClassroomViewModel(
+        coordinator: self,
+        networkManager: networkManager,
+        mathMaterialRepository: mathMaterialRepository
+    )
+    
+    init(networkManager: NetworkProtocol, mathMaterialRepository: MathMaterialProtocol) {
+        self.networkManager = networkManager
         self.mathMaterialRepository = mathMaterialRepository
     }
     
@@ -36,16 +45,17 @@ final class AppCoordinator {
     
     @ViewBuilder
     func buildClassroom() -> some View {
-        ClassroomView(coordinator: self)
+        ClassroomView(viewModel: classroomViewModel)
     }
     
     @ViewBuilder
     func buildView(route: AppRoutes) -> some View {
         switch route {
         case .classroom:
-            ClassroomView(coordinator: self)
+            ClassroomView(viewModel: classroomViewModel)
             
         case .library:
+            // TODO: Need to change like classroomViewModel above!
             let viewModel = LibraryViewModel(coordinator: self, mathMaterialRepository: mathMaterialRepository)
             LibraryView(viewModel: viewModel)
             
