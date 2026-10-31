@@ -20,12 +20,14 @@ final class AppCoordinator {
     // MARK: - Dependencies
     let networkManager: NetworkProtocol
     let mathMaterialRepository: MathMaterialProtocol
+    let materialNotifier: MaterialNotificationProtocol
     
     // MARK: - ViewModels
     @ObservationIgnored
     lazy var classroomViewModel: ClassroomViewModel = ClassroomViewModel(
         networkManager: networkManager,
         mathMaterialRepository: mathMaterialRepository,
+        materialNotifier: materialNotifier,
         coordinator: self
     )
     
@@ -36,9 +38,14 @@ final class AppCoordinator {
     )
     
     // MARK: - Initialization
-    init(networkManager: NetworkProtocol, mathMaterialRepository: MathMaterialProtocol) {
+    init(
+        networkManager: NetworkProtocol,
+        mathMaterialRepository: MathMaterialProtocol,
+        materialNotifier: MaterialNotificationProtocol? = nil
+    ) {
         self.networkManager = networkManager
         self.mathMaterialRepository = mathMaterialRepository
+        self.materialNotifier = materialNotifier ?? MaterialNotificationService()
     }
     
     // MARK: - Tab Management

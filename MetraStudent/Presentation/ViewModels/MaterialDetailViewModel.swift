@@ -9,11 +9,27 @@ import Foundation
 import Observation
 import SwiftUI
 
+nonisolated struct MaterialOverview {
+    let chapter: String
+    let subchapter: String
+    let pageNumber: Int
+    let questionCount: Int
+
+    // Presentation fixture until classroom materials include document metadata.
+    static let sample = MaterialOverview(
+        chapter: "Bab I - Persamaan Linear Satu Variabel",
+        subchapter: "Mengenal dan Menyelesaikan Persamaan Linear",
+        pageNumber: 21,
+        questionCount: 1
+    )
+}
+
 @Observable
 @MainActor
 final class MaterialDetailViewModel {
     // MARK: - Observable UI State
     let material: MathMaterialModel
+    let overview: MaterialOverview
     var isSaved: Bool = false
     var hasDuplicateTitle: Bool = false
     var errorMessage: String?
@@ -27,9 +43,11 @@ final class MaterialDetailViewModel {
     
     init(
         material: MathMaterialModel,
-        mathMaterialRepository: MathMaterialProtocol
+        mathMaterialRepository: MathMaterialProtocol,
+        overview: MaterialOverview? = nil
     ) {
         self.material = material
+        self.overview = overview ?? .sample
         self.mathMaterialRepository = mathMaterialRepository
         checkSavedStatus()
     }
