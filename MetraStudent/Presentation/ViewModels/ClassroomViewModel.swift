@@ -38,15 +38,19 @@ final class ClassroomViewModel {
     // MARK: - Dependencies
     private let networkManager: NetworkProtocol
     private let mathMaterialRepository: MathMaterialProtocol
+    private let materialNotifier: MaterialNotificationProtocol
+    private var materialTracker = ClassroomMaterialTracker()
     weak var coordinator: AppCoordinator?
     
     init(
         networkManager: NetworkProtocol,
         mathMaterialRepository: MathMaterialProtocol,
+        materialNotifier: MaterialNotificationProtocol? = nil,
         coordinator: AppCoordinator? = nil
     ) {
         self.networkManager = networkManager
         self.mathMaterialRepository = mathMaterialRepository
+        self.materialNotifier = materialNotifier ?? MaterialNotificationService()
         self.coordinator = coordinator
         
         let savedName = UserDefaults.standard.string(forKey: Self.displayNameKey)?
@@ -67,6 +71,7 @@ final class ClassroomViewModel {
     }
     
     func joinClassroom(_ discoveredClassroom: DiscoveredClassroom) {
+        Task { await materialNotifier.requestAuthorizationIfNeeded() }
         networkManager.joinClassroom(discoveredClassroom, studentName: displayName)
     }
     
@@ -148,13 +153,20 @@ final class ClassroomViewModel {
                 AccessibilityNotification.Announcement("Telah tergabung ke dalam \(discoveredClassroom.classroomName)").post()
                 
             case .classroomSynced(let classroomID, let classroomName, let teacherName, let materials):
+                let newMaterials = self.materialTracker.newMaterials(in: materials, classroomID: classroomID)
                 self.connectingClassroomIDs.remove(classroomID)
                 self.connectedClassroomID = classroomID
                 self.connectedClassroomName = classroomName
                 self.connectedTeacherName = teacherName
                 self.receivedMaterials = materials
-                self.statusMessage = "\(materials.count) Materials"
-                AccessibilityNotification.Announcement("Terdapat \(materials.count) materials yang tersedia").post()
+                self.statusMessage = "\(materials.count) materi tersedia"
+                if !newMaterials.isEmpty {
+                    self.materialNotifier.notifyNewMaterials(
+                        newMaterials,
+                        classroomID: classroomID,
+                        classroomName: classroomName
+                    )
+                }
                 
             case .classroomDisconnected(let classroomID):
                 let wasConnecting = self.connectingClassroomIDs.remove(classroomID) != nil
@@ -175,6 +187,7 @@ final class ClassroomViewModel {
                 self.statusMessage = self.isSearching ? "Sedang mencari ruang kelas..." : "Disconnected"
                 
             case .resetAll:
+                self.materialTracker.reset()
                 self.isSearching = false
                 self.discoveredClassrooms.removeAll()
                 self.connectedClassroomID = nil
