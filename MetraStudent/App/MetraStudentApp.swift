@@ -39,5 +39,6 @@ struct MetraStudentApp: App {
             ContentView(coordinator: coordinator)
                 .modelContainer(modelContainer)
         }
+        .environment(\.locale, Locale(identifier: "id-ID"))
     }
 }

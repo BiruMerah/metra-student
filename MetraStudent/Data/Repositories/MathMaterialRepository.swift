@@ -17,7 +17,9 @@ final class MathMaterialRepository: MathMaterialProtocol {
     
     // MARK: - Protocol implementation
     func fetchSavedMaterials() throws -> [MathMaterialModel] {
-        let descriptor = FetchDescriptor<MathMaterialEntity>()
+        let descriptor = FetchDescriptor<MathMaterialEntity>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
         let entities = try modelContext.fetch(descriptor)
         
         return entities.map { $0.toDomain() }

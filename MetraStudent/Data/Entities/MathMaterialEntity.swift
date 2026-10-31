@@ -49,7 +49,7 @@ final class MathMaterialEntity {
             title: domain.title,
             category: domain.category,
             content: domain.content,
-            createdAt: domain.createdAt
+            createdAt: .now
         )
     }
 }

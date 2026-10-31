@@ -20,8 +20,10 @@ struct LibraryView: View {
                         .foregroundStyle(.secondary)
                         .padding(.vertical, 8)
                         .accessibilityLabel("Belum ada materi pembelajaran yang disimpan di pustaka.")
+                } else if viewModel.filteredMaterials.isEmpty {
+                    ContentUnavailableView.search(text: viewModel.searchText)
                 } else {
-                    ForEach(viewModel.materials) { material in
+                    ForEach(viewModel.filteredMaterials) { material in
                         Button {
                             viewModel.openMaterialDetail(material)
                         } label: {
@@ -55,6 +57,11 @@ struct LibraryView: View {
             .headerProminence(.increased)
         }
         .navigationTitle("Pustaka")
+        .searchable(
+            text: $viewModel.searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Cari judul materi..."
+        )
         .onAppear {
             viewModel.loadMaterials()
         }
