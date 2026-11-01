@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct LibraryView: View {
     @Bindable var viewModel: LibraryViewModel
@@ -69,14 +68,7 @@ struct LibraryView: View {
 }
 
 #Preview {
-    let coordinator = AppCoordinator(
-        networkManager: NetworkManager(),
-        mathMaterialRepository: MathMaterialRepository(
-            modelContext: ModelContext(
-                try! ModelContainer(for: DatabaseSchema.schema)
-            )
-        )
-    )
+    let coordinator = AppCoordinator.makePreview()
     return NavigationStack {
         coordinator.buildLibrary()
             .navigationDestination(for: AppRoutes.self) { route in

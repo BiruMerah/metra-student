@@ -123,3 +123,25 @@ nonisolated enum MetraAssistantFailure: LocalizedError {
         switch self { case .message(let text): text }
     }
 }
+
+nonisolated enum MetraMathGuard {
+    private static let units = [
+        #"\b(?:centimet(?:er|re)s?|sentimeter|cm)\b"#,
+        #"\b(?:millimet(?:er|re)s?|milimeter|mm)\b"#,
+        #"\b(?:kilomet(?:er|re)s?|kilometer|km)\b"#,
+        #"\b(?:met(?:er|re)s?|m)\b"#,
+        #"\b(?:inch(?:es)?|inci)\b"#,
+        #"\b(?:foot|feet|ft|kaki)\b"#,
+        #"\b(?:lit(?:er|re)s?)\b"#,
+        #"\b(?:millilit(?:er|re)s?|mililiter|ml)\b"#
+    ]
+
+    static func preservesUnits(points: [String], source: [String]) -> Bool {
+        let input = source.joined(separator: " ").lowercased()
+        let output = points.joined(separator: " ").lowercased()
+        return units.allSatisfy { pattern in
+            output.range(of: pattern, options: .regularExpression) == nil ||
+            input.range(of: pattern, options: .regularExpression) != nil
+        }
+    }
+}

@@ -1,15 +1,21 @@
+//
+//  AIAssistantTranslationBridge.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 01/11/26.
+//
+
 import Foundation
 import Observation
 import Translation
 
-/// SwiftUI owns sessions that can show Apple's language-download consent. The continuation
-/// exposes them as a cancellable translation service to the generation pipeline.
-@MainActor @Observable
-final class MetraTranslationBridge: MetraAssistantTranslating {
+@Observable
+@MainActor
+final class AIAssistantTranslationBridge: AssistantTranslatingProtocol {
     private(set) var configuration: TranslationSession.Configuration?
     private var pending: Request?
     private var activeSession: TranslationSession?
-
+    
     private struct Request {
         let id: UUID
         let texts: [String]
@@ -17,7 +23,7 @@ final class MetraTranslationBridge: MetraAssistantTranslating {
         let target: String
         let continuation: CheckedContinuation<[String], Error>
     }
-
+    
     func translate(_ texts: [String], from source: String, to target: String) async throws -> [String] {
         try Task.checkCancellation()
         let status = await LanguageAvailability(preferredStrategy: .lowLatency).status(
@@ -25,11 +31,11 @@ final class MetraTranslationBridge: MetraAssistantTranslating {
         )
         try Task.checkCancellation()
         guard status != .unsupported else {
-            #if targetEnvironment(simulator)
+#if targetEnvironment(simulator)
             throw MetraAssistantFailure.message("Terjemahan Apple tidak tersedia di Simulator. Jalankan aplikasi di iPhone dengan Apple Intelligence untuk mendengar hasil dalam bahasa Indonesia.")
-            #else
+#else
             throw MetraAssistantFailure.message("Terjemahan Indonesia–Inggris belum tersedia di perangkat ini. Perbarui iOS lalu coba lagi.")
-            #endif
+#endif
         }
         guard pending == nil else { throw MetraAssistantFailure.message("Terjemahan masih berjalan. Tunggu sebentar.") }
         guard !texts.isEmpty else { return [] }
@@ -51,7 +57,7 @@ final class MetraTranslationBridge: MetraAssistantTranslating {
             Task { @MainActor [weak self] in self?.cancel(requestID: id) }
         }
     }
-
+    
     func perform(using session: TranslationSession) async {
         guard let request = pending,
               session.sourceLanguage?.languageCode?.identifier == request.source,
@@ -96,19 +102,19 @@ final class MetraTranslationBridge: MetraAssistantTranslating {
             )))
         }
     }
-
+    
     func cancel() {
         guard let id = pending?.id else { return }
         cancel(requestID: id)
     }
-
+    
     private func cancel(requestID: UUID) {
         guard pending?.id == requestID else { return }
         activeSession?.cancel()
         configuration = nil
         complete(id: requestID, result: .failure(CancellationError()))
     }
-
+    
     private func complete(id: UUID, result: Result<[String], Error>) {
         guard let request = pending, request.id == id else { return }
         pending = nil
@@ -116,3 +122,4 @@ final class MetraTranslationBridge: MetraAssistantTranslating {
         request.continuation.resume(with: result)
     }
 }
+

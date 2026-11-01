@@ -9,10 +9,24 @@ import Foundation
 
 @MainActor
 protocol MathMaterialProtocol {
-    // TODO: Define list of functions
     func fetchSavedMaterials() throws -> [MathMaterialModel]
     
-    func addSavedMaterial(material: MathMaterialModel) throws
+    func evaluateSaveStatus(for material: MathMaterialModel) throws -> MaterialSaveStatus
     
-    func deleteSavedMaterial(id: UUID) throws
+    func saveMaterial(_ material: MathMaterialModel) throws
+    
+    func deleteMaterial(id: UUID) throws
+    
+    func overview(for material: MathMaterialModel) -> MaterialOverview
+    
+    func topics(for material: MathMaterialModel) -> [MathTopicModel]
+}
+
+nonisolated struct MaterialSaveStatus: Equatable, Sendable {
+    let isSaved: Bool
+    let hasDuplicateTitle: Bool
+
+    var canSave: Bool {
+        !isSaved && !hasDuplicateTitle
+    }
 }

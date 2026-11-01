@@ -1,3 +1,10 @@
+//
+//  NotificationManager.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 01/11/26.
+//
+
 import Foundation
 import OSLog
 import SwiftUI
@@ -5,7 +12,7 @@ import UIKit
 import UserNotifications
 
 @MainActor
-final class MaterialNotificationService: NSObject, MaterialNotificationProtocol, UNUserNotificationCenterDelegate {
+final class NotificationManager: NSObject, NotificationProtocol, UNUserNotificationCenterDelegate {
     private let notificationCenter: UNUserNotificationCenter
     private let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "MetraStudent",
@@ -32,12 +39,16 @@ final class MaterialNotificationService: NSObject, MaterialNotificationProtocol,
             do {
                 _ = try await notificationCenter.requestAuthorization(options: [.alert, .sound])
             } catch {
-                logger.error("Unable to request notification permission: \(error.localizedDescription, privacy: .public)")
+                print("Unable to request notification permission: \(error.localizedDescription)")
             }
         }
         authorizationTask = task
         await task.value
         authorizationTask = nil
+    }
+
+    func announceAccessibility(_ message: String) {
+        AccessibilityNotification.Announcement(message).post()
     }
 
     func notifyNewMaterials(_ materials: [MathMaterialModel], classroomID: String, classroomName: String) {
@@ -81,7 +92,7 @@ final class MaterialNotificationService: NSObject, MaterialNotificationProtocol,
             do {
                 try await notificationCenter.add(request)
             } catch {
-                logger.error("Unable to deliver material notification: \(error.localizedDescription, privacy: .public)")
+                print("Unable to deliver material notification: \(error.localizedDescription)")
             }
         }
     }

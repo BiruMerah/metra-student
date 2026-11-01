@@ -6,13 +6,9 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct MaterialDetailView: View {
     @Bindable var viewModel: MaterialDetailViewModel
-
-    // Sample topics until the material model provides topic data.
-    private let topics = TopicViewModel.sampleTopics
 
     var body: some View {
         List {
@@ -30,12 +26,13 @@ struct MaterialDetailView: View {
             }
 
             Section {
-                ForEach(Array(topics.enumerated()), id: \.element.id) { index, topic in
-                    NavigationLink {
-                        TopicView(topics: topics, initialTopicIndex: index)
+                ForEach(Array(viewModel.topics.enumerated()), id: \.element.id) { index, topic in
+                    Button {
+                        viewModel.openTopic(at: index)
                     } label: {
                         topicRow(topic, index: index)
                     }
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Topik \(index + 1), \(topic.title)")
                     .accessibilityHint("Buka detail topik")
                 }
@@ -44,22 +41,6 @@ struct MaterialDetailView: View {
             } footer: {
                 Text("Pilih topik untuk melihat detailnya.")
             }
-
-//            Section {
-//                LabeledContent("Kategori", value: viewModel.material.category)
-//
-//                LabeledContent("Tanggal dibuat") {
-//                    Text(viewModel.material.createdAt, format: .dateTime.day().month(.abbreviated).year())
-//                }
-//            } header: {
-//                Text("Informasi Materi")
-//            } footer: {
-//                if viewModel.isSaved {
-//                    Text("Materi ini tersimpan di pustaka.")
-//                } else if viewModel.hasDuplicateTitle {
-//                    Text("Materi dengan judul yang sama sudah ada di pustaka.")
-//                }
-//            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Detail Materi")
@@ -122,8 +103,8 @@ struct MaterialDetailView: View {
 
     @ViewBuilder
     private var overviewCounts: some View {
-        countBadge("\(topics.count) Topik", symbol: "list.bullet")
-            .accessibilityLabel("\(topics.count) topik pembelajaran")
+        countBadge("\(viewModel.topics.count) Topik", symbol: "list.bullet")
+            .accessibilityLabel("\(viewModel.topics.count) topik pembelajaran")
         countBadge("\(viewModel.overview.questionCount) Soal", symbol: "questionmark.circle")
             .accessibilityLabel("\(viewModel.overview.questionCount) soal latihan")
     }
@@ -153,8 +134,15 @@ struct MaterialDetailView: View {
                     .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-        }
 
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+        }
+        .contentShape(Rectangle())
         .alignmentGuide(.listRowSeparatorLeading) { dimensions in
             dimensions[.leading] + 64
         }
@@ -162,25 +150,23 @@ struct MaterialDetailView: View {
 }
 
 #Preview {
-    let repository = MathMaterialRepository(
-        modelContext: ModelContext(
-            try! ModelContainer(
-                for: DatabaseSchema.schema,
-                configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
-            )
-        )
-    )
+    let coordinator = AppCoordinator.makePreview()
     let sampleMaterial = MathMaterialModel(
         title: "Persamaan Linear Satu Variabel",
         category: "Aljabar",
         content: "Contoh isi materi pembelajaran dari guru."
     )
-    return NavigationStack {
+    return NavigationStack(path: Bindable(coordinator).classroomPath) {
         MaterialDetailView(
             viewModel: MaterialDetailViewModel(
                 material: sampleMaterial,
-                mathMaterialRepository: repository
+                mathMaterialRepository: coordinator.mathMaterialRepository,
+                notificationManager: coordinator.notificationManager,
+                coordinator: coordinator
             )
         )
+        .navigationDestination(for: AppRoutes.self) { route in
+            coordinator.buildDestination(for: route)
+        }
     }
 }

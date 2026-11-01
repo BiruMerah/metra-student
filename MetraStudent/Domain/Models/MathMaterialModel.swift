@@ -7,9 +7,21 @@
 
 import Foundation
 
-// Domain model (don't implement pk)
+nonisolated struct MaterialOverview: Equatable, Hashable, Sendable {
+    let chapter: String
+    let subchapter: String
+    let pageNumber: Int
+    let questionCount: Int
+
+    static let sample = MaterialOverview(
+        chapter: "Bab I - Persamaan Linear Satu Variabel",
+        subchapter: "Mengenal dan Menyelesaikan Persamaan Linear",
+        pageNumber: 21,
+        questionCount: 1
+    )
+}
+
 nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable, Sendable {
-    // TODO: Define list of model properties
     let id: UUID
     var title: String
     var category: String

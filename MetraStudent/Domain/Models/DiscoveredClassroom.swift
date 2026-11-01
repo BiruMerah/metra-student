@@ -6,24 +6,20 @@
 //
 
 import Foundation
-import Network
 
 // Domain model for Network Connection
-struct DiscoveredClassroom: Identifiable, Equatable, Sendable {
+struct DiscoveredClassroom: Identifiable, Equatable, Hashable, Sendable {
     let id: String
-    let endpoint: Bonjour.Endpoint?
     let classroomName: String
     let teacherName: String
     
-    init(id: String = UUID().uuidString, endpoint: Bonjour.Endpoint? = nil, classroomName: String, teacherName: String) {
+    init(id: String = UUID().uuidString, classroomName: String, teacherName: String) {
         self.id = id
-        self.endpoint = endpoint
         self.classroomName = classroomName
         self.teacherName = teacherName
     }
 }
 
-#if DEBUG
 extension DiscoveredClassroom {
     static let sample = DiscoveredClassroom(
         classroomName: "Kelas 4A - Matematika",
@@ -40,4 +36,3 @@ extension DiscoveredClassroom {
         teacherName: "Bpk. Joko Anwar"
     )
 }
-#endif

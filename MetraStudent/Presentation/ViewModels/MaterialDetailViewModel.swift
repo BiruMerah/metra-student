@@ -7,22 +7,6 @@
 
 import Foundation
 import Observation
-import SwiftUI
-
-nonisolated struct MaterialOverview {
-    let chapter: String
-    let subchapter: String
-    let pageNumber: Int
-    let questionCount: Int
-
-    // Presentation fixture until classroom materials include document metadata.
-    static let sample = MaterialOverview(
-        chapter: "Bab I - Persamaan Linear Satu Variabel",
-        subchapter: "Mengenal dan Menyelesaikan Persamaan Linear",
-        pageNumber: 21,
-        questionCount: 1
-    )
-}
 
 @Observable
 @MainActor
@@ -30,9 +14,11 @@ final class MaterialDetailViewModel {
     // MARK: - Observable UI State
     let material: MathMaterialModel
     let overview: MaterialOverview
+    let topics: [MathTopicModel]
     var isSaved: Bool = false
     var hasDuplicateTitle: Bool = false
     var errorMessage: String?
+    private var savedMaterialID: UUID?
     
     var canSave: Bool {
         !isSaved && !hasDuplicateTitle
@@ -40,15 +26,24 @@ final class MaterialDetailViewModel {
     
     // MARK: - Dependencies
     private let mathMaterialRepository: MathMaterialProtocol
+    private let notificationManager: NotificationProtocol?
+    weak var coordinator: (any AppCoordinating)?
     
     init(
         material: MathMaterialModel,
         mathMaterialRepository: MathMaterialProtocol,
-        overview: MaterialOverview? = nil
+        notificationManager: NotificationProtocol? = nil,
+        coordinator: (any AppCoordinating)? = nil,
+        overview: MaterialOverview? = nil,
+        topics: [MathTopicModel]? = nil
     ) {
         self.material = material
-        self.overview = overview ?? .sample
         self.mathMaterialRepository = mathMaterialRepository
+        self.notificationManager =  notificationManager
+        self.coordinator = coordinator
+        self.overview = overview ?? mathMaterialRepository.overview(for: material)
+        self.topics = topics ?? mathMaterialRepository.topics(for: material)
+        
         checkSavedStatus()
     }
     
@@ -57,15 +52,21 @@ final class MaterialDetailViewModel {
         errorMessage = nil
         do {
             let savedMaterials = try mathMaterialRepository.fetchSavedMaterials()
-            self.isSaved = savedMaterials.contains { $0.id == material.id }
-            
             let normalizedTitle = material.title
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .lowercased()
             
-            self.hasDuplicateTitle = savedMaterials.contains {
-                $0.id != material.id &&
+            if let matchedMaterial = savedMaterials.first(where: {
+                $0.id == material.id ||
                 $0.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedTitle
+            }) {
+                self.savedMaterialID = matchedMaterial.id
+                self.isSaved = true
+                self.hasDuplicateTitle = false
+            } else {
+                self.savedMaterialID = nil
+                self.isSaved = false
+                self.hasDuplicateTitle = false
             }
         } catch {
             self.errorMessage = error.localizedDescription
@@ -76,9 +77,10 @@ final class MaterialDetailViewModel {
         guard canSave else { return }
         errorMessage = nil
         do {
-            try mathMaterialRepository.addSavedMaterial(material: material)
+            try mathMaterialRepository.saveMaterial(material)
             checkSavedStatus()
-            AccessibilityNotification.Announcement("Materi berhasil disimpan ke pustaka").post()
+            notificationManager?.announceAccessibility("Materi berhasil disimpan ke pustaka")
+            
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -88,11 +90,19 @@ final class MaterialDetailViewModel {
         guard isSaved else { return }
         errorMessage = nil
         do {
-            try mathMaterialRepository.deleteSavedMaterial(id: material.id)
+            let targetID = savedMaterialID ?? material.id
+            try mathMaterialRepository.deleteMaterial(id: targetID)
             checkSavedStatus()
-            AccessibilityNotification.Announcement("Materi dihapus dari pustaka").post()
+            notificationManager?.announceAccessibility("Materi dihapus dari pustaka")
+            
         } catch {
             self.errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: - Navigation Actions
+    func openTopic(at index: Int) {
+        guard topics.indices.contains(index) else { return }
+        coordinator?.navigate(to: .topicDetail(topics: topics, initialIndex: index))
     }
 }

@@ -6,45 +6,21 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ClassroomView: View {
     @Bindable var viewModel: ClassroomViewModel
     
-    private var displayedClassrooms: [DiscoveredClassroom] {
-        if let connectedID = viewModel.connectedClassroomID {
-            let connectedList = viewModel.discoveredClassrooms.filter { $0.id == connectedID }
-            if !connectedList.isEmpty {
-                return connectedList
-            }
-            if let name = viewModel.connectedClassroomName, let teacher = viewModel.connectedTeacherName {
-                return [DiscoveredClassroom(id: connectedID, classroomName: name, teacherName: teacher)]
-            }
-        }
-        return viewModel.discoveredClassrooms
-    }
-    
-    private var emptyClassroomsMessage: String {
-        if viewModel.isSearching {
-            return "Sedang mencari ruang kelas di sekitar..."
-        } else if viewModel.statusMessage == "Idle" || viewModel.statusMessage == "Disconnected" {
-            return "Belum ada ruang kelas yang ditemukan"
-        } else {
-            return viewModel.statusMessage
-        }
-    }
-    
     var body: some View {
         List {
             Section {
-                if displayedClassrooms.isEmpty {
+                if viewModel.displayedClassrooms.isEmpty {
                     HStack(spacing: 12) {
                         if viewModel.isSearching {
                             ProgressView()
                                 .accessibilityHidden(true)
                         }
                         
-                        Text(emptyClassroomsMessage)
+                        Text(viewModel.emptyClassroomsMessage)
                             .font(.body.weight(.medium))
                             .foregroundStyle(.secondary)
                     }
@@ -56,7 +32,7 @@ struct ClassroomView: View {
                         : "Belum ada ruang kelas yang ditemukan."
                     )
                 } else {
-                    ForEach(displayedClassrooms) { classroom in
+                    ForEach(viewModel.displayedClassrooms) { classroom in
                         ClassroomRowView(
                             classroom: classroom,
                             state: viewModel.connectionState(for: classroom),
@@ -122,13 +98,7 @@ struct ClassroomView: View {
 }
 
 #Preview {
-    let coordinator = AppCoordinator(
-        networkManager: NetworkManager(), mathMaterialRepository: MathMaterialRepository(
-            modelContext: ModelContext(
-                try! ModelContainer(for: DatabaseSchema.schema)
-            )
-        )
-    )
+    let coordinator = AppCoordinator.makePreview()
     return NavigationStack {
         coordinator.buildClassroom()
             .navigationDestination(for: AppRoutes.self) { route in

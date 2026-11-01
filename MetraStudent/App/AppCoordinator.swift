@@ -8,26 +8,28 @@
 import Foundation
 import Observation
 import SwiftUI
+import SwiftData
 
 @Observable
 @MainActor
-final class AppCoordinator {
+final class AppCoordinator: AppCoordinating {
     // MARK: - Navigation State
     var selectedTab: AppTab = .classroom
     var classroomPath = NavigationPath()
     var libraryPath = NavigationPath()
     
-    // MARK: - Dependencies
+    // MARK: - Dependencies (Domain Protocols)
     let networkManager: NetworkProtocol
     let mathMaterialRepository: MathMaterialProtocol
-    let materialNotifier: MaterialNotificationProtocol
+    let notificationManager: NotificationProtocol
+    let assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)?
     
     // MARK: - ViewModels
     @ObservationIgnored
     lazy var classroomViewModel: ClassroomViewModel = ClassroomViewModel(
         networkManager: networkManager,
         mathMaterialRepository: mathMaterialRepository,
-        materialNotifier: materialNotifier,
+        notificationManager: notificationManager,
         coordinator: self
     )
     
@@ -37,22 +39,31 @@ final class AppCoordinator {
         coordinator: self
     )
     
-    // MARK: - Initialization
+    // MARK: - Main Initialization
     init(
         networkManager: NetworkProtocol,
         mathMaterialRepository: MathMaterialProtocol,
-        materialNotifier: MaterialNotificationProtocol? = nil
+        notificationManager: NotificationProtocol,
+        assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
     ) {
         self.networkManager = networkManager
         self.mathMaterialRepository = mathMaterialRepository
-        self.materialNotifier = materialNotifier ?? MaterialNotificationService()
+        self.notificationManager = notificationManager
+        self.assistantEngineFactory = assistantEngineFactory
+    }
+
+    static func makePreview(savedMaterials: [MathMaterialModel] = []) -> AppCoordinator {
+        AppCoordinator(
+            networkManager: NetworkManager(),
+            mathMaterialRepository: InMemoryMathMaterialRepository(materials: savedMaterials),
+            notificationManager: NotificationManager()
+        )
     }
     
     // MARK: - Tab Management
     func selectTab(_ tab: AppTab) {
         if selectedTab == tab {
             popToRoot(in: tab)
-            
         } else {
             selectedTab = tab
         }
@@ -113,7 +124,18 @@ final class AppCoordinator {
             MaterialDetailView(
                 viewModel: MaterialDetailViewModel(
                     material: material,
-                    mathMaterialRepository: mathMaterialRepository
+                    mathMaterialRepository: mathMaterialRepository,
+                    notificationManager: notificationManager,
+                    coordinator: self
+                )
+            )
+
+        case .topicDetail(let topics, let initialIndex):
+            TopicView(
+                viewModel: TopicViewModel(
+                    topics: topics,
+                    initialTopicIndex: initialIndex,
+                    assistantEngineFactory: assistantEngineFactory
                 )
             )
         }

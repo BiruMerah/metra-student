@@ -11,7 +11,7 @@ import Observation
 @Observable
 @MainActor
 final class LibraryViewModel {
-    // MARK: - Published variables
+    // MARK: - Observable UI State
     var materials: [MathMaterialModel] = []
     var searchText: String = ""
     var selectedMaterial: MathMaterialModel?
@@ -31,17 +31,17 @@ final class LibraryViewModel {
     
     // MARK: - Dependencies
     private let mathMaterialRepository: MathMaterialProtocol
-    weak var coordinator: AppCoordinator?
+    weak var coordinator: (any AppCoordinating)?
     
     init(
         mathMaterialRepository: MathMaterialProtocol,
-        coordinator: AppCoordinator? = nil
+        coordinator: (any AppCoordinating)? = nil
     ) {
         self.mathMaterialRepository = mathMaterialRepository
         self.coordinator = coordinator
     }
-
-    // MARK: - Functions
+    
+    // MARK: - Action Functions
     func loadMaterials() {
         isLoading = true
         errorMessage = nil
@@ -58,15 +58,14 @@ final class LibraryViewModel {
         for index in offsets {
             let item = currentMaterials[index]
             do {
-                try mathMaterialRepository.deleteSavedMaterial(id: item.id)
+                try mathMaterialRepository.deleteMaterial(id: item.id)
             } catch {
                 self.errorMessage = error.localizedDescription
             }
         }
-        loadMaterials() // Refresh list
+        loadMaterials()
     }
     
-    // MARK: - Navigation Actions
     func openMaterialDetail(_ material: MathMaterialModel) {
         self.selectedMaterial = material
         coordinator?.navigate(to: .materialDetail(material), in: .library)

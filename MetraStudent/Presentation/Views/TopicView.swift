@@ -13,9 +13,13 @@ struct TopicView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AccessibilityFocusState(for: .voiceOver) private var readingFocus: ReadingFocus?
     @State private var viewModel: TopicViewModel
-    @State private var assistant: MetraAssistantViewModel?
+    @State private var assistant: AIAssistantViewModel?
     @State private var lastSelectedSentenceID: String?
     @State private var selectionError: String?
+
+    init(viewModel: TopicViewModel) {
+        _viewModel = State(initialValue: viewModel)
+    }
 
     init(topics: [MathTopicModel], initialTopicIndex: Int = 0) {
         _viewModel = State(initialValue: TopicViewModel(
@@ -85,7 +89,7 @@ struct TopicView: View {
                 readingFocus = .sentence(lastSelectedSentenceID)
             }
         }) { session in
-            MetraAssistantSheet(viewModel: session)
+            AIAssistantView(viewModel: session)
         }
         .alert("Metra Assistant belum dapat dibuka", isPresented: Binding(
             get: { selectionError != nil },
