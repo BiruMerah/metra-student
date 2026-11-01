@@ -60,11 +60,11 @@ final class TopicViewModel {
         prepareContent()
     }
 
-    func assistantSelection(sentenceID: String) throws -> MetraAssistantSelection {
+    func assistantSelection(sentenceID: String) throws -> AIAssistantSelection {
         let sentences = readingBlocks.flatMap(\.sentences).map {
-            MetraAssistantSentence(id: $0.id, text: $0.text)
+            AIAssistantSentence(id: $0.id, text: $0.text)
         }
-        return try MetraAssistantSelection.make(
+        return try AIAssistantSelection.make(
             topicID: topic.id,
             topicTitle: topic.title,
             sentences: sentences,

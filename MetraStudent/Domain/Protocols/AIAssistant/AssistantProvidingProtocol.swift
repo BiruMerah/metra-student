@@ -12,10 +12,10 @@ protocol AssistantProvidingProtocol {
     var availabilityMessage: String? { get }
     
     func result(
-        action: MetraAssistantAction,
-        selection: MetraAssistantSelection,
-        progress: @escaping @MainActor (MetraAssistantProgress) -> Void
-    ) async throws -> MetraAssistantResult
+        action: AIAssistantAction,
+        selection: AIAssistantSelection,
+        progress: @escaping @MainActor (AIAssistantProgress) -> Void
+    ) async throws -> AIAssistantResult
     
     func cancel()
 }

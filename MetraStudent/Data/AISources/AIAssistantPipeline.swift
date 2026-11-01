@@ -19,10 +19,10 @@ final class AIAssistantPipeline: AssistantProvidingProtocol {
     }
     
     func result(
-        action: MetraAssistantAction,
-        selection: MetraAssistantSelection,
-        progress: @escaping @MainActor (MetraAssistantProgress) -> Void
-    ) async throws -> MetraAssistantResult {
+        action: AIAssistantAction,
+        selection: AIAssistantSelection,
+        progress: @escaping @MainActor (AIAssistantProgress) -> Void
+    ) async throws -> AIAssistantResult {
         if let message = availabilityMessage { throw MetraAssistantFailure.message(message) }
         try Task.checkCancellation()
         let source = selection.sourceSentences(for: action)
@@ -56,12 +56,12 @@ final class AIAssistantPipeline: AssistantProvidingProtocol {
                 throw MetraAssistantFailure.message("Terjemahan hasil belum lengkap. Silakan coba lagi.")
             }
             do {
-                guard MetraMathGuard.preservesUnits(points: output, source: source) else {
+                guard MathGuard.preservesUnits(points: output, source: source) else {
                     throw MetraAssistantFailure.message("Satuan dalam jawaban belum sesuai materi. Silakan coba lagi.")
                 }
                 // Enforce limits on the FINAL Indonesian text, including spaces.
                 // Never truncate an explanation, which could change its mathematical meaning.
-                return try MetraAssistantResult.validated(action: action, points: output)
+                return try AIAssistantResult.validated(action: action, points: output)
             } catch {
                 if attempt == 2 { throw error }
             }

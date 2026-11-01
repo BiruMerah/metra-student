@@ -45,20 +45,20 @@ final class FoundationModel: AssistantGeneratingProtocol {
         }
     }
 
-    func generate(action: MetraAssistantAction, sentences: [String], extraBrief: Bool) async throws -> [String] {
+    func generate(action: AIAssistantAction, sentences: [String], extraBrief: Bool) async throws -> [String] {
         if let message = availabilityMessage { throw MetraAssistantFailure.message(message) }
         guard !sentences.isEmpty else { throw MetraAssistantFailure.message("Belum ada materi untuk diproses.") }
 
         var source = sentences
         // Hierarchical summaries preserve the entire prefix instead of silently dropping its beginning.
-        while action == .summarize && source.reduce(0, { $0 + MetraAssistantResult.wordCount($1) }) > 600 {
-            let originalWords = source.reduce(0) { $0 + MetraAssistantResult.wordCount($1) }
+        while action == .summarize && source.reduce(0, { $0 + AIAssistantResult.wordCount($1) }) > 600 {
+            let originalWords = source.reduce(0) { $0 + AIAssistantResult.wordCount($1) }
             var reduced: [String] = []
             for group in Self.groups(source, wordBudget: 450) {
                 try Task.checkCancellation()
                 reduced += try await request(action: .summarize, sentences: group, extraBrief: false)
             }
-            guard reduced.reduce(0, { $0 + MetraAssistantResult.wordCount($1) }) < originalWords else {
+            guard reduced.reduce(0, { $0 + AIAssistantResult.wordCount($1) }) < originalWords else {
                 throw MetraAssistantFailure.message("Bagian materi ini belum berhasil diringkas. Silakan coba lagi.")
             }
             source = reduced
@@ -66,7 +66,7 @@ final class FoundationModel: AssistantGeneratingProtocol {
         return try await request(action: action, sentences: source, extraBrief: extraBrief)
     }
 
-    private func request(action: MetraAssistantAction, sentences: [String], extraBrief: Bool) async throws -> [String] {
+    private func request(action: AIAssistantAction, sentences: [String], extraBrief: Bool) async throws -> [String] {
         let variableInstruction = outputLanguage == "id"
             ? "Say eks for the unknown variable."
             : "Refer to an unknown variable as the unknown value, using words rather than a letter."
@@ -112,7 +112,7 @@ final class FoundationModel: AssistantGeneratingProtocol {
                 points = [try await session.respond(to: prompt, generating: ExplanationDraft.self, options: options).content.explanation]
             }
             try Task.checkCancellation()
-            guard MetraMathGuard.preservesUnits(points: points, source: sentences) else {
+            guard MathGuard.preservesUnits(points: points, source: sentences) else {
                 throw MetraAssistantFailure.message("Asisten belum berhasil menjaga satuan materi. Silakan coba lagi.")
             }
             return points
@@ -142,7 +142,7 @@ final class FoundationModel: AssistantGeneratingProtocol {
         var current: [String] = []
         var words = 0
         for sentence in sentences {
-            let count = MetraAssistantResult.wordCount(sentence)
+            let count = AIAssistantResult.wordCount(sentence)
             if words + count > wordBudget, !current.isEmpty {
                 groups.append(current)
                 current = []

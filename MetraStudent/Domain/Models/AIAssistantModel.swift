@@ -1,9 +1,16 @@
+//
+//  AIAssistantModel.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 01/11/26.
+//
+
 import Foundation
 import NaturalLanguage
 
-nonisolated enum MetraAssistantAction: String, CaseIterable, Identifiable {
+nonisolated enum AIAssistantAction: String, CaseIterable, Identifiable {
     case summarize, explain
-
+    
     var id: String { rawValue }
     var title: String { self == .summarize ? "Simpulkan hingga kalimat ini" : "Jelaskan lebih lanjut" }
     var resultTitle: String { self == .summarize ? "Ringkasan" : "Penjelasan" }
@@ -11,24 +18,24 @@ nonisolated enum MetraAssistantAction: String, CaseIterable, Identifiable {
     var alternative: Self { self == .summarize ? .explain : .summarize }
 }
 
-nonisolated struct MetraAssistantSentence: Equatable {
+nonisolated struct AIAssistantSentence: Equatable {
     let id: String
     let text: String
 }
 
-nonisolated struct MetraAssistantSelection: Identifiable, Equatable {
+nonisolated struct AIAssistantSelection: Identifiable, Equatable {
     let topicID: UUID
     let topicTitle: String
     let sentenceID: String
-    let sentencesThroughSelection: [MetraAssistantSentence]
-
+    let sentencesThroughSelection: [AIAssistantSentence]
+    
     var id: String { "\(topicID.uuidString).\(sentenceID)" }
     var selectedSentence: String { sentencesThroughSelection.last?.text ?? "" }
-
+    
     static func make(
         topicID: UUID,
         topicTitle: String,
-        sentences: [MetraAssistantSentence],
+        sentences: [AIAssistantSentence],
         selectedID: String
     ) throws -> Self {
         guard let index = sentences.firstIndex(where: { $0.id == selectedID }) else {
@@ -37,10 +44,10 @@ nonisolated struct MetraAssistantSelection: Identifiable, Equatable {
         return Self(topicID: topicID, topicTitle: topicTitle, sentenceID: selectedID,
                     sentencesThroughSelection: Array(sentences.prefix(index + 1)))
     }
-
-    func sourceSentences(for action: MetraAssistantAction) -> [String] {
+    
+    func sourceSentences(for action: AIAssistantAction) -> [String] {
         if action == .summarize { return sentencesThroughSelection.map(\.text) }
-
+        
         // Retrieve only earlier context, keeping its original reading order.
         let previous = Array(sentencesThroughSelection.dropLast())
         let selectedWords = Self.words(selectedSentence)
@@ -56,7 +63,7 @@ nonisolated struct MetraAssistantSelection: Identifiable, Equatable {
         for item in ranked.prefix(3) { indices.insert(item.index) }
         return indices.sorted().map { previous[$0].text } + [selectedSentence]
     }
-
+    
     private static func words(_ text: String) -> Set<String> {
         let ignored: Set<String> = ["yang", "dan", "dengan", "dari", "untuk", "adalah", "atau", "pada", "ini", "itu", "sebuah"]
         return Set(text.lowercased().split { !$0.isLetter }.map(String.init).filter {
@@ -65,12 +72,12 @@ nonisolated struct MetraAssistantSelection: Identifiable, Equatable {
     }
 }
 
-nonisolated struct MetraAssistantResult: Identifiable, Equatable {
+nonisolated struct AIAssistantResult: Identifiable, Equatable {
     let id: UUID
-    let action: MetraAssistantAction
+    let action: AIAssistantAction
     let points: [String]
-
-    static func validated(action: MetraAssistantAction, points: [String]) throws -> Self {
+    
+    static func validated(action: AIAssistantAction, points: [String]) throws -> Self {
         let clean = points.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         guard !clean.isEmpty, clean.allSatisfy({ !$0.isEmpty }) else {
             throw MetraAssistantFailure.message("Hasil masih kosong. Silakan coba lagi.")
@@ -93,7 +100,7 @@ nonisolated struct MetraAssistantResult: Identifiable, Equatable {
         guard clean.allSatisfy(isVerbalMath) else {
             throw MetraAssistantFailure.message("Hasil belum sepenuhnya matematika verbal. Silakan coba lagi.")
         }
-
+        
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(clean.joined(separator: " "))
         if let language = recognizer.languageHypotheses(withMaximum: 1).first,
@@ -102,9 +109,9 @@ nonisolated struct MetraAssistantResult: Identifiable, Equatable {
         }
         return Self(id: UUID(), action: action, points: clean)
     }
-
+    
     static func wordCount(_ text: String) -> Int { text.split(whereSeparator: \.isWhitespace).count }
-
+    
     static func isVerbalMath(_ text: String) -> Bool {
         guard !text.unicodeScalars.contains(where: {
             $0.properties.numericType != nil || [.mathSymbol, .currencySymbol, .otherSymbol].contains($0.properties.generalCategory)
@@ -115,16 +122,16 @@ nonisolated struct MetraAssistantResult: Identifiable, Equatable {
     }
 }
 
-nonisolated enum MetraAssistantProgress { case translatingSource, generating, translatingResult }
+nonisolated enum AIAssistantProgress { case translatingSource, generating, translatingResult }
 
-nonisolated enum MetraAssistantFailure: LocalizedError {
+nonisolated enum AIAssistantFailure: LocalizedError {
     case message(String)
     var errorDescription: String? {
         switch self { case .message(let text): text }
     }
 }
 
-nonisolated enum MetraMathGuard {
+nonisolated enum MathGuard {
     private static let units = [
         #"\b(?:centimet(?:er|re)s?|sentimeter|cm)\b"#,
         #"\b(?:millimet(?:er|re)s?|milimeter|mm)\b"#,
@@ -135,7 +142,7 @@ nonisolated enum MetraMathGuard {
         #"\b(?:lit(?:er|re)s?)\b"#,
         #"\b(?:millilit(?:er|re)s?|mililiter|ml)\b"#
     ]
-
+    
     static func preservesUnits(points: [String], source: [String]) -> Bool {
         let input = source.joined(separator: " ").lowercased()
         let output = points.joined(separator: " ").lowercased()

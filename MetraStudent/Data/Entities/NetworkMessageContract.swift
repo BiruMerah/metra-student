@@ -59,7 +59,7 @@ nonisolated struct BroadcastPayload: Codable, Equatable, Sendable {
     }
 }
 
-nonisolated enum ClassroomNetworkMessage: Codable, Equatable, Sendable {
+nonisolated enum NetworkMessageContract: Codable, Equatable, Sendable {
     case studentInformation(id: String, name: String)
     case classroomSync(BroadcastPayload)
     

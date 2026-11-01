@@ -13,5 +13,5 @@ protocol AssistantGeneratingProtocol {
     
     var outputLanguage: String { get }
     
-    func generate(action: MetraAssistantAction, sentences: [String], extraBrief: Bool) async throws -> [String]
+    func generate(action: AIAssistantAction, sentences: [String], extraBrief: Bool) async throws -> [String]
 }

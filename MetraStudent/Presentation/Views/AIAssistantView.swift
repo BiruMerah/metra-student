@@ -16,7 +16,7 @@ struct AIAssistantView: View {
     @AccessibilityFocusState(for: .voiceOver) private var focused: Focus?
     @State private var viewModel: AIAssistantViewModel
 
-    init(selection: MetraAssistantSelection, engine: (any AssistantProvidingProtocol)? = nil) {
+    init(selection: AIAssistantSelection, engine: (any AssistantProvidingProtocol)? = nil) {
         _viewModel = State(initialValue: AIAssistantViewModel(selection: selection, engine: engine))
     }
 
@@ -167,7 +167,7 @@ struct AIAssistantView: View {
         actionButton(.summarize, detail: "Maksimal lima poin ringkas")
     }
 
-    private func actionButton(_ action: MetraAssistantAction, detail: String) -> some View {
+    private func actionButton(_ action: AIAssistantAction, detail: String) -> some View {
         Button {
             viewModel.select(action)
         } label: {
@@ -198,7 +198,7 @@ struct AIAssistantView: View {
         .accessibilityIdentifier("metra-assistant-\(action.rawValue)")
     }
 
-    private func resultCard(_ result: MetraAssistantResult) -> some View {
+    private func resultCard(_ result: AIAssistantResult) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(result.action.resultTitle)
                 .font(.headline)
@@ -241,12 +241,12 @@ struct AIAssistantView: View {
 }
 
 #Preview {
-    let selection = try! MetraAssistantSelection.make(
+    let selection = try! AIAssistantSelection.make(
         topicID: UUID(),
         topicTitle: "Pengertian Persamaan Linear",
         sentences: [
-            MetraAssistantSentence(id: "0", text: "Eks adalah bilangan yang belum diketahui."),
-            MetraAssistantSentence(id: "1", text: "Eks ditambah tiga sama dengan tujuh.")
+            AIAssistantSentence(id: "0", text: "Eks adalah bilangan yang belum diketahui."),
+            AIAssistantSentence(id: "1", text: "Eks ditambah tiga sama dengan tujuh.")
         ],
         selectedID: "1"
     )

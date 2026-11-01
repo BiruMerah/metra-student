@@ -11,11 +11,11 @@ import Observation
 @Observable
 @MainActor
 final class AIAssistantViewModel: Identifiable {
-    let selection: MetraAssistantSelection
+    let selection: AIAssistantSelection
     let translationBridge: AIAssistantTranslationBridge
-    private(set) var results: [MetraAssistantResult] = []
-    private(set) var phase: MetraAssistantProgress?
-    private(set) var activeAction: MetraAssistantAction?
+    private(set) var results: [AIAssistantResult] = []
+    private(set) var phase: AIAssistantProgress?
+    private(set) var activeAction: AIAssistantAction?
     private(set) var errorMessage: String?
     private(set) var availabilityMessage: String?
     
@@ -24,7 +24,7 @@ final class AIAssistantViewModel: Identifiable {
     private var requestID = UUID()
     
     init(
-        selection: MetraAssistantSelection,
+        selection: AIAssistantSelection,
         engine: (any AssistantProvidingProtocol)? = nil,
         engineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
     ) {
@@ -36,14 +36,14 @@ final class AIAssistantViewModel: Identifiable {
     
     var isBusy: Bool { phase != nil }
     var id: String { selection.id }
-    var hasReachedRequestLimit: Bool { results.count >= MetraAssistantAction.allCases.count }
+    var hasReachedRequestLimit: Bool { results.count >= AIAssistantAction.allCases.count }
     
-    var followUpAction: MetraAssistantAction? {
+    var followUpAction: AIAssistantAction? {
         guard results.count == 1 else { return nil }
         return results[0].action.alternative
     }
     
-    func canRequest(_ action: MetraAssistantAction) -> Bool {
+    func canRequest(_ action: AIAssistantAction) -> Bool {
         !isBusy && !hasReachedRequestLimit && !results.contains(where: { $0.action == action })
     }
     
@@ -58,7 +58,7 @@ final class AIAssistantViewModel: Identifiable {
     
     func refreshAvailability() { availabilityMessage = engine.availabilityMessage }
     
-    func select(_ action: MetraAssistantAction) {
+    func select(_ action: AIAssistantAction) {
         guard canRequest(action) else { return }
         refreshAvailability()
         guard availabilityMessage == nil else { return }

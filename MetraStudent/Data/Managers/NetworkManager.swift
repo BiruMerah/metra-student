@@ -11,7 +11,7 @@ import Network
 final class NetworkManager: NetworkProtocol {
     static let bonjourServiceType = "_classroom-poc._tcp"
     
-    typealias ClassroomProtocol = Coder<ClassroomNetworkMessage, ClassroomNetworkMessage, NetworkJSONCoder>
+    typealias ClassroomProtocol = Coder<NetworkMessageContract, NetworkMessageContract, NetworkJSONCoder>
     typealias ClassroomConnection = NetworkConnection<ClassroomProtocol>
     
     private var localPeerID: String = UUID().uuidString
@@ -84,7 +84,7 @@ final class NetworkManager: NetworkProtocol {
             guard let self else { return }
             guard let endpoint else { return }
             let connection = NetworkConnection(to: endpoint) {
-                Coder(ClassroomNetworkMessage.self, using: .json) {
+                Coder(NetworkMessageContract.self, using: .json) {
                     TCP()
                 }
             }
