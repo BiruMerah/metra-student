@@ -1,42 +1,52 @@
+//
+//  AIAssistantViewModel.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 01/11/26.
+//
+
 import Foundation
 import Observation
 
-@MainActor
 @Observable
-final class MetraAssistantViewModel: Identifiable {
+@MainActor
+final class AIAssistantViewModel: Identifiable {
     let selection: MetraAssistantSelection
-    let translation: MetraTranslationBridge
+    let translationBridge: AIAssistantTranslationBridge
     private(set) var results: [MetraAssistantResult] = []
     private(set) var phase: MetraAssistantProgress?
     private(set) var activeAction: MetraAssistantAction?
     private(set) var errorMessage: String?
     private(set) var availabilityMessage: String?
-
-    private let engine: any MetraAssistantProviding
+    
+    private let engine: any AssistantProvidingProtocol
     private var work: Task<Void, Never>?
     private var requestID = UUID()
-
-    init(selection: MetraAssistantSelection, engine: (any MetraAssistantProviding)? = nil) {
+    
+    init(
+        selection: MetraAssistantSelection,
+        engine: (any AssistantProvidingProtocol)? = nil,
+        engineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
+    ) {
         self.selection = selection
-        let translation = MetraTranslationBridge()
-        self.translation = translation
-        self.engine = engine ?? MetraAssistantPipeline(translator: translation)
+        self.translationBridge = AIAssistantTranslationBridge()
+        self.engine = engine ?? engineFactory?(AIAssistantTranslationBridge()) ?? AIAssistantPipeline(assistantTranslator: AIAssistantTranslationBridge())
         refreshAvailability()
     }
-
+    
     var isBusy: Bool { phase != nil }
     var id: String { selection.id }
     var hasReachedRequestLimit: Bool { results.count >= MetraAssistantAction.allCases.count }
-
+    
     var followUpAction: MetraAssistantAction? {
         guard results.count == 1 else { return nil }
         return results[0].action.alternative
     }
-
+    
     func canRequest(_ action: MetraAssistantAction) -> Bool {
         !isBusy && !hasReachedRequestLimit && !results.contains(where: { $0.action == action })
     }
-
+    
     var status: String {
         switch phase {
         case .translatingSource: "Menyiapkan materi…"
@@ -45,9 +55,9 @@ final class MetraAssistantViewModel: Identifiable {
         case nil: "Pilih bantuan yang kamu perlukan."
         }
     }
-
+    
     func refreshAvailability() { availabilityMessage = engine.availabilityMessage }
-
+    
     func select(_ action: MetraAssistantAction) {
         guard canRequest(action) else { return }
         refreshAvailability()
@@ -72,6 +82,7 @@ final class MetraAssistantViewModel: Identifiable {
                 results.append(result)
                 phase = nil
                 work = nil
+                
             } catch {
                 guard requestID == id, !Task.isCancelled else { return }
                 phase = nil
@@ -80,7 +91,7 @@ final class MetraAssistantViewModel: Identifiable {
             }
         }
     }
-
+    
     func cancel() {
         requestID = UUID()
         work?.cancel()

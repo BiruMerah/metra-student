@@ -1,19 +1,26 @@
+//
+//  AIAssistantView.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 01/11/26.
+//
+
 import SwiftUI
 import Translation
 
-struct MetraAssistantSheet: View {
+struct AIAssistantView: View {
     private enum Focus: Hashable { case selection, progress, error, result(UUID) }
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @AccessibilityFocusState(for: .voiceOver) private var focused: Focus?
-    @State private var viewModel: MetraAssistantViewModel
+    @State private var viewModel: AIAssistantViewModel
 
-    init(selection: MetraAssistantSelection, engine: (any MetraAssistantProviding)? = nil) {
-        _viewModel = State(initialValue: MetraAssistantViewModel(selection: selection, engine: engine))
+    init(selection: MetraAssistantSelection, engine: (any AssistantProvidingProtocol)? = nil) {
+        _viewModel = State(initialValue: AIAssistantViewModel(selection: selection, engine: engine))
     }
 
-    init(viewModel: MetraAssistantViewModel) {
+    init(viewModel: AIAssistantViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
 
@@ -120,8 +127,8 @@ struct MetraAssistantSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .translationTask(viewModel.translation.configuration) { session in
-            await viewModel.translation.perform(using: session)
+        .translationTask(viewModel.translationBridge.configuration) { session in
+            await viewModel.translationBridge.perform(using: session)
         }
         .task {
             viewModel.refreshAvailability()
@@ -233,7 +240,7 @@ struct MetraAssistantSheet: View {
     }
 }
 
-#Preview("Metra Assistant") {
+#Preview {
     let selection = try! MetraAssistantSelection.make(
         topicID: UUID(),
         topicTitle: "Pengertian Persamaan Linear",
@@ -243,5 +250,7 @@ struct MetraAssistantSheet: View {
         ],
         selectedID: "1"
     )
-    MetraAssistantSheet(selection: selection)
+    AIAssistantView(
+        selection: selection
+    )
 }

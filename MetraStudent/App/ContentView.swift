@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
     @Bindable var coordinator: AppCoordinator
@@ -43,13 +42,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    let coordinator = AppCoordinator(
-        networkManager: NetworkManager(),
-        mathMaterialRepository: MathMaterialRepository(
-            modelContext: ModelContext(
-                try! ModelContainer(for: DatabaseSchema.schema)
-            )
-        )
-    )
+    let coordinator = AppCoordinator.makePreview()
     return ContentView(coordinator: coordinator)
 }

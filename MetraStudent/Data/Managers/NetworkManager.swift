@@ -19,12 +19,14 @@ final class NetworkManager: NetworkProtocol {
     private var browsingTask: Task<Void, Never>?
     private var studentConnectionTask: Task<Void, Never>?
     private var activeStudentConnection: ClassroomConnection?
+    private var discoveredEndpoints: [String: Bonjour.Endpoint] = [:]
     
     var onEvent: ((NetworkEvent) -> Void)?
     
     func startSearchingClassrooms() {
         browsingTask?.cancel()
         isSearching = true
+        discoveredEndpoints.removeAll()
         onEvent?(.classroomUpdated([]))
         onEvent?(.searchingChanged(true))
         
@@ -77,9 +79,10 @@ final class NetworkManager: NetworkProtocol {
         onEvent?(.classroomConnecting(discoveredClassroom))
         
         let studentID = localPeerID
+        let endpoint = discoveredEndpoints[discoveredClassroom.id]
         studentConnectionTask = Task { [weak self] in
             guard let self else { return }
-            guard let endpoint = discoveredClassroom.endpoint else { return }
+            guard let endpoint else { return }
             let connection = NetworkConnection(to: endpoint) {
                 Coder(ClassroomNetworkMessage.self, using: .json) {
                     TCP()
@@ -112,7 +115,7 @@ final class NetworkManager: NetworkProtocol {
                                 classroomId: discoveredClassroom.id,
                                 classroomName: payload.classroomName,
                                 teacherName: payload.teacherName,
-                                materials: payload.materials
+                                materials: payload.materials.map { $0.toDomain() }
                             )
                         )
                     case .studentInformation:
@@ -146,22 +149,27 @@ final class NetworkManager: NetworkProtocol {
         studentConnectionTask?.cancel()
         studentConnectionTask = nil
         activeStudentConnection = nil
+        discoveredEndpoints.removeAll()
         isSearching = false
         onEvent?(.resetAll)
     }
     
     private func handleDiscoveredEndpoints(_ endpoints: [Bonjour.Endpoint]) {
+        var nextEndpoints: [String: Bonjour.Endpoint] = [:]
         let updatedClassrooms = endpoints.map { endpoint in
             let classroomName = endpoint.txtRecord["classroomName"]
                 ?? endpoint.txtRecord["roomName"]
                 ?? endpoint.name
             let teacherName = endpoint.txtRecord["teacherName"] ?? endpoint.name
+            let classroomID = "\(endpoint.name)|\(classroomName)|\(teacherName)"
+            nextEndpoints[classroomID] = endpoint
             return DiscoveredClassroom(
-                endpoint: endpoint,
+                id: classroomID,
                 classroomName: classroomName,
                 teacherName: teacherName
             )
         }
+        discoveredEndpoints = nextEndpoints
         onEvent?(.classroomUpdated(updatedClassrooms))
     }
 }

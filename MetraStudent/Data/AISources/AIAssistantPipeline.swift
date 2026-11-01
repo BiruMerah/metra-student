@@ -1,16 +1,23 @@
+//
+//  AIAssistantPipeline.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 01/11/26.
+//
+
 import Foundation
 
 @MainActor
-final class MetraAssistantPipeline: MetraAssistantProviding {
-    private let translator: any MetraAssistantTranslating
-    private let model: any MetraAssistantGenerating
+final class AIAssistantPipeline: AssistantProvidingProtocol {
+    private let assistantTranslator: any AssistantTranslatingProtocol
+    private let model: any AssistantGeneratingProtocol
     var availabilityMessage: String? { model.availabilityMessage }
-
-    init(translator: any MetraAssistantTranslating, model: (any MetraAssistantGenerating)? = nil) {
-        self.translator = translator
-        self.model = model ?? FoundationMetraAssistantModel()
+    
+    init(assistantTranslator: any AssistantTranslatingProtocol, model: (any AssistantGeneratingProtocol)? = nil) {
+        self.assistantTranslator = assistantTranslator
+        self.model = model ?? FoundationModel()
     }
-
+    
     func result(
         action: MetraAssistantAction,
         selection: MetraAssistantSelection,
@@ -23,7 +30,7 @@ final class MetraAssistantPipeline: MetraAssistantProviding {
         let modelInput: [String]
         if requiresTranslation {
             progress(.translatingSource)
-            modelInput = try await translator.translate(source, from: "id", to: "en")
+            modelInput = try await assistantTranslator.translate(source, from: "id", to: "en")
         } else {
             modelInput = source
         }
@@ -32,7 +39,7 @@ final class MetraAssistantPipeline: MetraAssistantProviding {
               modelInput.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
             throw MetraAssistantFailure.message("Materi belum lengkap untuk diproses. Silakan coba lagi.")
         }
-
+        
         for attempt in 0..<3 {
             progress(.generating)
             let draft = try await model.generate(action: action, sentences: modelInput, extraBrief: attempt > 0)
@@ -40,7 +47,7 @@ final class MetraAssistantPipeline: MetraAssistantProviding {
             let output: [String]
             if requiresTranslation {
                 progress(.translatingResult)
-                output = try await translator.translate(draft, from: "en", to: "id")
+                output = try await assistantTranslator.translate(draft, from: "en", to: "id")
             } else {
                 output = draft
             }
@@ -61,6 +68,7 @@ final class MetraAssistantPipeline: MetraAssistantProviding {
         }
         throw MetraAssistantFailure.message("Jawaban belum berhasil dibuat. Silakan coba lagi.")
     }
-
-    func cancel() { translator.cancel() }
+    
+    func cancel() { assistantTranslator.cancel() }
 }
+

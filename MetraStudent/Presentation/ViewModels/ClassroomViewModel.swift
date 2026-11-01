@@ -7,15 +7,14 @@
 
 import Foundation
 import Observation
-import SwiftUI
 import UIKit
 
 @Observable
 @MainActor
 final class ClassroomViewModel {
+    // MARK: - Observable UI State
     private static let displayNameKey = "savedStudentDisplayName"
     
-    // MARK: - Observable UI State
     var displayName: String {
         didSet {
             UserDefaults.standard.set(displayName, forKey: Self.displayNameKey)
@@ -31,26 +30,51 @@ final class ClassroomViewModel {
     var selectedMaterial: MathMaterialModel?
     var statusMessage: String = "Idle"
     var errorMessage: String?
+    private var hasCompletedInitialSearch: Bool = false
+    
     var isStudentConnected: Bool {
         connectedClassroomID != nil
+    }
+    
+    var displayedClassrooms: [DiscoveredClassroom] {
+        if let connectedID = connectedClassroomID {
+            let connectedList = discoveredClassrooms.filter { $0.id == connectedID }
+            if !connectedList.isEmpty {
+                return connectedList
+            }
+            if let name = connectedClassroomName, let teacher = connectedTeacherName {
+                return [DiscoveredClassroom(id: connectedID, classroomName: name, teacherName: teacher)]
+            }
+        }
+        return discoveredClassrooms
+    }
+    
+    var emptyClassroomsMessage: String {
+        if isSearching {
+            return "Sedang mencari ruang kelas di sekitar..."
+        } else if !hasCompletedInitialSearch {
+            return "Belum ada ruang kelas yang ditemukan"
+        } else {
+            return statusMessage
+        }
     }
     
     // MARK: - Dependencies
     private let networkManager: NetworkProtocol
     private let mathMaterialRepository: MathMaterialProtocol
-    private let materialNotifier: MaterialNotificationProtocol
+    private let notificationManager: NotificationProtocol
     private var materialTracker = ClassroomMaterialTracker()
-    weak var coordinator: AppCoordinator?
+    weak var coordinator: (any AppCoordinating)?
     
     init(
         networkManager: NetworkProtocol,
         mathMaterialRepository: MathMaterialProtocol,
-        materialNotifier: MaterialNotificationProtocol? = nil,
-        coordinator: AppCoordinator? = nil
+        notificationManager: NotificationProtocol,
+        coordinator: (any AppCoordinating)? = nil
     ) {
         self.networkManager = networkManager
         self.mathMaterialRepository = mathMaterialRepository
-        self.materialNotifier = materialNotifier ?? MaterialNotificationService()
+        self.notificationManager = notificationManager
         self.coordinator = coordinator
         
         let savedName = UserDefaults.standard.string(forKey: Self.displayNameKey)?
@@ -71,7 +95,7 @@ final class ClassroomViewModel {
     }
     
     func joinClassroom(_ discoveredClassroom: DiscoveredClassroom) {
-        Task { await materialNotifier.requestAuthorizationIfNeeded() }
+        Task { await notificationManager.requestAuthorizationIfNeeded() }
         networkManager.joinClassroom(discoveredClassroom, studentName: displayName)
     }
     
@@ -93,11 +117,9 @@ final class ClassroomViewModel {
         }
     }
     
-    // TODO - Code checking
     func saveMaterialToLibrary(_ material: MathMaterialModel) {
         do {
-            try mathMaterialRepository.addSavedMaterial(material: material)
-            
+            try mathMaterialRepository.saveMaterial(material)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -109,7 +131,6 @@ final class ClassroomViewModel {
         coordinator?.navigate(to: .materialDetail(material), in: .classroom)
     }
     
-    // TODO - Code checking
     private func bindNetworkEvents() {
         networkManager.onEvent = { [weak self] event in
             guard let self else { return }
@@ -122,18 +143,19 @@ final class ClassroomViewModel {
                 
             case .searchFailed(let message):
                 self.isSearching = false
+                self.hasCompletedInitialSearch = true
                 self.statusMessage = "Gagal mencari ruang kelas: \(message)"
                 
-            case .classroomUpdated(let updatedClasrooms):
+            case .classroomUpdated(let updatedClassrooms):
                 let previousIDs = Set(self.discoveredClassrooms.map(\.id))
-                self.discoveredClassrooms = updatedClasrooms
+                self.discoveredClassrooms = updatedClassrooms
                 if !self.isStudentConnected && self.connectingClassroomIDs.isEmpty {
-                    self.statusMessage = updatedClasrooms.isEmpty
+                    self.statusMessage = updatedClassrooms.isEmpty
                     ? "Sedang mencari ruang kelas..."
-                    : "\(updatedClasrooms.count) ruang kelas ditemukan"
+                    : "\(updatedClassrooms.count) ruang kelas ditemukan"
                 }
-                for item in updatedClasrooms where !previousIDs.contains(item.id) {
-                    AccessibilityNotification.Announcement("Ruang kelas \(item.classroomName) ditemukan").post()
+                for item in updatedClassrooms where !previousIDs.contains(item.id) {
+                    self.notificationManager.announceAccessibility("Ruang kelas \(item.classroomName) ditemukan")
                 }
                 
             case .classroomConnecting(let discoveredClassroom):
@@ -150,7 +172,7 @@ final class ClassroomViewModel {
                 self.connectedClassroomName = discoveredClassroom.classroomName
                 self.connectedTeacherName = discoveredClassroom.teacherName
                 self.statusMessage = "Telah tergabung ke dalam \(discoveredClassroom.classroomName)"
-                AccessibilityNotification.Announcement("Telah tergabung ke dalam \(discoveredClassroom.classroomName)").post()
+                self.notificationManager.announceAccessibility("Telah tergabung ke dalam \(discoveredClassroom.classroomName)")
                 
             case .classroomSynced(let classroomID, let classroomName, let teacherName, let materials):
                 let newMaterials = self.materialTracker.newMaterials(in: materials, classroomID: classroomID)
@@ -161,7 +183,7 @@ final class ClassroomViewModel {
                 self.receivedMaterials = materials
                 self.statusMessage = "\(materials.count) materi tersedia"
                 if !newMaterials.isEmpty {
-                    self.materialNotifier.notifyNewMaterials(
+                    self.notificationManager.notifyNewMaterials(
                         newMaterials,
                         classroomID: classroomID,
                         classroomName: classroomName
@@ -175,6 +197,7 @@ final class ClassroomViewModel {
                     self.connectedClassroomName = nil
                     self.connectedTeacherName = nil
                     self.receivedMaterials.removeAll()
+                    self.hasCompletedInitialSearch = false
                     self.statusMessage = "Disconnected"
                 }
                 
@@ -184,11 +207,13 @@ final class ClassroomViewModel {
                 self.connectedClassroomName = nil
                 self.connectedTeacherName = nil
                 self.receivedMaterials.removeAll()
+                self.hasCompletedInitialSearch = false
                 self.statusMessage = self.isSearching ? "Sedang mencari ruang kelas..." : "Disconnected"
                 
             case .resetAll:
                 self.materialTracker.reset()
                 self.isSearching = false
+                self.hasCompletedInitialSearch = false
                 self.discoveredClassrooms.removeAll()
                 self.connectedClassroomID = nil
                 self.connectingClassroomIDs.removeAll()

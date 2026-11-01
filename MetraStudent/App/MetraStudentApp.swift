@@ -25,11 +25,16 @@ struct MetraStudentApp: App {
         }
         let mathMaterialRepository = MathMaterialRepository(modelContext: modelContainer.mainContext)
         let networkManager = NetworkManager()
+        let notificationManager = NotificationManager()
         
         // MARK: - Presentation Layer setup
         let initialCoordinator = AppCoordinator(
             networkManager: networkManager,
-            mathMaterialRepository: mathMaterialRepository
+            mathMaterialRepository: mathMaterialRepository,
+            notificationManager: notificationManager,
+            assistantEngineFactory: { translator in
+                AIAssistantPipeline(assistantTranslator: translator, model: FoundationModel())
+            }
         )
         _coordinator = State(wrappedValue: initialCoordinator)
     }
@@ -37,7 +42,6 @@ struct MetraStudentApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(coordinator: coordinator)
-                .modelContainer(modelContainer)
         }
         .environment(\.locale, Locale(identifier: "id-ID"))
     }
