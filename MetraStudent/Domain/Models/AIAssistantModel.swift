@@ -39,7 +39,7 @@ nonisolated struct AIAssistantSelection: Identifiable, Equatable {
         selectedID: String
     ) throws -> Self {
         guard let index = sentences.firstIndex(where: { $0.id == selectedID }) else {
-            throw MetraAssistantFailure.message("Kalimat tidak ditemukan. Pilih kembali bagian materi yang ingin dipelajari.")
+            throw AIAssistantFailure.message("Kalimat tidak ditemukan. Pilih kembali bagian materi yang ingin dipelajari.")
         }
         return Self(topicID: topicID, topicTitle: topicTitle, sentenceID: selectedID,
                     sentencesThroughSelection: Array(sentences.prefix(index + 1)))
@@ -80,32 +80,32 @@ nonisolated struct AIAssistantResult: Identifiable, Equatable {
     static func validated(action: AIAssistantAction, points: [String]) throws -> Self {
         let clean = points.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         guard !clean.isEmpty, clean.allSatisfy({ !$0.isEmpty }) else {
-            throw MetraAssistantFailure.message("Hasil masih kosong. Silakan coba lagi.")
+            throw AIAssistantFailure.message("Hasil masih kosong. Silakan coba lagi.")
         }
         switch action {
         case .summarize:
             guard clean.count <= 5, clean.allSatisfy({ wordCount($0) <= 24 }),
                   clean.reduce(0, { $0 + wordCount($1) }) <= 100 else {
-                throw MetraAssistantFailure.message("Ringkasan belum cukup singkat. Silakan coba lagi untuk maksimal lima poin ringkas.")
+                throw AIAssistantFailure.message("Ringkasan belum cukup singkat. Silakan coba lagi untuk maksimal lima poin ringkas.")
             }
             let distinct = Set(clean.map { $0.lowercased().split { !$0.isLetter }.joined(separator: " ") })
             guard distinct.count == clean.count else {
-                throw MetraAssistantFailure.message("Ringkasan masih mengulang poin yang sama. Silakan coba lagi.")
+                throw AIAssistantFailure.message("Ringkasan masih mengulang poin yang sama. Silakan coba lagi.")
             }
         case .explain:
             guard clean.count == 1, clean[0].count <= 100 else {
-                throw MetraAssistantFailure.message("Penjelasan masih melebihi seratus karakter. Silakan coba lagi.")
+                throw AIAssistantFailure.message("Penjelasan masih melebihi seratus karakter. Silakan coba lagi.")
             }
         }
         guard clean.allSatisfy(isVerbalMath) else {
-            throw MetraAssistantFailure.message("Hasil belum sepenuhnya matematika verbal. Silakan coba lagi.")
+            throw AIAssistantFailure.message("Hasil belum sepenuhnya matematika verbal. Silakan coba lagi.")
         }
         
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(clean.joined(separator: " "))
         if let language = recognizer.languageHypotheses(withMaximum: 1).first,
            language.value > 0.9, ![NLLanguage.indonesian, .malay].contains(language.key) {
-            throw MetraAssistantFailure.message("Hasil belum dalam bahasa Indonesia. Silakan coba lagi.")
+            throw AIAssistantFailure.message("Hasil belum dalam bahasa Indonesia. Silakan coba lagi.")
         }
         return Self(id: UUID(), action: action, points: clean)
     }

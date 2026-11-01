@@ -32,12 +32,12 @@ final class AIAssistantTranslationBridge: AssistantTranslatingProtocol {
         try Task.checkCancellation()
         guard status != .unsupported else {
 #if targetEnvironment(simulator)
-            throw MetraAssistantFailure.message("Terjemahan Apple tidak tersedia di Simulator. Jalankan aplikasi di iPhone dengan Apple Intelligence untuk mendengar hasil dalam bahasa Indonesia.")
+            throw AIAssistantFailure.message("Terjemahan Apple tidak tersedia di Simulator. Jalankan aplikasi di iPhone dengan Apple Intelligence untuk mendengar hasil dalam bahasa Indonesia.")
 #else
-            throw MetraAssistantFailure.message("Terjemahan Indonesia–Inggris belum tersedia di perangkat ini. Perbarui iOS lalu coba lagi.")
+            throw AIAssistantFailure.message("Terjemahan Indonesia–Inggris belum tersedia di perangkat ini. Perbarui iOS lalu coba lagi.")
 #endif
         }
-        guard pending == nil else { throw MetraAssistantFailure.message("Terjemahan masih berjalan. Tunggu sebentar.") }
+        guard pending == nil else { throw AIAssistantFailure.message("Terjemahan masih berjalan. Tunggu sebentar.") }
         guard !texts.isEmpty else { return [] }
         let id = UUID()
         return try await withTaskCancellationHandler {
@@ -69,7 +69,7 @@ final class AIAssistantTranslationBridge: AssistantTranslatingProtocol {
             )
             guard pending?.id == request.id else { return }
             guard status != .unsupported else {
-                throw MetraAssistantFailure.message("Terjemahan Indonesia–Inggris belum tersedia di perangkat ini. Perbarui iOS dan coba lagi di iPhone yang mendukung Terjemahkan.")
+                throw AIAssistantFailure.message("Terjemahan Indonesia–Inggris belum tersedia di perangkat ini. Perbarui iOS dan coba lagi di iPhone yang mendukung Terjemahkan.")
             }
             try await session.prepareTranslation()
             try Task.checkCancellation()
@@ -84,20 +84,20 @@ final class AIAssistantTranslationBridge: AssistantTranslatingProtocol {
                 guard response.targetLanguage.languageCode?.identifier == request.target,
                       let identifier = response.clientIdentifier, let index = Int(identifier),
                       ordered.indices.contains(index), ordered[index] == nil else {
-                    throw MetraAssistantFailure.message("Terjemahan belum lengkap. Silakan coba lagi.")
+                    throw AIAssistantFailure.message("Terjemahan belum lengkap. Silakan coba lagi.")
                 }
                 ordered[index] = response.targetText
             }
             guard ordered.allSatisfy({ $0 != nil }) else {
-                throw MetraAssistantFailure.message("Ada bagian materi yang belum berhasil diterjemahkan. Coba lagi.")
+                throw AIAssistantFailure.message("Ada bagian materi yang belum berhasil diterjemahkan. Coba lagi.")
             }
             complete(id: request.id, result: .success(ordered.compactMap { $0 }))
         } catch is CancellationError {
             complete(id: request.id, result: .failure(CancellationError()))
-        } catch let error as MetraAssistantFailure {
+        } catch let error as AIAssistantFailure {
             complete(id: request.id, result: .failure(error))
         } catch {
-            complete(id: request.id, result: .failure(MetraAssistantFailure.message(
+            complete(id: request.id, result: .failure(AIAssistantFailure.message(
                 "Terjemahan belum selesai. Jika diminta, izinkan unduhan bahasa Indonesia dan Inggris. Periksa koneksi saat mengunduh, lalu pilih tindakan lagi."
             )))
         }

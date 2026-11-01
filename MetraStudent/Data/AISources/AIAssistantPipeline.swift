@@ -23,7 +23,7 @@ final class AIAssistantPipeline: AssistantProvidingProtocol {
         selection: AIAssistantSelection,
         progress: @escaping @MainActor (AIAssistantProgress) -> Void
     ) async throws -> AIAssistantResult {
-        if let message = availabilityMessage { throw MetraAssistantFailure.message(message) }
+        if let message = availabilityMessage { throw AIAssistantFailure.message(message) }
         try Task.checkCancellation()
         let source = selection.sourceSentences(for: action)
         let requiresTranslation = model.outputLanguage != "id"
@@ -37,7 +37,7 @@ final class AIAssistantPipeline: AssistantProvidingProtocol {
         try Task.checkCancellation()
         guard modelInput.count == source.count, !modelInput.isEmpty,
               modelInput.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
-            throw MetraAssistantFailure.message("Materi belum lengkap untuk diproses. Silakan coba lagi.")
+            throw AIAssistantFailure.message("Materi belum lengkap untuk diproses. Silakan coba lagi.")
         }
         
         for attempt in 0..<3 {
@@ -53,11 +53,11 @@ final class AIAssistantPipeline: AssistantProvidingProtocol {
             }
             try Task.checkCancellation()
             guard output.count == draft.count else {
-                throw MetraAssistantFailure.message("Terjemahan hasil belum lengkap. Silakan coba lagi.")
+                throw AIAssistantFailure.message("Terjemahan hasil belum lengkap. Silakan coba lagi.")
             }
             do {
                 guard MathGuard.preservesUnits(points: output, source: source) else {
-                    throw MetraAssistantFailure.message("Satuan dalam jawaban belum sesuai materi. Silakan coba lagi.")
+                    throw AIAssistantFailure.message("Satuan dalam jawaban belum sesuai materi. Silakan coba lagi.")
                 }
                 // Enforce limits on the FINAL Indonesian text, including spaces.
                 // Never truncate an explanation, which could change its mathematical meaning.
@@ -66,7 +66,7 @@ final class AIAssistantPipeline: AssistantProvidingProtocol {
                 if attempt == 2 { throw error }
             }
         }
-        throw MetraAssistantFailure.message("Jawaban belum berhasil dibuat. Silakan coba lagi.")
+        throw AIAssistantFailure.message("Jawaban belum berhasil dibuat. Silakan coba lagi.")
     }
     
     func cancel() { assistantTranslator.cancel() }

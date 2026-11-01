@@ -46,8 +46,8 @@ final class FoundationModel: AssistantGeneratingProtocol {
     }
 
     func generate(action: AIAssistantAction, sentences: [String], extraBrief: Bool) async throws -> [String] {
-        if let message = availabilityMessage { throw MetraAssistantFailure.message(message) }
-        guard !sentences.isEmpty else { throw MetraAssistantFailure.message("Belum ada materi untuk diproses.") }
+        if let message = availabilityMessage { throw AIAssistantFailure.message(message) }
+        guard !sentences.isEmpty else { throw AIAssistantFailure.message("Belum ada materi untuk diproses.") }
 
         var source = sentences
         // Hierarchical summaries preserve the entire prefix instead of silently dropping its beginning.
@@ -59,7 +59,7 @@ final class FoundationModel: AssistantGeneratingProtocol {
                 reduced += try await request(action: .summarize, sentences: group, extraBrief: false)
             }
             guard reduced.reduce(0, { $0 + AIAssistantResult.wordCount($1) }) < originalWords else {
-                throw MetraAssistantFailure.message("Bagian materi ini belum berhasil diringkas. Silakan coba lagi.")
+                throw AIAssistantFailure.message("Bagian materi ini belum berhasil diringkas. Silakan coba lagi.")
             }
             source = reduced
         }
@@ -98,7 +98,7 @@ final class FoundationModel: AssistantGeneratingProtocol {
             """
         
         guard try await model.tokenCount(for: instructions + prompt) < 2800 else {
-            throw MetraAssistantFailure.message("Bagian materi terlalu panjang untuk diproses. Pilih kalimat yang lebih awal.")
+            throw AIAssistantFailure.message("Bagian materi terlalu panjang untuk diproses. Pilih kalimat yang lebih awal.")
         }
         
         do {
@@ -113,26 +113,26 @@ final class FoundationModel: AssistantGeneratingProtocol {
             }
             try Task.checkCancellation()
             guard MathGuard.preservesUnits(points: points, source: sentences) else {
-                throw MetraAssistantFailure.message("Asisten belum berhasil menjaga satuan materi. Silakan coba lagi.")
+                throw AIAssistantFailure.message("Asisten belum berhasil menjaga satuan materi. Silakan coba lagi.")
             }
             return points
             
         } catch let error as LanguageModelError {
             switch error {
             case .guardrailViolation, .refusal:
-                throw MetraAssistantFailure.message("Bagian ini belum dapat diproses. Coba pilih kalimat lain.")
+                throw AIAssistantFailure.message("Bagian ini belum dapat diproses. Coba pilih kalimat lain.")
                 
             case .rateLimited, .timeout:
-                throw MetraAssistantFailure.message("Metra Assistant sedang sibuk. Tunggu sebentar lalu coba lagi.")
+                throw AIAssistantFailure.message("Metra Assistant sedang sibuk. Tunggu sebentar lalu coba lagi.")
                 
             case .contextSizeExceeded:
-                throw MetraAssistantFailure.message("Bagian materi terlalu panjang. Pilih kalimat yang lebih awal.")
+                throw AIAssistantFailure.message("Bagian materi terlalu panjang. Pilih kalimat yang lebih awal.")
                 
             case .unsupportedLanguageOrLocale:
-                throw MetraAssistantFailure.message("Bahasa materi belum didukung model di perangkat ini.")
+                throw AIAssistantFailure.message("Bahasa materi belum didukung model di perangkat ini.")
                 
             default:
-                throw MetraAssistantFailure.message("Jawaban belum berhasil dibuat. Silakan coba lagi.")
+                throw AIAssistantFailure.message("Jawaban belum berhasil dibuat. Silakan coba lagi.")
             }
         }
     }

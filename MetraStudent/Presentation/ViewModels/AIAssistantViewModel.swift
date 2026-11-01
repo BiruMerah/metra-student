@@ -77,7 +77,7 @@ final class AIAssistantViewModel: Identifiable {
                 try Task.checkCancellation()
                 guard requestID == id else { return }
                 guard result.action == action else {
-                    throw MetraAssistantFailure.message("Jenis jawaban belum sesuai permintaan. Silakan coba lagi.")
+                    throw AIAssistantFailure.message("Jenis jawaban belum sesuai permintaan. Silakan coba lagi.")
                 }
                 results.append(result)
                 phase = nil
