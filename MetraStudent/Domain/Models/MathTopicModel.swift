@@ -1,18 +1,83 @@
 import Foundation
 
-nonisolated struct MathTopicModel: Identifiable, Hashable, Sendable {
-    let id: UUID
-    var title: String
-    var content: [MathTopicContent]
+nonisolated enum MetraSpeechStyle: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
+    case clearSpeak, simpleSpeak
 
-    init(id: UUID = UUID(), title: String, content: [MathTopicContent] = []) {
-        self.id = id
-        self.title = title
-        self.content = content
+    var id: Self { self }
+    var label: String { self == .clearSpeak ? "ClearSpeak" : "SimpleSpeak" }
+}
+
+nonisolated enum MetraReviewStatus: String, Codable, Hashable, Sendable {
+    case draft, validated
+}
+
+nonisolated struct MetraContentPart: Codable, Equatable, Hashable, Sendable {
+    enum Kind: String, Codable, Hashable, Sendable { case text, math }
+    var kind: Kind
+    var text: String?
+    var mathML: String?
+    var clearSpeak: String?
+    var simpleSpeak: String?
+
+    static func prose(_ text: String) -> Self { .init(kind: .text, text: text) }
+
+    func readingText(style: MetraSpeechStyle) -> String {
+        switch kind {
+        case .text: return text ?? ""
+        case .math: return (style == .clearSpeak ? clearSpeak : simpleSpeak) ?? ""
+        }
     }
 }
 
-nonisolated enum MathTopicContent: Hashable, Sendable {
+nonisolated struct MetraChunk: Codable, Identifiable, Equatable, Hashable, Sendable {
+    var id: UUID = UUID()
+    var pageLabel: String?
+    var parts: [MetraContentPart]
+    var teacherSpokenOverride: String?
+    var requiresTeacherCorrection: Bool? = nil
+    var reviewNote: String? = nil
+    var sourceChunkIDs: [String]? = nil
+    var originalParts: [MetraContentPart]? = nil
+
+    func readingText(style: MetraSpeechStyle) -> String {
+        if let correction = teacherSpokenOverride,
+           !correction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return correction
+        }
+        return parts.map { $0.readingText(style: style) }.joined()
+    }
+
+    var isStandaloneMath: Bool {
+        let activeParts = parts.filter {
+            switch $0.kind {
+            case .text: return !($0.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            case .math: return true
+            }
+        }
+        return !activeParts.isEmpty && activeParts.allSatisfy { $0.kind == .math }
+    }
+}
+
+nonisolated struct MathTopicModel: Identifiable, Codable, Equatable, Hashable, Sendable {
+    let id: UUID
+    var title: String
+    var content: [MathTopicContent]
+    var chunks: [MetraChunk]
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        content: [MathTopicContent] = [],
+        chunks: [MetraChunk] = []
+    ) {
+        self.id = id
+        self.title = title
+        self.content = content
+        self.chunks = chunks
+    }
+}
+
+nonisolated enum MathTopicContent: Codable, Equatable, Hashable, Sendable {
     case text(String)
     case analogy(String)
     // A standalone mathematical expression written entirely as spoken words.

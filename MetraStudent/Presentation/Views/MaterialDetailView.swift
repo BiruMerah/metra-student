@@ -86,9 +86,21 @@ struct MaterialDetailView: View {
 
     private var overviewContent: some View {
         VStack(alignment: .leading, spacing: 10) {
-            overviewLine("Bab", value: viewModel.overview.chapter)
-            overviewLine("Subbab", value: viewModel.overview.subchapter)
-            overviewLine("Halaman", value: viewModel.overview.pageNumber.formatted())
+            if let summary = viewModel.overview.summaryText,
+               !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(summary)
+                    .font(.body)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+
+                if !viewModel.overview.pageLabels.isEmpty {
+                    overviewLine("Halaman", value: viewModel.overview.pageLabels.joined(separator: ", "))
+                }
+            } else {
+                overviewLine("Bab", value: viewModel.overview.chapter)
+                overviewLine("Subbab", value: viewModel.overview.subchapter)
+                overviewLine("Halaman", value: viewModel.overview.pageNumber.formatted())
+            }
         }
         .padding(.vertical, 6)
     }
@@ -154,7 +166,9 @@ struct MaterialDetailView: View {
     let sampleMaterial = MathMaterialModel(
         title: "Persamaan Linear Satu Variabel",
         category: "Aljabar",
-        content: "Contoh isi materi pembelajaran dari guru."
+        content: "Contoh isi materi pembelajaran dari guru.",
+        overview: MaterialOverview.sample.summaryText,
+        topics: MathTopicModel.sampleTopics
     )
     return NavigationStack(path: Bindable(coordinator).classroomPath) {
         MaterialDetailView(

@@ -40,8 +40,16 @@ final class MathMaterialRepository: MathMaterialProtocol {
     }
     
     func saveMaterial(_ material: MathMaterialModel) throws {
-        let entity = MathMaterialEntity.from(domain: material)
-        modelContext.insert(entity)
+        let targetId = material.id
+        let predicate = #Predicate<MathMaterialEntity> { $0.id == targetId }
+        let descriptor = FetchDescriptor<MathMaterialEntity>(predicate: predicate)
+        
+        if let existing = try modelContext.fetch(descriptor).first {
+            existing.update(from: material)
+        } else {
+            let entity = MathMaterialEntity.from(domain: material)
+            modelContext.insert(entity)
+        }
         try modelContext.save()
     }
     
@@ -57,11 +65,16 @@ final class MathMaterialRepository: MathMaterialProtocol {
     }
     
     func overview(for material: MathMaterialModel) -> MaterialOverview {
-        return MaterialOverview.sample
+        return material.materialOverview
     }
     
     func topics(for material: MathMaterialModel) -> [MathTopicModel] {
-        return MathTopicModel.sampleTopics
+        if !material.topics.isEmpty {
+            return material.topics
+        }
+        let trimmed = material.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        return [MathTopicModel(title: material.title, content: [.text(trimmed)])]
     }
 }
 
@@ -110,12 +123,15 @@ final class InMemoryMathMaterialRepository: MathMaterialProtocol {
     }
     
     func overview(for material: MathMaterialModel) -> MaterialOverview {
-        // Assuming MathMaterialModel contains an 'overview' property
-        return MaterialOverview.sample
+        return material.materialOverview
     }
     
     func topics(for material: MathMaterialModel) -> [MathTopicModel] {
-        // Assuming MathMaterialModel contains a 'topics' array
-        return MathTopicModel.sampleTopics
+        if !material.topics.isEmpty {
+            return material.topics
+        }
+        let trimmed = material.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        return [MathTopicModel(title: material.title, content: [.text(trimmed)])]
     }
 }
