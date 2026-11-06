@@ -8,28 +8,28 @@
 import Foundation
 
 enum AppTab: String, CaseIterable, Identifiable {
-    case classroom
-    case library
+    case channel
+    case document
     
     var id: String { rawValue }
     
     var title: String {
         switch self {
-        case .classroom:
-            return "Ruang Kelas"
+        case .channel:
+            return "Channel"
             
-        case .library:
-            return "Pustaka"
+        case .document:
+            return "Document"
         }
     }
     
     var iconName: String {
         switch self {
-        case .classroom:
-            return "graduationcap.fill"
+        case .channel:
+            return "bubble.left.and.bubble.right"
             
-        case .library:
-            return "books.vertical.fill"
+        case .document:
+            return "doc.text"
         }
     }
 }

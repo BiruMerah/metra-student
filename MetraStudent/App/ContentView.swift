@@ -16,27 +16,27 @@ struct ContentView: View {
     
     var body: some View {
         TabView(selection: $coordinator.selectedTab) {
-            NavigationStack(path: $coordinator.classroomPath) {
-                coordinator.buildClassroom()
+            NavigationStack(path: $coordinator.channelPath) {
+                coordinator.buildChannel()
                     .navigationDestination(for: AppRoutes.self) { route in
                         coordinator.buildDestination(for: route)
                     }
             }
             .tabItem {
-                Label(AppTab.classroom.title, systemImage: AppTab.classroom.iconName)
+                Label(AppTab.channel.title, systemImage: AppTab.channel.iconName)
             }
-            .tag(AppTab.classroom)
+            .tag(AppTab.channel)
             
-            NavigationStack(path: $coordinator.libraryPath) {
-                coordinator.buildLibrary()
+            NavigationStack(path: $coordinator.documentPath) {
+                coordinator.buildDocument()
                     .navigationDestination(for: AppRoutes.self) { route in
                         coordinator.buildDestination(for: route)
                     }
             }
             .tabItem {
-                Label(AppTab.library.title, systemImage: AppTab.library.iconName)
+                Label(AppTab.document.title, systemImage: AppTab.document.iconName)
             }
-            .tag(AppTab.library)
+            .tag(AppTab.document)
         }
     }
 }

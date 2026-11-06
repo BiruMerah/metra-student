@@ -170,7 +170,7 @@ struct MaterialDetailView: View {
         overview: MaterialOverview.sample.summaryText,
         topics: MathTopicModel.sampleTopics
     )
-    return NavigationStack(path: Bindable(coordinator).classroomPath) {
+    return NavigationStack(path: Bindable(coordinator).channelPath) {
         MaterialDetailView(
             viewModel: MaterialDetailViewModel(
                 material: sampleMaterial,

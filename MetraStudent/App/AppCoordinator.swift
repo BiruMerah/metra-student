@@ -14,39 +14,35 @@ import SwiftData
 @MainActor
 final class AppCoordinator: AppCoordinating {
     // MARK: - Navigation State
-    var selectedTab: AppTab = .classroom
-    var classroomPath = NavigationPath()
-    var libraryPath = NavigationPath()
+    var selectedTab: AppTab = .channel
+    var channelPath = NavigationPath()
+    var documentPath = NavigationPath()
     
     // MARK: - Dependencies (Domain Protocols)
-    let networkManager: NetworkProtocol
     let mathMaterialRepository: MathMaterialProtocol
     let notificationManager: NotificationProtocol
     let assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)?
     
     // MARK: - ViewModels
     @ObservationIgnored
-    lazy var classroomViewModel: ClassroomViewModel = ClassroomViewModel(
-        networkManager: networkManager,
+    lazy var channelViewModel: ChannelViewModel = ChannelViewModel(
         mathMaterialRepository: mathMaterialRepository,
         notificationManager: notificationManager,
         coordinator: self
     )
     
     @ObservationIgnored
-    lazy var libraryViewModel = LibraryViewModel(
+    lazy var documentViewModel = DocumentViewModel(
         mathMaterialRepository: mathMaterialRepository,
         coordinator: self
     )
     
     // MARK: - Main Initialization
     init(
-        networkManager: NetworkProtocol,
         mathMaterialRepository: MathMaterialProtocol,
         notificationManager: NotificationProtocol,
         assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
     ) {
-        self.networkManager = networkManager
         self.mathMaterialRepository = mathMaterialRepository
         self.notificationManager = notificationManager
         self.assistantEngineFactory = assistantEngineFactory
@@ -54,7 +50,6 @@ final class AppCoordinator: AppCoordinating {
 
     static func makePreview(savedMaterials: [MathMaterialModel] = []) -> AppCoordinator {
         AppCoordinator(
-            networkManager: NetworkManager(),
             mathMaterialRepository: InMemoryMathMaterialRepository(materials: savedMaterials),
             notificationManager: NotificationManager()
         )
@@ -73,48 +68,48 @@ final class AppCoordinator: AppCoordinating {
     func navigate(to route: AppRoutes, in tab: AppTab? = nil) {
         let targetTab = tab ?? selectedTab
         switch targetTab {
-        case .classroom:
-            classroomPath.append(route)
+        case .channel:
+            channelPath.append(route)
             
-        case .library:
-            libraryPath.append(route)
+        case .document:
+            documentPath.append(route)
         }
     }
     
     func navigateBack(in tab: AppTab? = nil) {
         let targetTab = tab ?? selectedTab
         switch targetTab {
-        case .classroom:
-            if !classroomPath.isEmpty {
-                classroomPath.removeLast()
+        case .channel:
+            if !channelPath.isEmpty {
+                channelPath.removeLast()
             }
             
-        case .library:
-            if !libraryPath.isEmpty {
-                libraryPath.removeLast()
+        case .document:
+            if !documentPath.isEmpty {
+                documentPath.removeLast()
             }
         }
     }
     
     func popToRoot(in tab: AppTab) {
         switch tab {
-        case .classroom:
-            classroomPath.removeLast(classroomPath.count)
+        case .channel:
+            channelPath.removeLast(channelPath.count)
             
-        case .library:
-            libraryPath.removeLast(libraryPath.count)
+        case .document:
+            documentPath.removeLast(documentPath.count)
         }
     }
     
     // MARK: - View Builders
     @ViewBuilder
-    func buildClassroom() -> some View {
-        ClassroomView(viewModel: classroomViewModel)
+    func buildChannel() -> some View {
+        ChannelView(viewModel: channelViewModel)
     }
     
     @ViewBuilder
-    func buildLibrary() -> some View {
-        LibraryView(viewModel: libraryViewModel)
+    func buildDocument() -> some View {
+        DocumentView(viewModel: documentViewModel)
     }
     
     @ViewBuilder
