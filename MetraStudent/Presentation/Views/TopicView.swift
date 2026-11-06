@@ -21,10 +21,15 @@ struct TopicView: View {
         _viewModel = State(initialValue: viewModel)
     }
 
-    init(topics: [MathTopicModel], initialTopicIndex: Int = 0) {
+    init(
+        topics: [MathTopicModel],
+        initialTopicIndex: Int = 0,
+        initialSpeechStyle: MetraSpeechStyle = .clearSpeak
+    ) {
         _viewModel = State(initialValue: TopicViewModel(
             topics: topics,
-            initialTopicIndex: initialTopicIndex
+            initialTopicIndex: initialTopicIndex,
+            initialSpeechStyle: initialSpeechStyle
         ))
     }
 
@@ -84,6 +89,27 @@ struct TopicView: View {
         .navigationTitle("Detail Topik")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Picker(
+                        "Gaya Pembacaan",
+                        selection: Binding(
+                            get: { viewModel.speechStyle },
+                            set: { viewModel.speechStyle = $0 }
+                        )
+                    ) {
+                        ForEach(MetraSpeechStyle.allCases) { style in
+                            Text(style.label).tag(style)
+                        }
+                    }
+                } label: {
+                    Label("Gaya Pembacaan: \(viewModel.speechStyle.label)", systemImage: "waveform")
+                }
+                .accessibilityLabel("Gaya pembacaan matematika, \(viewModel.speechStyle.label)")
+                .accessibilityHint("Ketuk dua kali untuk mengganti antara ClearSpeak dan SimpleSpeak")
+            }
+        }
         .sheet(item: $assistant, onDismiss: {
             if let lastSelectedSentenceID {
                 readingFocus = .sentence(lastSelectedSentenceID)
