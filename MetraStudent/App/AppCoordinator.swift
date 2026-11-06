@@ -130,11 +130,12 @@ final class AppCoordinator: AppCoordinating {
                 )
             )
 
-        case .topicDetail(let topics, let initialIndex):
+        case .topicDetail(let topics, let initialIndex, let speechStyle):
             TopicView(
                 viewModel: TopicViewModel(
                     topics: topics,
                     initialTopicIndex: initialIndex,
+                    initialSpeechStyle: speechStyle,
                     assistantEngineFactory: assistantEngineFactory
                 )
             )

@@ -75,6 +75,24 @@ nonisolated struct MathTopicModel: Identifiable, Codable, Equatable, Hashable, S
         self.content = content
         self.chunks = chunks
     }
+
+    func content(for style: MetraSpeechStyle) -> [MathTopicContent] {
+        guard !chunks.isEmpty else { return content }
+        return chunks.compactMap { chunk in
+            let text = chunk.readingText(style: style).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return nil }
+            return chunk.isStandaloneMath ? .spokenMath(text) : .text(text)
+        }
+    }
+
+    func withSpeechStyle(_ style: MetraSpeechStyle) -> MathTopicModel {
+        MathTopicModel(
+            id: id,
+            title: title,
+            content: content(for: style),
+            chunks: chunks
+        )
+    }
 }
 
 nonisolated enum MathTopicContent: Codable, Equatable, Hashable, Sendable {

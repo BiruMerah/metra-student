@@ -9,7 +9,7 @@ import Foundation
 
 enum AppRoutes: Hashable {
     case materialDetail(MathMaterialModel)
-    case topicDetail(topics: [MathTopicModel], initialIndex: Int)
+    case topicDetail(topics: [MathTopicModel], initialIndex: Int, speechStyle: MetraSpeechStyle = .clearSpeak)
 }
 
 @MainActor

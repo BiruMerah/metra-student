@@ -15,6 +15,7 @@ final class MaterialDetailViewModel {
     let material: MathMaterialModel
     let overview: MaterialOverview
     let topics: [MathTopicModel]
+    var selectedSpeechStyle: MetraSpeechStyle
     var isSaved: Bool = false
     var hasDuplicateTitle: Bool = false
     var errorMessage: String?
@@ -41,6 +42,7 @@ final class MaterialDetailViewModel {
         self.mathMaterialRepository = mathMaterialRepository
         self.notificationManager =  notificationManager
         self.coordinator = coordinator
+        self.selectedSpeechStyle = material.defaultSpeechStyle
         self.overview = overview ?? mathMaterialRepository.overview(for: material)
         self.topics = topics ?? mathMaterialRepository.topics(for: material)
         
@@ -103,6 +105,12 @@ final class MaterialDetailViewModel {
     // MARK: - Navigation Actions
     func openTopic(at index: Int) {
         guard topics.indices.contains(index) else { return }
-        coordinator?.navigate(to: .topicDetail(topics: topics, initialIndex: index))
+        coordinator?.navigate(
+            to: .topicDetail(
+                topics: topics,
+                initialIndex: index,
+                speechStyle: selectedSpeechStyle
+            )
+        )
     }
 }

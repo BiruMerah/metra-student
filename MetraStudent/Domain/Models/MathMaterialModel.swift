@@ -98,4 +98,29 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
             pageLabels: pages
         )
     }
+
+    func withSpeechStyle(_ style: MetraSpeechStyle) -> MathMaterialModel {
+        let updatedTopics = topics.map { $0.withSpeechStyle(style) }
+        let allChunks = topics.flatMap(\.chunks)
+        let updatedContent: String
+        if !allChunks.isEmpty {
+            updatedContent = ([overview].compactMap { $0 } + allChunks.map { $0.readingText(style: style) })
+                .joined(separator: "\n\n")
+        } else {
+            updatedContent = content
+        }
+        return MathMaterialModel(
+            id: id,
+            title: title,
+            category: category,
+            content: updatedContent,
+            createdAt: createdAt,
+            revision: revision,
+            defaultSpeechStyle: style,
+            reviewStatus: reviewStatus,
+            validatedAt: validatedAt,
+            overview: overview,
+            topics: updatedTopics
+        )
+    }
 }

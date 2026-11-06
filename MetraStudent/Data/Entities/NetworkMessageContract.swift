@@ -150,16 +150,25 @@ nonisolated struct MathMaterialDTO: Codable, Equatable, Sendable {
         try values.encode(content, forKey: .content)
     }
 
-    func toDomain() -> MathMaterialModel {
-        let domainTopics = topics.map { $0.toDomain(style: defaultSpeechStyle) }
+    func toDomain(style: MetraSpeechStyle? = nil) -> MathMaterialModel {
+        let resolvedStyle = style ?? defaultSpeechStyle
+        let domainTopics = topics.map { $0.toDomain(style: resolvedStyle) }
+        let allChunks = topics.flatMap(\.chunks)
+        let resolvedContent: String
+        if let style, style != defaultSpeechStyle, !allChunks.isEmpty {
+            resolvedContent = ([overview].compactMap { $0 } + allChunks.map { $0.readingText(style: resolvedStyle) })
+                .joined(separator: "\n\n")
+        } else {
+            resolvedContent = content
+        }
         return MathMaterialModel(
             id: id,
             title: title,
             category: category,
-            content: content,
+            content: resolvedContent,
             createdAt: createdAt,
             revision: revision,
-            defaultSpeechStyle: defaultSpeechStyle,
+            defaultSpeechStyle: resolvedStyle,
             reviewStatus: reviewStatus,
             validatedAt: validatedAt,
             overview: overview,

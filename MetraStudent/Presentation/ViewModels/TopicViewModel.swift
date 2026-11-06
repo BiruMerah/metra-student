@@ -24,6 +24,13 @@ struct TopicReadingBlock: Identifiable {
 final class TopicViewModel {
     private(set) var currentTopicIndex: Int
     private(set) var readingBlocks: [TopicReadingBlock] = []
+    var speechStyle: MetraSpeechStyle {
+        didSet {
+            guard oldValue != speechStyle else { return }
+            assistantSessions.removeAll()
+            prepareContent()
+        }
+    }
     private let topics: [MathTopicModel]
     private let assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)?
     private var assistantSessions: [String: AIAssistantViewModel] = [:]
@@ -39,11 +46,13 @@ final class TopicViewModel {
     init(
         topics: [MathTopicModel],
         initialTopicIndex: Int = 0,
+        initialSpeechStyle: MetraSpeechStyle = .clearSpeak,
         assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
     ) {
         precondition(!topics.isEmpty, "A topic reader needs at least one topic")
         self.topics = topics
         self.currentTopicIndex = min(max(initialTopicIndex, 0), topics.count - 1)
+        self.speechStyle = initialSpeechStyle
         self.assistantEngineFactory = assistantEngineFactory
         prepareContent()
     }
@@ -89,7 +98,8 @@ final class TopicViewModel {
     }
 
     private func prepareContent() {
-        readingBlocks = topic.content.enumerated().map { index, content in
+        let activeContent = topic.content(for: speechStyle)
+        readingBlocks = activeContent.enumerated().map { index, content in
             let kind: TopicReadingBlock.Kind
             let text: String
 
