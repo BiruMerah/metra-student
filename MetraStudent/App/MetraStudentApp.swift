@@ -15,14 +15,28 @@ struct MetraStudentApp: App {
     
     init() {
         // MARK: - Data Layer setup
+        let container: ModelContainer
         do {
-            let config = ModelConfiguration(schema: DatabaseSchema.schema, isStoredInMemoryOnly: false)
-            modelContainer = try ModelContainer(for: DatabaseSchema.schema, configurations: config)
+            let config = ModelConfiguration(
+                schema: DatabaseSchema.schema,
+                isStoredInMemoryOnly: false,
+                cloudKitDatabase: .none // Prevent conflict with cloudKit entitlement
+            )
+            container = try ModelContainer(for: DatabaseSchema.schema, configurations: config)
         } catch {
-            print("SwiftData migration error: \(error). Falling back to in-memory store.")
-            let fallbackConfig = ModelConfiguration(schema: DatabaseSchema.schema, isStoredInMemoryOnly: true)
-            modelContainer = try! ModelContainer(for: DatabaseSchema.schema, configurations: fallbackConfig)
+            print("SwiftData store error: \(error). Falling back to in-memory store.")
+            do {
+                let fallbackConfig = ModelConfiguration(
+                    schema: DatabaseSchema.schema,
+                    isStoredInMemoryOnly: true,
+                    cloudKitDatabase: .none
+                )
+                container = try ModelContainer(for: DatabaseSchema.schema, configurations: fallbackConfig)
+            } catch {
+                fatalError("Failed to initialize SwiftData ModelContainer: \(error)")
+            }
         }
+        self.modelContainer = container
         let mathMaterialRepository = MathMaterialRepository(modelContext: modelContainer.mainContext)
         let notificationManager = NotificationManager()
         
