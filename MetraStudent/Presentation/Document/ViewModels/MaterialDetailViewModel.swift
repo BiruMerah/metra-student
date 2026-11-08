@@ -14,8 +14,8 @@ final class MaterialDetailViewModel {
     // MARK: - Observable UI State
     let material: MathMaterialModel
     let overview: MaterialOverview
-    let topics: [MathTopicModel]
-    var selectedSpeechStyle: MetraSpeechStyle
+    let sections: [MathSectionModel]
+    var selectedSpeechStyle: SpeechStyle
     var isSaved: Bool = false
     var hasDuplicateTitle: Bool = false
     var errorMessage: String?
@@ -36,7 +36,7 @@ final class MaterialDetailViewModel {
         notificationManager: NotificationProtocol? = nil,
         coordinator: (any AppCoordinating)? = nil,
         overview: MaterialOverview? = nil,
-        topics: [MathTopicModel]? = nil
+        sections: [MathSectionModel]? = nil
     ) {
         self.material = material
         self.mathMaterialRepository = mathMaterialRepository
@@ -44,7 +44,7 @@ final class MaterialDetailViewModel {
         self.coordinator = coordinator
         self.selectedSpeechStyle = material.defaultSpeechStyle
         self.overview = overview ?? mathMaterialRepository.overview(for: material)
-        self.topics = topics ?? mathMaterialRepository.topics(for: material)
+        self.sections = sections ?? mathMaterialRepository.sections(for: material)
         
         checkSavedStatus()
     }
@@ -98,11 +98,11 @@ final class MaterialDetailViewModel {
     }
 
     // MARK: - Navigation Actions
-    func openTopic(at index: Int) {
-        guard topics.indices.contains(index) else { return }
+    func openSection(at index: Int) {
+        guard sections.indices.contains(index) else { return }
         coordinator?.navigate(
-            to: .topicDetail(
-                topics: topics,
+            to: .sectionDetail(
+                sections: sections,
                 initialIndex: index,
                 speechStyle: selectedSpeechStyle
             )

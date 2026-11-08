@@ -1,17 +1,17 @@
 import Foundation
 
-nonisolated enum MetraSpeechStyle: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
+nonisolated enum SpeechStyle: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case clearSpeak, simpleSpeak
 
     var id: Self { self }
     var label: String { self == .clearSpeak ? "ClearSpeak" : "SimpleSpeak" }
 }
 
-nonisolated enum MetraReviewStatus: String, Codable, Hashable, Sendable {
+nonisolated enum ReviewStatus: String, Codable, Hashable, Sendable {
     case draft, validated
 }
 
-nonisolated struct MetraContentPart: Codable, Equatable, Hashable, Sendable {
+nonisolated struct MathContentPart: Codable, Equatable, Hashable, Sendable {
     enum Kind: String, Codable, Hashable, Sendable { case text, math }
     var kind: Kind
     var text: String?
@@ -24,30 +24,30 @@ nonisolated struct MetraContentPart: Codable, Equatable, Hashable, Sendable {
 
     static func prose(_ text: String) -> Self { .init(kind: .text, text: text) }
 
-    func readingText(style: MetraSpeechStyle) -> String {
+    func readingText(speechStyle: SpeechStyle) -> String {
         switch kind {
         case .text: return text ?? ""
-        case .math: return (style == .clearSpeak ? clearSpeak : simpleSpeak) ?? ""
+        case .math: return (speechStyle == .clearSpeak ? clearSpeak : simpleSpeak) ?? ""
         }
     }
 }
 
-nonisolated struct MetraChunk: Codable, Identifiable, Equatable, Hashable, Sendable {
+nonisolated struct MathChunk: Codable, Identifiable, Equatable, Hashable, Sendable {
     var id: UUID = UUID()
     var pageLabel: String?
-    var parts: [MetraContentPart]
+    var parts: [MathContentPart]
     var teacherSpokenOverride: String?
     var requiresTeacherCorrection: Bool? = nil
     var reviewNote: String? = nil
     var sourceChunkIDs: [String]? = nil
-    var originalParts: [MetraContentPart]? = nil
+    var originalParts: [MathContentPart]? = nil
 
-    func readingText(style: MetraSpeechStyle) -> String {
+    func readingText(speechStyle: SpeechStyle) -> String {
         if let correction = teacherSpokenOverride,
            !correction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return correction
         }
-        return parts.map { $0.readingText(style: style) }.joined()
+        return parts.map { $0.readingText(speechStyle: speechStyle) }.joined()
     }
 
     var isStandaloneMath: Bool {
@@ -61,17 +61,17 @@ nonisolated struct MetraChunk: Codable, Identifiable, Equatable, Hashable, Senda
     }
 }
 
-nonisolated struct MathTopicModel: Identifiable, Codable, Equatable, Hashable, Sendable {
+nonisolated struct MathSectionModel: Identifiable, Codable, Equatable, Hashable, Sendable {
     let id: UUID
     var title: String
-    var content: [MathTopicContent]
-    var chunks: [MetraChunk]
+    var content: [MathSectionContent]
+    var chunks: [MathChunk]
 
     init(
         id: UUID = UUID(),
         title: String,
-        content: [MathTopicContent] = [],
-        chunks: [MetraChunk] = []
+        content: [MathSectionContent] = [],
+        chunks: [MathChunk] = []
     ) {
         self.id = id
         self.title = title
@@ -79,26 +79,26 @@ nonisolated struct MathTopicModel: Identifiable, Codable, Equatable, Hashable, S
         self.chunks = chunks
     }
 
-    func content(for style: MetraSpeechStyle) -> [MathTopicContent] {
+    func content(for speechStyle: SpeechStyle) -> [MathSectionContent] {
         guard !chunks.isEmpty else { return content }
         return chunks.compactMap { chunk in
-            let text = chunk.readingText(style: style).trimmingCharacters(in: .whitespacesAndNewlines)
+            let text = chunk.readingText(speechStyle: speechStyle).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return nil }
             return chunk.isStandaloneMath ? .spokenMath(text) : .text(text)
         }
     }
 
-    func withSpeechStyle(_ style: MetraSpeechStyle) -> MathTopicModel {
-        MathTopicModel(
+    func withSpeechStyle(_ speechStyle: SpeechStyle) -> MathSectionModel {
+        MathSectionModel(
             id: id,
             title: title,
-            content: content(for: style),
+            content: content(for: speechStyle),
             chunks: chunks
         )
     }
 }
 
-nonisolated enum MathTopicContent: Codable, Equatable, Hashable, Sendable {
+nonisolated enum MathSectionContent: Codable, Equatable, Hashable, Sendable {
     case text(String)
     case analogy(String)
     // A standalone mathematical expression written entirely as spoken words.
@@ -107,9 +107,9 @@ nonisolated enum MathTopicContent: Codable, Equatable, Hashable, Sendable {
     case visual(String)
 }
 
-extension MathTopicModel {
-    nonisolated static let sampleTopics: [MathTopicModel] = [
-        MathTopicModel(title: "Pengertian Persamaan Linear", content: [
+extension MathSectionModel {
+    nonisolated static let sampleSections: [MathSectionModel] = [
+        MathSectionModel(title: "Pengertian Persamaan Linear", content: [
             .text("Persamaan menyatakan bahwa dua nilai adalah sama. Bagian sebelum kata sama dengan disebut ruas kiri, dan bagian sesudahnya disebut ruas kanan."),
             .text("Persamaan linear satu variabel memiliki satu bilangan yang belum diketahui. Bilangan itu disebut variabel, dan kita akan menyebutnya eks. Pangkat tertinggi variabelnya adalah satu."),
             .analogy("Anggap kedua ruas persamaan sebagai dua sisi timbangan yang seimbang. Berat pada kedua sisi sama. Untuk menjaga keseimbangan, penambahan atau pengurangan berat harus sama pada kedua sisi."),
@@ -117,7 +117,7 @@ extension MathTopicModel {
             .text("Artinya, ada suatu bilangan yang jika ditambah tiga, hasilnya tujuh. Bilangan yang belum diketahui itu adalah empat."),
             .visual("Garis bilangan dapat dibayangkan sebagai urutan posisi dengan jarak yang sama. Bergerak ke kanan berarti menambah, dan bergerak ke kiri berarti mengurangi. Mulai dari posisi empat, lalu bergerak tiga langkah ke kanan. Posisi akhirnya adalah tujuh.")
         ]),
-        MathTopicModel(title: "Bentuk Umum", content: [
+        MathSectionModel(title: "Bentuk Umum", content: [
             .text("Persamaan linear satu variabel memiliki koefisien, variabel, dan konstanta. Koefisien adalah bilangan yang mengalikan variabel. Konstanta adalah bilangan tetap yang tidak dikalikan dengan variabel."),
             .spokenMath("Sebuah koefisien dikalikan dengan eks, kemudian ditambah sebuah konstanta, hasilnya sama dengan nol."),
             .text("Koefisien tersebut tidak boleh bernilai nol. Berikut adalah contoh persamaannya."),
@@ -125,7 +125,7 @@ extension MathTopicModel {
             .text("Pada persamaan ini, koefisiennya adalah dua, variabelnya eks, dan konstantanya enam."),
             .text("Ungkapan dua kali eks berarti dua dikalikan dengan bilangan yang belum diketahui. Ungkapan itu bukan berarti dua ditambah eks.")
         ]),
-        MathTopicModel(title: "Langkah Penyelesaian", content: [
+        MathSectionModel(title: "Langkah Penyelesaian", content: [
             .text("Tujuan menyelesaikan persamaan adalah menemukan nilai eks yang membuat kedua ruas bernilai sama."),
             .analogy("Pada timbangan yang seimbang, mengambil beban dengan berat yang sama dari kedua sisi akan menjaga keseimbangan. Begitu juga dengan persamaan. Mengurangi kedua ruas dengan bilangan yang sama akan menjaga kesamaannya."),
             .spokenMath("Persamaan yang akan kita selesaikan adalah eks ditambah tiga sama dengan tujuh."),
@@ -134,7 +134,7 @@ extension MathTopicModel {
             .visual("Pada garis bilangan, mulai dari posisi tujuh. Pengurangan tiga berarti bergerak tiga langkah ke kiri. Posisi yang dilewati adalah enam, lima, lalu empat. Posisi akhir ini menunjukkan hasil tujuh dikurangi tiga."),
             .text("Langkah ketiga, periksa jawabannya. Ganti eks pada persamaan awal dengan empat. Empat ditambah tiga sama dengan tujuh. Kedua ruas bernilai tujuh, sehingga jawaban kita benar.")
         ]),
-        MathTopicModel(title: "Contoh Soal", content: [
+        MathSectionModel(title: "Contoh Soal", content: [
             .text("Tentukan nilai eks dari persamaan berikut. Dengarkan persamaannya terlebih dahulu, lalu ikuti setiap langkah penyelesaian."),
             .spokenMath("Dua kali eks ditambah empat sama dengan dua belas."),
             .text("Artinya, bilangan yang belum diketahui dikalikan dua, kemudian hasilnya ditambah empat, sehingga menjadi dua belas."),

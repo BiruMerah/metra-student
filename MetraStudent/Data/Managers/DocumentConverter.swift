@@ -1,10 +1,17 @@
+//
+//  DocumentConverter.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 08/11/26.
+//
+
 import Foundation
 #if os(iOS)
 import MetraDocumentPipeline
 #endif
 
 @MainActor
-enum StudentDocumentConverter {
+enum DocumentConverter {
     static var isSupported: Bool {
         #if os(iOS)
         true
@@ -40,10 +47,10 @@ enum StudentDocumentConverter {
     // The portable material stores the ordered reading chunks. The student's
     // separate content array is used for older materials without those chunks.
     private struct PortableMaterial: Decodable {
-        struct Topic: Decodable {
+        struct Section: Decodable {
             let id: UUID
             let title: String
-            let chunks: [MetraChunk]
+            let chunks: [MathChunk]
         }
 
         let id: UUID
@@ -52,7 +59,7 @@ enum StudentDocumentConverter {
         let content: String
         let createdAt: Date
         let overview: String?
-        let topics: [Topic]
+        let topics: [Section]
 
         var studentMaterial: MathMaterialModel {
             MathMaterialModel(
@@ -62,7 +69,7 @@ enum StudentDocumentConverter {
                 content: content,
                 createdAt: createdAt,
                 overview: overview,
-                topics: topics.map { MathTopicModel(id: $0.id, title: $0.title, chunks: $0.chunks) }
+                sections: topics.map { MathSectionModel(id: $0.id, title: $0.title, chunks: $0.chunks) }
             )
         }
     }

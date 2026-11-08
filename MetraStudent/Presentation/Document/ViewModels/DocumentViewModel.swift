@@ -17,7 +17,7 @@ final class DocumentViewModel {
     var errorMessage: String?
 
     var importUnavailableReason: String? {
-        if !StudentDocumentConverter.isSupported { return "Impor dokumen tersedia di iPhone dan iPad." }
+        if !DocumentConverter.isSupported { return "Impor dokumen tersedia di iPhone dan iPad." }
         if !storageIsPersistent { return "Penyimpanan dokumen tidak tersedia. Coba buka ulang aplikasi." }
         return nil
     }
@@ -46,7 +46,7 @@ final class DocumentViewModel {
 
     func importDocument(from url: URL) {
         startImport(progress: "Membuka PDF…") { onProgress in
-            try await StudentDocumentConverter.convert(url, onProgress: onProgress)
+            try await DocumentConverter.convert(url, onProgress: onProgress)
         }
     }
 
@@ -64,7 +64,7 @@ final class DocumentViewModel {
             let date = Date.now.formatted(
                 .dateTime.day().month(.abbreviated).year().hour().minute().locale(Locale(identifier: "id_ID"))
             )
-            return try await StudentDocumentConverter.convertPhoto(data, title: "Foto \(date)", onProgress: onProgress)
+            return try await DocumentConverter.convertPhoto(data, title: "Foto \(date)", onProgress: onProgress)
         }
     }
 

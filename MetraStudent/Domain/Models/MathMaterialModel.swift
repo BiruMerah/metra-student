@@ -52,11 +52,11 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
     var content: String
     var createdAt: Date = Date()
     var revision: Int = 1
-    var defaultSpeechStyle: MetraSpeechStyle = .clearSpeak
-    var reviewStatus: MetraReviewStatus = .draft
+    var defaultSpeechStyle: SpeechStyle = .clearSpeak
+    var reviewStatus: ReviewStatus = .draft
     var validatedAt: Date? = nil
     var overview: String? = nil
-    var topics: [MathTopicModel] = []
+    var sections: [MathSectionModel] = []
     
     init(
         id: UUID = UUID(),
@@ -65,11 +65,11 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
         content: String = "Tester",
         createdAt: Date = .now,
         revision: Int = 1,
-        defaultSpeechStyle: MetraSpeechStyle = .clearSpeak,
-        reviewStatus: MetraReviewStatus = .draft,
+        defaultSpeechStyle: SpeechStyle = .clearSpeak,
+        reviewStatus: ReviewStatus = .draft,
         validatedAt: Date? = nil,
         overview: String? = nil,
-        topics: [MathTopicModel] = []
+        sections: [MathSectionModel] = []
     ) {
         self.id = id
         self.title = title
@@ -81,30 +81,30 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
         self.reviewStatus = reviewStatus
         self.validatedAt = validatedAt
         self.overview = overview
-        self.topics = topics
+        self.sections = sections
     }
 
     var materialOverview: MaterialOverview {
         var seenPages = Set<String>()
-        let pages = topics.flatMap(\.chunks).compactMap(\.pageLabel).filter { seenPages.insert($0).inserted }
+        let pages = sections.flatMap(\.chunks).compactMap(\.pageLabel).filter { seenPages.insert($0).inserted }
         let firstPage = pages.first.flatMap(Int.init) ?? 1
         return MaterialOverview(
             chapter: title,
-            subchapter: topics.first?.title ?? category,
+            subchapter: sections.first?.title ?? category,
             pageNumber: firstPage,
             questionCount: 0,
             summaryText: overview,
-            topicCount: topics.count,
+            topicCount: sections.count,
             pageLabels: pages
         )
     }
 
-    func withSpeechStyle(_ style: MetraSpeechStyle) -> MathMaterialModel {
-        let updatedTopics = topics.map { $0.withSpeechStyle(style) }
-        let allChunks = topics.flatMap(\.chunks)
+    func withSpeechStyle(_ speechStyle: SpeechStyle) -> MathMaterialModel {
+        let updatedSections = sections.map { $0.withSpeechStyle(speechStyle) }
+        let allChunks = sections.flatMap(\.chunks)
         let updatedContent: String
         if !allChunks.isEmpty {
-            updatedContent = ([overview].compactMap { $0 } + allChunks.map { $0.readingText(style: style) })
+            updatedContent = ([overview].compactMap { $0 } + allChunks.map { $0.readingText(speechStyle: speechStyle) })
                 .joined(separator: "\n\n")
         } else {
             updatedContent = content
@@ -116,11 +116,11 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
             content: updatedContent,
             createdAt: createdAt,
             revision: revision,
-            defaultSpeechStyle: style,
+            defaultSpeechStyle: speechStyle,
             reviewStatus: reviewStatus,
             validatedAt: validatedAt,
             overview: overview,
-            topics: updatedTopics
+            sections: updatedSections
         )
     }
 }

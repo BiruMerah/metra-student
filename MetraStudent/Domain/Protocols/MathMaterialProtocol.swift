@@ -19,7 +19,7 @@ protocol MathMaterialProtocol {
     
     func overview(for material: MathMaterialModel) -> MaterialOverview
     
-    func topics(for material: MathMaterialModel) -> [MathTopicModel]
+    func sections(for material: MathMaterialModel) -> [MathSectionModel]
 }
 
 extension MathMaterialProtocol {

@@ -1,7 +1,14 @@
+//
+//  SectionViewModel.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 08/11/26.
+//
+
 import Foundation
 import Observation
 
-struct TopicReadingBlock: Identifiable {
+struct SectionReadingBlock: Identifiable {
     enum Kind {
         case text
         case analogy
@@ -21,51 +28,51 @@ struct TopicReadingBlock: Identifiable {
 
 @Observable
 @MainActor
-final class TopicViewModel {
-    private(set) var currentTopicIndex: Int
-    private(set) var readingBlocks: [TopicReadingBlock] = []
-    var speechStyle: MetraSpeechStyle {
+final class SectionViewModel {
+    private(set) var currentSectionIndex: Int
+    private(set) var readingBlocks: [SectionReadingBlock] = []
+    var speechStyle: SpeechStyle {
         didSet {
             guard oldValue != speechStyle else { return }
             assistantSessions.removeAll()
             prepareContent()
         }
     }
-    private let topics: [MathTopicModel]
+    private let sections: [MathSectionModel]
     private let assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)?
     private var assistantSessions: [String: AIAssistantViewModel] = [:]
 
-    var topic: MathTopicModel { topics[currentTopicIndex] }
-    var progress: String { "Topik \(currentTopicIndex + 1) dari \(topics.count)" }
-    var hasPreviousTopic: Bool { currentTopicIndex > 0 }
-    var hasNextTopic: Bool { currentTopicIndex + 1 < topics.count }
+    var section: MathSectionModel { sections[currentSectionIndex] }
+    var progress: String { "Segmen \(currentSectionIndex + 1) dari \(sections.count)" }
+    var hasPreviousSection: Bool { currentSectionIndex > 0 }
+    var hasNextSection: Bool { currentSectionIndex + 1 < sections.count }
     var lastSentenceID: String? {
         readingBlocks.last(where: { !$0.sentences.isEmpty })?.sentences.last?.id
     }
 
     init(
-        topics: [MathTopicModel],
-        initialTopicIndex: Int = 0,
-        initialSpeechStyle: MetraSpeechStyle = .clearSpeak,
+        sections: [MathSectionModel],
+        initialSectionIndex: Int = 0,
+        initialSpeechStyle: SpeechStyle = .clearSpeak,
         assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
     ) {
-        precondition(!topics.isEmpty, "A topic reader needs at least one topic")
-        self.topics = topics
-        self.currentTopicIndex = min(max(initialTopicIndex, 0), topics.count - 1)
+        precondition(!sections.isEmpty, "A section reader needs at least one section")
+        self.sections = sections
+        self.currentSectionIndex = min(max(initialSectionIndex, 0), sections.count - 1)
         self.speechStyle = initialSpeechStyle
         self.assistantEngineFactory = assistantEngineFactory
         prepareContent()
     }
 
-    func previousTopic() {
-        guard hasPreviousTopic else { return }
-        currentTopicIndex -= 1
+    func previousSection() {
+        guard hasPreviousSection else { return }
+        currentSectionIndex -= 1
         prepareContent()
     }
 
-    func nextTopic() {
-        guard hasNextTopic else { return }
-        currentTopicIndex += 1
+    func nextSection() {
+        guard hasNextSection else { return }
+        currentSectionIndex += 1
         prepareContent()
     }
 
@@ -74,8 +81,8 @@ final class TopicViewModel {
             AIAssistantSentence(id: $0.id, text: $0.text)
         }
         return try AIAssistantSelection.make(
-            topicID: topic.id,
-            topicTitle: topic.title,
+            topicID: section.id,
+            topicTitle: section.title,
             sentences: sentences,
             selectedID: sentenceID
         )
@@ -98,9 +105,9 @@ final class TopicViewModel {
     }
 
     private func prepareContent() {
-        let activeContent = topic.content(for: speechStyle)
+        let activeContent = section.content(for: speechStyle)
         readingBlocks = activeContent.enumerated().map { index, content in
-            let kind: TopicReadingBlock.Kind
+            let kind: SectionReadingBlock.Kind
             let text: String
 
             switch content {
@@ -122,9 +129,9 @@ final class TopicViewModel {
             }
 
             let sentences = TopicSentenceChunker.sentences(in: text).enumerated().map { sentenceIndex, sentence in
-                TopicReadingBlock.Sentence(id: "\(index).\(sentenceIndex)", text: sentence)
+                SectionReadingBlock.Sentence(id: "\(index).\(sentenceIndex)", text: sentence)
             }
-            return TopicReadingBlock(id: index, kind: kind, sentences: sentences)
+            return SectionReadingBlock(id: index, kind: kind, sentences: sentences)
         }
     }
 }
@@ -133,6 +140,7 @@ final class TopicViewModel {
 // Replace this source when classroom materials provide structured topics.
 // Write mathematical content as spoken Indonesian, including numbers,
 // operations, and the variable name "eks", so text and VoiceOver match.
-extension TopicViewModel {
-    static let sampleTopics: [MathTopicModel] = MathTopicModel.sampleTopics
+extension SectionViewModel {
+    static let sampleSections: [MathSectionModel] = MathSectionModel.sampleSections
 }
+

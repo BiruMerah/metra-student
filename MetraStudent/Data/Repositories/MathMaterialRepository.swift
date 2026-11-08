@@ -80,13 +80,13 @@ final class MathMaterialRepository: MathMaterialProtocol {
         return material.materialOverview
     }
     
-    func topics(for material: MathMaterialModel) -> [MathTopicModel] {
-        if !material.topics.isEmpty {
-            return material.topics
+    func sections(for material: MathMaterialModel) -> [MathSectionModel] {
+        if !material.sections.isEmpty {
+            return material.sections
         }
         let trimmed = material.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
-        return [MathTopicModel(title: material.title, content: [.text(trimmed)])]
+        return [MathSectionModel(title: material.title, content: [.text(trimmed)])]
     }
 }
 
@@ -137,12 +137,12 @@ final class InMemoryMathMaterialRepository: MathMaterialProtocol {
         return material.materialOverview
     }
     
-    func topics(for material: MathMaterialModel) -> [MathTopicModel] {
-        if !material.topics.isEmpty {
-            return material.topics
+    func sections(for material: MathMaterialModel) -> [MathSectionModel] {
+        if !material.sections.isEmpty {
+            return material.sections
         }
         let trimmed = material.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
-        return [MathTopicModel(title: material.title, content: [.text(trimmed)])]
+        return [MathSectionModel(title: material.title, content: [.text(trimmed)])]
     }
 }

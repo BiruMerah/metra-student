@@ -18,11 +18,11 @@ final class MathMaterialEntity {
     var content: String = ""
     var createdAt: Date = Date.now
     var revision: Int = 1
-    var defaultSpeechStyleRaw: String = MetraSpeechStyle.clearSpeak.rawValue
-    var reviewStatusRaw: String = MetraReviewStatus.draft.rawValue
+    var defaultSpeechStyleRaw: String = SpeechStyle.clearSpeak.rawValue
+    var reviewStatusRaw: String = ReviewStatus.draft.rawValue
     var validatedAt: Date? = nil
     var overview: String? = nil
-    var topicsData: Data = Data()
+    var sectionsData: Data = Data()
     
     init(
         id: UUID = UUID(),
@@ -31,11 +31,11 @@ final class MathMaterialEntity {
         content: String = "",
         createdAt: Date = .now,
         revision: Int = 1,
-        defaultSpeechStyleRaw: String = MetraSpeechStyle.clearSpeak.rawValue,
-        reviewStatusRaw: String = MetraReviewStatus.draft.rawValue,
+        defaultSpeechStyleRaw: String = SpeechStyle.clearSpeak.rawValue,
+        reviewStatusRaw: String = ReviewStatus.draft.rawValue,
         validatedAt: Date? = nil,
         overview: String? = nil,
-        topicsData: Data = Data()
+        sectionsData: Data = Data()
     ) {
         self.id = id
         self.title = title
@@ -47,12 +47,12 @@ final class MathMaterialEntity {
         self.reviewStatusRaw = reviewStatusRaw
         self.validatedAt = validatedAt
         self.overview = overview
-        self.topicsData = topicsData
+        self.sectionsData = sectionsData
     }
     
     // MARK: - Mapper
     func toDomain() -> MathMaterialModel {
-        let decodedTopics = (try? JSONDecoder().decode([MathTopicModel].self, from: topicsData)) ?? []
+        let decodedSections = (try? JSONDecoder().decode([MathSectionModel].self, from: sectionsData)) ?? []
         return MathMaterialModel(
             id: self.id,
             title: self.title,
@@ -60,11 +60,11 @@ final class MathMaterialEntity {
             content: self.content,
             createdAt: self.createdAt,
             revision: self.revision,
-            defaultSpeechStyle: MetraSpeechStyle(rawValue: self.defaultSpeechStyleRaw) ?? .clearSpeak,
-            reviewStatus: MetraReviewStatus(rawValue: self.reviewStatusRaw) ?? .draft,
+            defaultSpeechStyle: SpeechStyle(rawValue: self.defaultSpeechStyleRaw) ?? .clearSpeak,
+            reviewStatus: ReviewStatus(rawValue: self.reviewStatusRaw) ?? .draft,
             validatedAt: self.validatedAt,
             overview: self.overview,
-            topics: decodedTopics
+            sections: decodedSections
         )
     }
     
@@ -78,11 +78,11 @@ final class MathMaterialEntity {
         self.reviewStatusRaw = domain.reviewStatus.rawValue
         self.validatedAt = domain.validatedAt
         self.overview = domain.overview
-        self.topicsData = (try? JSONEncoder().encode(domain.topics)) ?? Data()
+        self.sectionsData = (try? JSONEncoder().encode(domain.sections)) ?? Data()
     }
     
     static func from(domain: MathMaterialModel) -> MathMaterialEntity {
-        let encodedTopics = (try? JSONEncoder().encode(domain.topics)) ?? Data()
+        let encodedSections = (try? JSONEncoder().encode(domain.sections)) ?? Data()
         return MathMaterialEntity(
             id: domain.id,
             title: domain.title,
@@ -94,7 +94,7 @@ final class MathMaterialEntity {
             reviewStatusRaw: domain.reviewStatus.rawValue,
             validatedAt: domain.validatedAt,
             overview: domain.overview,
-            topicsData: encodedTopics
+            sectionsData: encodedSections
         )
     }
 }

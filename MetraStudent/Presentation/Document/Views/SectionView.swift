@@ -1,6 +1,13 @@
+//
+//  SectionView.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 08/11/26.
+//
+
 import SwiftUI
 
-struct TopicView: View {
+struct SectionView: View {
     private enum ReadingFocus: Hashable {
         case title
         case progress
@@ -12,23 +19,23 @@ struct TopicView: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AccessibilityFocusState(for: .voiceOver) private var readingFocus: ReadingFocus?
-    @State private var viewModel: TopicViewModel
+    @State private var viewModel: SectionViewModel
     @State private var assistant: AIAssistantViewModel?
     @State private var lastSelectedSentenceID: String?
     @State private var selectionError: String?
 
-    init(viewModel: TopicViewModel) {
+    init(viewModel: SectionViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
 
     init(
-        topics: [MathTopicModel],
-        initialTopicIndex: Int = 0,
-        initialSpeechStyle: MetraSpeechStyle = .clearSpeak
+        sections: [MathSectionModel],
+        initialSectionIndex: Int = 0,
+        initialSpeechStyle: SpeechStyle = .clearSpeak
     ) {
-        _viewModel = State(initialValue: TopicViewModel(
-            topics: topics,
-            initialTopicIndex: initialTopicIndex,
+        _viewModel = State(initialValue: SectionViewModel(
+            sections: sections,
+            initialSectionIndex: initialSectionIndex,
             initialSpeechStyle: initialSpeechStyle
         ))
     }
@@ -37,7 +44,7 @@ struct TopicView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(viewModel.topic.title)
+                    Text(viewModel.section.title)
                         .font(.title.weight(.bold))
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
@@ -76,7 +83,7 @@ struct TopicView: View {
                 .padding(.bottom, 32)
             }
             .accessibilityElement(children: .contain)
-            .task(id: viewModel.topic.id) {
+            .task(id: viewModel.section.id) {
                 readingFocus = nil
                 proxy.scrollTo("topic-start", anchor: .top)
                 // Let the topic change settle before moving VoiceOver focus.
@@ -99,8 +106,8 @@ struct TopicView: View {
                             set: { viewModel.speechStyle = $0 }
                         )
                     ) {
-                        ForEach(MetraSpeechStyle.allCases) { style in
-                            Text(style.label).tag(style)
+                        ForEach(SpeechStyle.allCases) { speechStyle in
+                            Text(speechStyle.label).tag(speechStyle)
                         }
                     }
                 } label: {
@@ -128,7 +135,7 @@ struct TopicView: View {
     }
 
     @ViewBuilder
-    private func contentBlock(_ block: TopicReadingBlock) -> some View {
+    private func contentBlock(_ block: SectionReadingBlock) -> some View {
         switch block.kind {
         case .text, .analogy:
             sentences(in: block)
@@ -143,7 +150,7 @@ struct TopicView: View {
         }
     }
 
-    private func sentences(in block: TopicReadingBlock, spacing: CGFloat = 16) -> some View {
+    private func sentences(in block: SectionReadingBlock, spacing: CGFloat = 16) -> some View {
         VStack(alignment: .leading, spacing: spacing) {
             ForEach(block.sentences) { sentence in
                 Text(sentence.text)
@@ -179,7 +186,7 @@ struct TopicView: View {
         title: String,
         symbol: String,
         tint: Color,
-        block: TopicReadingBlock,
+        block: SectionReadingBlock,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -259,22 +266,22 @@ struct TopicView: View {
     @ViewBuilder
     private var topicNavigationButtons: some View {
         navigationButton(
-            title: "Topik Sebelumnya",
+            title: "Segmen Sebelumnya",
             symbol: "backward.end.fill",
-            enabled: viewModel.hasPreviousTopic,
-            action: viewModel.previousTopic
+            enabled: viewModel.hasPreviousSection,
+            action: viewModel.previousSection
         )
         .accessibilityFocused($readingFocus, equals: .previousTopic)
-        .accessibilityHidden(!viewModel.hasPreviousTopic)
+        .accessibilityHidden(!viewModel.hasPreviousSection)
 
         navigationButton(
-            title: "Topik Selanjutnya",
+            title: "Segmen Selanjutnya",
             symbol: "forward.end.fill",
-            enabled: viewModel.hasNextTopic,
-            action: viewModel.nextTopic
+            enabled: viewModel.hasNextSection,
+            action: viewModel.nextSection
         )
         .accessibilityFocused($readingFocus, equals: .nextTopic)
-        .accessibilityHidden(!viewModel.hasNextTopic)
+        .accessibilityHidden(!viewModel.hasNextSection)
     }
 
     private func navigationButton(
@@ -299,13 +306,13 @@ struct TopicView: View {
 
 #Preview("Light") {
     NavigationStack {
-        TopicView(topics: TopicViewModel.sampleTopics)
+        SectionView(sections: SectionViewModel.sampleSections)
     }
 }
 
 #Preview("Dark") {
     NavigationStack {
-        TopicView(topics: TopicViewModel.sampleTopics, initialTopicIndex: 2)
+        SectionView(sections: SectionViewModel.sampleSections, initialSectionIndex: 2)
     }
     .preferredColorScheme(.dark)
 }

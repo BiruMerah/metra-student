@@ -1,9 +1,18 @@
+//
+//  DocumentView.swift
+//  MetraStudent
+//
+//  Created by Fidel Fausta Cavell on 08/11/26.
+//
+
 import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct DocumentView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var viewModel: DocumentViewModel
+    
     @State private var searchText = ""
     @State private var isSelecting = false
     @State private var selectedIDs: Set<UUID> = []
@@ -27,7 +36,13 @@ struct DocumentView: View {
 
     var body: some View {
         List {
-            importStatus
+            ImportStatusSection(
+                unavailableReason: viewModel.importUnavailableReason,
+                progress: viewModel.progress,
+                isCancelling: viewModel.isCancelling,
+                successMessage: viewModel.successMessage,
+                onCancel: viewModel.cancelImport
+            )
 
             if matchingDocuments.isEmpty {
                 if viewModel.savedMaterials.isEmpty {
@@ -45,22 +60,32 @@ struct DocumentView: View {
                                 .controlSize(.large)
                         }
                     }
+                    .listRowBackground(Color.clear)
                 } else {
                     ContentUnavailableView(
                         "Dokumen tidak ditemukan",
                         systemImage: "magnifyingglass",
                         description: Text("Coba cari dengan judul lain.")
                     )
+                    .listRowBackground(Color.clear)
                 }
             } else {
-                Section("Terbaru") {
+                Section {
                     ForEach(matchingDocuments) { material in
-                        documentRow(material)
+                        DocumentRow(
+                            material: material,
+                            isSelected: isSelecting ? selectedIDs.contains(material.id) : nil,
+                            onTap: { handleTap(on: material) },
+                            onDelete: { pendingDeletion = [material] }
+                        )
                     }
+                } header: {
+                    Text("Terbaru · \(matchingDocuments.count)")
+                        .accessibilityLabel(Text("Terbaru, \(matchingDocuments.count) dokumen"))
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .navigationTitle("Dokumen")
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Cari judul dokumen")
         .toolbar {
@@ -78,7 +103,11 @@ struct DocumentView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if isSelecting { selectionBar }
+            if isSelecting {
+                SelectionBar(summary: selectionSummary, canDelete: !selectedIDs.isEmpty) {
+                    pendingDeletion = viewModel.savedMaterials.filter { selectedIDs.contains($0.id) }
+                }
+            }
         }
         .onAppear(perform: viewModel.reload)
         .onChange(of: viewModel.savedMaterials.map(\.id)) { _, availableIDs in
@@ -125,101 +154,28 @@ struct DocumentView: View {
         }
     }
 
+    /// Used twice (empty state + toolbar), so kept as a small shortcut.
     private var addDocumentMenu: some View {
-        Menu {
-            Button("Pilih dari Galeri", systemImage: "photo") { showsPhotoPicker = true }
-            Button("Pilih PDF", systemImage: "doc") { showsPDFPicker = true }
-        } label: {
-            Label("Tambah Dokumen", systemImage: "plus")
-        }
-        .disabled(!viewModel.canImport)
-        .accessibilityHint("Pilih foto dari galeri atau berkas PDF")
+        AddDocumentMenu(
+            isEnabled: viewModel.canImport,
+            onPickPhoto: { showsPhotoPicker = true },
+            onPickPDF: { showsPDFPicker = true }
+        )
     }
 
-    @ViewBuilder
-    private var importStatus: some View {
-        if let reason = viewModel.importUnavailableReason {
-            Text(reason).foregroundStyle(.secondary)
-        } else if let progress = viewModel.progress {
-            Section {
-                ProgressView { Text(progress) }
-                Button("Batalkan Penambahan", role: .cancel, action: viewModel.cancelImport)
-                    .disabled(viewModel.isCancelling)
-            }
-        } else if let message = viewModel.successMessage {
-            Label(message, systemImage: "checkmark.circle")
+    private func handleTap(on material: MathMaterialModel) {
+        guard isSelecting else {
+            viewModel.open(material)
+            return
         }
-    }
-
-    private var selectionBar: some View {
-        VStack(spacing: 8) {
-            Text(selectionSummary)
-                .font(.subheadline)
-                .multilineTextAlignment(.center)
-
-            Button(role: .destructive) {
-                pendingDeletion = viewModel.savedMaterials.filter { selectedIDs.contains($0.id) }
-            } label: {
-                Label("Hapus Dokumen Terpilih", systemImage: "trash")
-                    .frame(maxWidth: .infinity, minHeight: 44)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(selectedIDs.isEmpty)
-            .accessibilityHint("Meminta konfirmasi sebelum menghapus")
-        }
-        .padding()
-        .background(.regularMaterial)
-    }
-
-    @ViewBuilder
-    private func documentRow(_ material: MathMaterialModel) -> some View {
-        if isSelecting {
-            let isSelected = selectedIDs.contains(material.id)
-            rowButton(material, icon: isSelected ? "checkmark.circle.fill" : "circle") {
-                if isSelected { selectedIDs.remove(material.id) }
-                else { selectedIDs.insert(material.id) }
-            }
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
-            .accessibilityHint(isSelected ? "Batalkan pilihan dokumen ini" : "Pilih dokumen ini")
-        } else {
-            rowButton(material, icon: "doc.text") { viewModel.open(material) }
-                .accessibilityHint("Buka detail dokumen")
-                .contextMenu {
-                    Button("Hapus Dokumen", systemImage: "trash", role: .destructive) {
-                        pendingDeletion = [material]
-                    }
-                }
-                .accessibilityAction(named: Text("Hapus Dokumen")) {
-                    pendingDeletion = [material]
-                }
-        }
-    }
-
-    private func rowButton(_ material: MathMaterialModel, icon: String, action: @escaping () -> Void) -> some View {
-        let date = material.createdAt.formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "id_ID")))
-        return Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .foregroundStyle(Color.accentColor)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(material.title).font(.body)
-                    Text(date)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-            }
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(material.title))
-        .accessibilityValue(Text(date))
+        if selectedIDs.contains(material.id) { selectedIDs.remove(material.id) }
+        else { selectedIDs.insert(material.id) }
     }
 
     private func setSelectionMode(_ enabled: Bool, announces: Bool = true) {
-        isSelecting = enabled
+        withAnimation(reduceMotion ? nil : .snappy) {
+            isSelecting = enabled
+        }
         selectedIDs.removeAll()
         if announces { viewModel.announceSelectionMode(enabled) }
     }

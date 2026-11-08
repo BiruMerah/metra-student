@@ -28,14 +28,14 @@ struct MaterialDetailView: View {
             }
 
             Section {
-                ForEach(Array(viewModel.topics.enumerated()), id: \.element.id) { index, topic in
+                ForEach(Array(viewModel.sections.enumerated()), id: \.element.id) { index, section in
                     Button {
-                        viewModel.openTopic(at: index)
+                        viewModel.openSection(at: index)
                     } label: {
-                        topicRow(topic, index: index)
+                        sectionRow(section, index: index)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Topik \(index + 1), \(topic.title)")
+                    .accessibilityLabel("Segmen \(index + 1), \(section.title)")
                     .accessibilityHint("Buka detail topik")
                 }
             } header: {
@@ -133,8 +133,8 @@ struct MaterialDetailView: View {
 
     @ViewBuilder
     private var overviewCounts: some View {
-        countBadge("\(viewModel.topics.count) Topik", symbol: "list.bullet")
-            .accessibilityLabel("\(viewModel.topics.count) topik pembelajaran")
+        countBadge("\(viewModel.sections.count) Topik", symbol: "list.bullet")
+            .accessibilityLabel("\(viewModel.sections.count) topik pembelajaran")
         countBadge("\(viewModel.overview.questionCount) Soal", symbol: "questionmark.circle")
             .accessibilityLabel("\(viewModel.overview.questionCount) soal latihan")
     }
@@ -149,7 +149,7 @@ struct MaterialDetailView: View {
             .accessibilityLabel(title)
     }
 
-    private func topicRow(_ topic: MathTopicModel, index: Int) -> some View {
+    private func sectionRow(_ section: MathSectionModel, index: Int) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "doc.text.fill")
                 .font(.title2)
@@ -159,7 +159,7 @@ struct MaterialDetailView: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(topic.title)
+                Text(section.title)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -186,7 +186,7 @@ struct MaterialDetailView: View {
         category: "Aljabar",
         content: "Contoh isi materi pembelajaran dari guru.",
         overview: MaterialOverview.sample.summaryText,
-        topics: MathTopicModel.sampleTopics
+        sections: MathSectionModel.sampleSections
     )
     return NavigationStack(path: Bindable(coordinator).channelPath) {
         MaterialDetailView(

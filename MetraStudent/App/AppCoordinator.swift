@@ -131,11 +131,11 @@ final class AppCoordinator: AppCoordinating {
                 sourceTab: tab
             )
 
-        case .topicDetail(let topics, let initialIndex, let speechStyle):
-            TopicView(
-                viewModel: TopicViewModel(
-                    topics: topics,
-                    initialTopicIndex: initialIndex,
+        case .sectionDetail(let sections, let initialIndex, let speechStyle):
+            SectionView(
+                viewModel: SectionViewModel(
+                    sections: sections,
+                    initialSectionIndex: initialIndex,
                     initialSpeechStyle: speechStyle,
                     assistantEngineFactory: assistantEngineFactory
                 )
