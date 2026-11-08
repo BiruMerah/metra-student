@@ -13,12 +13,13 @@ struct TopicView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AccessibilityFocusState(for: .voiceOver) private var readingFocus: ReadingFocus?
     @State private var viewModel: TopicViewModel
-    @State private var assistant: MetraAssistantViewModel?
+    @State private var assistant: MetraAssistantSelection?
     @State private var lastSelectedSentenceID: String?
     @State private var selectionError: String?
 
-    init(topics: [MathTopicModel], initialTopicIndex: Int = 0) {
+    init(materialTitle: String, topics: [MathTopicModel], initialTopicIndex: Int = 0) {
         _viewModel = State(initialValue: TopicViewModel(
+            materialTitle: materialTitle,
             topics: topics,
             initialTopicIndex: initialTopicIndex
         ))
@@ -40,6 +41,9 @@ struct TopicView: View {
                         .foregroundStyle(.secondary)
                         .padding(.top, 8)
                         .accessibilityFocused($readingFocus, equals: .progress)
+                    
+                    assistantHint
+                        .padding(.top, 24)
 
                     VStack(alignment: .leading, spacing: 20) {
                         if viewModel.readingBlocks.isEmpty {
@@ -54,8 +58,6 @@ struct TopicView: View {
                     .padding(.top, 24)
                     .accessibilityElement(children: .contain)
 
-                    assistantHint
-                        .padding(.top, 24)
 
                     topicNavigation
                         .padding(.top, 24)
@@ -84,8 +86,8 @@ struct TopicView: View {
             if let lastSelectedSentenceID {
                 readingFocus = .sentence(lastSelectedSentenceID)
             }
-        }) { session in
-            MetraAssistantSheet(viewModel: session)
+        }) { selection in
+            MetraAssistantSheet(selection: selection)
         }
         .alert("Metra Assistant belum dapat dibuka", isPresented: Binding(
             get: { selectionError != nil },
@@ -125,7 +127,8 @@ struct TopicView: View {
                     .onTapGesture(count: 2) { openAssistant(sentenceID: sentence.id) }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(sentence.text)
-//                    .accessibilityHint("Ketuk dua kali untuk membuka Metra Assistant dan meringkas atau menjelaskan kalimat ini.")
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityHint("Ketuk dua kali untuk bertanya tentang kalimat ini.")
                     .accessibilityAction { openAssistant(sentenceID: sentence.id) }
                     .accessibilityFocused($readingFocus, equals: .sentence(sentence.id))
                     .accessibilityIdentifier("topic-sentence-\(sentence.id)")
@@ -136,10 +139,10 @@ struct TopicView: View {
 
     private func openAssistant(sentenceID: String) {
         do {
-            let session = try viewModel.assistantSession(sentenceID: sentenceID)
+            let selection = try viewModel.assistantSelection(sentenceID: sentenceID)
             lastSelectedSentenceID = sentenceID
             readingFocus = nil
-            assistant = session
+            assistant = selection
         } catch {
             selectionError = error.localizedDescription
         }
@@ -189,9 +192,9 @@ struct TopicView: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Petunjuk Metra Assistant")
+                Text("Metra Assistant Tersedia!")
                     .font(.subheadline.weight(.semibold))
-                Text("Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan meminta ringkasan atau penjelasan.")
+                Text("Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan bertanya dengan suara.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -204,7 +207,7 @@ struct TopicView: View {
             in: RoundedRectangle(cornerRadius: 12)
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Petunjuk Metra Assistant. Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan meminta ringkasan atau penjelasan.")
+        .accessibilityLabel("Petunjuk Metra Assistant. Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan bertanya dengan suara.")
     }
 
     private var topicNavigation: some View {
@@ -269,13 +272,13 @@ struct TopicView: View {
 
 #Preview("Light") {
     NavigationStack {
-        TopicView(topics: TopicViewModel.sampleTopics)
+        TopicView(materialTitle: "Persamaan Linear Satu Variabel", topics: TopicViewModel.sampleTopics)
     }
 }
 
 #Preview("Dark") {
     NavigationStack {
-        TopicView(topics: TopicViewModel.sampleTopics, initialTopicIndex: 2)
+        TopicView(materialTitle: "Persamaan Linear Satu Variabel", topics: TopicViewModel.sampleTopics, initialTopicIndex: 2)
     }
     .preferredColorScheme(.dark)
 }

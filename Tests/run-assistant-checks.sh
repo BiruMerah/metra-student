@@ -13,8 +13,7 @@ xcrun swiftc -parse-as-library -swift-version 5 -default-isolation MainActor \
   MetraStudent/Presentation/Helpers/TopicSentenceChunker.swift \
   MetraStudent/Presentation/ViewModels/TopicViewModel.swift \
   MetraStudent/Data/Managers/FoundationMetraAssistantModel.swift \
-  MetraStudent/Data/Managers/MetraAssistantPipeline.swift \
-  MetraStudent/Data/Managers/MetraTranslationBridge.swift \
+  MetraStudent/Data/Managers/MetraSpeechCapture.swift \
   MetraStudent/Presentation/ViewModels/MetraAssistantViewModel.swift \
   Tests/AssistantLogicChecks.swift \
   -o "$task_check_dir/checks"

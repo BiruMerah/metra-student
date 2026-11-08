@@ -25,7 +25,7 @@ final class TopicViewModel {
     private(set) var currentTopicIndex: Int
     private(set) var readingBlocks: [TopicReadingBlock] = []
     private let topics: [MathTopicModel]
-    private var assistantSessions: [String: MetraAssistantViewModel] = [:]
+    private let materialTitle: String
 
     var topic: MathTopicModel { topics[currentTopicIndex] }
     var progress: String { "Topik \(currentTopicIndex + 1) dari \(topics.count)" }
@@ -35,8 +35,9 @@ final class TopicViewModel {
         readingBlocks.last(where: { !$0.sentences.isEmpty })?.sentences.last?.id
     }
 
-    init(topics: [MathTopicModel], initialTopicIndex: Int = 0) {
+    init(materialTitle: String, topics: [MathTopicModel], initialTopicIndex: Int = 0) {
         precondition(!topics.isEmpty, "A topic reader needs at least one topic")
+        self.materialTitle = materialTitle
         self.topics = topics
         self.currentTopicIndex = min(max(initialTopicIndex, 0), topics.count - 1)
         prepareContent()
@@ -55,27 +56,18 @@ final class TopicViewModel {
     }
 
     func assistantSelection(sentenceID: String) throws -> MetraAssistantSelection {
-        let sentences = readingBlocks.flatMap(\.sentences).map {
-            MetraAssistantSentence(id: $0.id, text: $0.text)
+        let sentences = readingBlocks.flatMap(\.sentences)
+        guard let selected = sentences.first(where: { $0.id == sentenceID }) else {
+            throw MetraAssistantFailure.message("Kalimat tidak ditemukan. Pilih kembali bagian materi yang ingin dipelajari.")
         }
-        return try MetraAssistantSelection.make(
-            topicID: topic.id,
+
+        return MetraAssistantSelection(
+            id: "\(topic.id)-\(selected.id)",
+            sentence: selected.text,
             topicTitle: topic.title,
-            sentences: sentences,
-            selectedID: sentenceID
+            materialTitle: materialTitle,
+            supportingText: sentences.map(\.text).joined(separator: "\n")
         )
-    }
-
-    func assistantSession(
-        sentenceID: String,
-        engine: (any MetraAssistantProviding)? = nil
-    ) throws -> MetraAssistantViewModel {
-        let selection = try assistantSelection(sentenceID: sentenceID)
-        if let existing = assistantSessions[selection.id] { return existing }
-
-        let session = MetraAssistantViewModel(selection: selection, engine: engine)
-        assistantSessions[selection.id] = session
-        return session
     }
 
     private func prepareContent() {

@@ -32,7 +32,11 @@ struct MaterialDetailView: View {
             Section {
                 ForEach(Array(topics.enumerated()), id: \.element.id) { index, topic in
                     NavigationLink {
-                        TopicView(topics: topics, initialTopicIndex: index)
+                        TopicView(
+                            materialTitle: viewModel.material.title,
+                            topics: topics,
+                            initialTopicIndex: index
+                        )
                     } label: {
                         topicRow(topic, index: index)
                     }

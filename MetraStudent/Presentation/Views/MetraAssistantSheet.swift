@@ -1,247 +1,258 @@
 import SwiftUI
-import Translation
+#if os(iOS)
+import AVFAudio
+import UIKit
+#endif
 
 struct MetraAssistantSheet: View {
-    private enum Focus: Hashable { case selection, progress, error, result(UUID) }
-
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
-    @AccessibilityFocusState(for: .voiceOver) private var focused: Focus?
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @State private var viewModel: MetraAssistantViewModel
+    @AccessibilityFocusState(for: .voiceOver) private var focused: Focus?
+    private enum Focus: Hashable { case heading, error, record, processing, answer }
 
-    init(selection: MetraAssistantSelection, engine: (any MetraAssistantProviding)? = nil) {
-        _viewModel = State(initialValue: MetraAssistantViewModel(selection: selection, engine: engine))
+    private var isRecording: Bool { viewModel.phase == .recording }
+    private var isProcessing: Bool { viewModel.phase == .transcribing || viewModel.phase == .thinking }
+
+    private var resultFocus: Focus? {
+        guard viewModel.errorMessage == nil else { return nil }
+        if viewModel.answer != nil { return .answer }
+        if isProcessing { return .processing }
+        return nil
     }
 
-    init(viewModel: MetraAssistantViewModel) {
-        _viewModel = State(initialValue: viewModel)
+    init(selection: MetraAssistantSelection) {
+        _viewModel = State(initialValue: MetraAssistantViewModel(selection: selection))
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        selectedSentence
-
-                        if viewModel.results.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Apa yang perlu dibantu?")
-                                    .font(.headline)
-                                    .accessibilityAddTraits(.isHeader)
-
-                                HStack(alignment: .top, spacing: 12) { actions }
-                            }
-                        }
-
-                        if !viewModel.hasReachedRequestLimit, let message = viewModel.availabilityMessage {
-                            notice(message)
-                            Button("Periksa lagi") { viewModel.refreshAvailability() }
-                                .buttonStyle(.bordered)
-                        }
-
-                        ForEach(viewModel.results) { result in
-                            resultCard(result)
-                                .id(result.id)
-                        }
-
-                        if let error = viewModel.errorMessage {
-                            VStack(alignment: .leading, spacing: 12) {
-                                notice(error)
-                                    .accessibilityFocused($focused, equals: .error)
-                                if let action = viewModel.activeAction, viewModel.canRequest(action) {
-                                    Button("Coba lagi") { viewModel.select(action) }
-                                        .buttonStyle(.bordered)
-                                }
-                            }
-                        }
-
-                        if viewModel.isBusy {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack(spacing: 10) {
-                                    ProgressView().accessibilityHidden(true)
-                                    Text(viewModel.status)
-                                }
-                                .accessibilityElement(children: .combine)
-                                .accessibilityFocused($focused, equals: .progress)
-                                Button("Batalkan proses", role: .cancel) {
-                                    viewModel.cancel()
-                                    focused = .selection
-                                }
-                                    .buttonStyle(.bordered)
-                            }
-                            .id("assistant-progress")
-                        } else if viewModel.errorMessage == nil, let action = viewModel.followUpAction {
-                            Button(action == .summarize ? "Perlu ringkasan?" : "Perlu penjelasan?") {
-                                viewModel.select(action)
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(viewModel.availabilityMessage != nil)
-                            .accessibilityHint("Bantuan tambahan untuk kalimat yang dipilih. Jawaban sebelumnya tetap tersedia.")
-                        } else if viewModel.hasReachedRequestLimit {
-                            Text("Penjelasan dan ringkasan untuk kalimat ini sudah tersedia. Silakan lanjut membaca topik.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(20)
-                }
-                .onChange(of: viewModel.results.count) { _, _ in
-                    guard let result = viewModel.results.last else { return }
-                    proxy.scrollTo(result.id, anchor: .top)
-                    focused = .result(result.id)
-                }
-                .onChange(of: viewModel.isBusy) { _, busy in
-                    if busy {
-                        proxy.scrollTo("assistant-progress", anchor: .bottom)
-                        focused = .progress
-                    }
+        #if os(iOS)
+        sheet
+            .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.didBecomeInactiveNotification)) { notification in
+                if let context = notification.userInfo?[AVAudioSession.deactivationContextKey] as? AVAudioSession.DeactivationContext,
+                   context.source == .system {
+                    viewModel.interrupt()
                 }
             }
-            .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Metra Assistant")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Tutup", systemImage: "xmark") { close() }
-                        .accessibilityLabel("Tutup Metra Assistant")
-                }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Button { close() } label: {
-                    Text("Lanjut membaca topik")
-                        .font(.body.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                }
-                    .buttonStyle(.borderedProminent)
-                    .padding(16)
-                    .background(.bar)
-            }
+        #else
+        sheet
+        #endif
+    }
+
+    private var sheet: some View {
+        VStack(spacing: 0) {
+            content
+                .accessibilityElement(children: .contain)
+                .accessibilitySortPriority(1)
+            footer
+                .accessibilityElement(children: .contain)
         }
+        .sensoryFeedback(.start, trigger: isRecording) { _, recording in recording }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .translationTask(viewModel.translation.configuration) { session in
-            await viewModel.translation.perform(using: session)
+        .task { focused = .heading }
+        .onChange(of: viewModel.errorMessage) { _, message in
+            if message != nil { focused = .error }
         }
-        .task {
-            viewModel.refreshAvailability()
-            focused = .selection
-        }
-        .onChange(of: viewModel.errorMessage) { _, error in
-            if error != nil { focused = .error }
+        .onChange(of: isRecording) { _, recording in
+            if recording { focused = .record }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { viewModel.cancel() }
+            if phase == .background { viewModel.interrupt() }
             if phase == .active { viewModel.refreshAvailability() }
         }
         .onDisappear { viewModel.cancel() }
-        .accessibilityAction(.escape) { close() }
+        .accessibilityAction(.escape, close)
+        .accessibilityAction(.magicTap, viewModel.ask)
     }
 
-    private var selectedSentence: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Kalimat terpilih")
-                .font(.headline)
-                .accessibilityAddTraits(.isHeader)
-            Text(viewModel.selection.selectedSentence)
-                .font(.body)
-                .lineSpacing(4)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityFocused($focused, equals: .selection)
+    private var content: some View {
+        ScrollViewReader { scroll in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("Metra Assistant")
+                        .font(.largeTitle.bold())
+                        .padding(.top, 30)
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityFocused($focused, equals: .heading)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Kalimat terpilih")
+                            .font(.headline)
+                            .foregroundStyle(.blue)
+                        Text(viewModel.selection.sentence)
+                            .font(.title3)
+                            .lineSpacing(5)
+                    }
+                    .padding(20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 20))
+                    .accessibilityElement(children: .combine)
+
+                    if viewModel.phase == .idle, viewModel.canAsk,
+                       viewModel.question.isEmpty, viewModel.errorMessage == nil {
+                        Label(viewModel.status, systemImage: "mic")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
+                    }
+
+                    availabilityNotice
+                    errorNotice
+                        .id(Focus.error)
+
+                    if !viewModel.question.isEmpty {
+                        result("Pertanyaan Anda", text: viewModel.question)
+                            .accessibilityIdentifier("assistant-question")
+                    }
+
+                    if isProcessing {
+                        statusRow("Memproses pertanyaan…", showsProgress: true)
+                            .accessibilityFocused($focused, equals: .processing)
+                            .id(Focus.processing)
+                        Button("Batalkan Pertanyaan", role: .cancel) {
+                            viewModel.cancel()
+                            focused = .record
+                        }
+                        .buttonStyle(.bordered)
+                    } else if viewModel.phase == .requestingPermissions || isRecording {
+                        statusRow(viewModel.status, showsProgress: !isRecording)
+                    }
+
+                    if let answer = viewModel.answer {
+                        result("Jawaban", text: answer)
+                            .accessibilityFocused($focused, equals: .answer)
+                            .accessibilityIdentifier("assistant-answer")
+                            .id(Focus.answer)
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 20))
+                    }
+                }
+                .padding(24)
+                .frame(maxWidth: 680, alignment: .leading)
+                .frame(maxWidth: .infinity)
+            }
+            .onChange(of: resultFocus) { _, target in
+                guard let target else { return }
+                scroll.scrollTo(target, anchor: .top)
+                if voiceOver { focused = target }
+            }
+            .onChange(of: viewModel.errorMessage) { _, error in
+                if error != nil { scroll.scrollTo(Focus.error, anchor: .top) }
+            }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var footer: some View {
+        VStack(spacing: 12) {
+            Button(action: viewModel.ask) {
+                Label(isRecording ? "Hentikan Bertanya" : "Tanya Metra AI",
+                      systemImage: isRecording ? "stop.fill" : "mic.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.roundedRectangle(radius: 16))
+            .tint(isRecording ? .red : .blue)
+            .disabled(!viewModel.canAsk)
+            .accessibilityHint(isRecording
+                ? "Menghentikan rekaman dan memproses pertanyaan."
+                : "Mulai merekam pertanyaan dalam bahasa Indonesia. Rekaman maksimal 60 detik.")
+            .accessibilityIdentifier("assistant-record")
+            .accessibilityFocused($focused, equals: .record)
+
+            Button(action: close) {
+                Text("Kembali ke Topik")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.roundedRectangle(radius: 16))
+            .accessibilityIdentifier("assistant-return-to-topic")
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+        .frame(maxWidth: 680)
+        .frame(maxWidth: .infinity)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider().accessibilityHidden(true) }
     }
 
     @ViewBuilder
-    private var actions: some View {
-        actionButton(.explain, detail: "Maksimal seratus karakter")
-        actionButton(.summarize, detail: "Maksimal lima poin ringkas")
-    }
-
-    private func actionButton(_ action: MetraAssistantAction, detail: String) -> some View {
-        Button {
-            viewModel.select(action)
-        } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: action.symbol)
-                    .font(.title3)
-                    .foregroundStyle(.indigo)
-                    .accessibilityHidden(true)
-                Text(action.title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(16)
-            .frame(maxWidth: .infinity, minHeight: 116, alignment: .topLeading)
-            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
-            .contentShape(RoundedRectangle(cornerRadius: 12))
+    private var availabilityNotice: some View {
+        if let unavailable = viewModel.availabilityMessage {
+            notice(unavailable, symbol: "exclamationmark.circle")
+            Button("Periksa Ketersediaan Lagi") { viewModel.refreshAvailability() }
+                .buttonStyle(.bordered)
         }
-        .buttonStyle(.plain)
-        .disabled(!viewModel.canRequest(action) || viewModel.availabilityMessage != nil)
-        .accessibilityLabel(action.title)
-        .accessibilityHint(action == .summarize
-            ? "Ringkas materi dari awal topik sampai kalimat ini, dalam maksimal lima poin matematika verbal."
-            : "Jelaskan kalimat ini menggunakan konteks sebelumnya, dalam maksimal seratus karakter.")
-        .accessibilityIdentifier("metra-assistant-\(action.rawValue)")
     }
 
-    private func resultCard(_ result: MetraAssistantResult) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(result.action.resultTitle)
-                .font(.headline)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityFocused($focused, equals: .result(result.id))
-            ForEach(Array(result.points.enumerated()), id: \.offset) { index, point in
-                HStack(alignment: .top, spacing: 10) {
-                    if result.action == .summarize {
-                        Text("•").foregroundStyle(.indigo).accessibilityHidden(true)
+    @ViewBuilder
+    private var errorNotice: some View {
+        if let error = viewModel.errorMessage {
+            notice(error, symbol: "exclamationmark.bubble")
+                .accessibilityFocused($focused, equals: .error)
+            #if os(iOS)
+            if !viewModel.permissionsGranted {
+                Button("Buka Pengaturan Aplikasi") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
                     }
-                    Text(point)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
                 }
-                .font(.body)
-                .lineSpacing(4)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(result.action == .summarize ? "Poin \(index + 1). \(point)" : point)
             }
+            #endif
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
-        .accessibilityIdentifier("metra-assistant-result")
     }
 
-    private func notice(_ message: String) -> some View {
-        Label(message, systemImage: "exclamationmark.circle")
-            .font(.subheadline)
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
+    private func statusRow(_ text: String, showsProgress: Bool) -> some View {
+        HStack(spacing: 12) {
+            if showsProgress {
+                ProgressView().accessibilityHidden(true)
+            } else {
+                Image(systemName: isRecording ? "waveform" : "bubble.left.and.bubble.right")
+                    .foregroundStyle(.blue)
+                    .accessibilityHidden(true)
+            }
+            Text(text).font(.headline)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("assistant-status")
+    }
+
+    private func result(_ title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.headline)
+            Text(text)
+                .font(.title3)
+                .lineSpacing(5)
+                .textSelection(.enabled)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private func close() {
         viewModel.cancel()
         dismiss()
     }
+
+    private func notice(_ text: String, symbol: String) -> some View {
+        Label(text, systemImage: symbol)
+            .font(.subheadline)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
+            .accessibilityElement(children: .combine)
+    }
 }
 
 #Preview("Metra Assistant") {
-    let selection = try! MetraAssistantSelection.make(
-        topicID: UUID(),
-        topicTitle: "Pengertian Persamaan Linear",
-        sentences: [
-            MetraAssistantSentence(id: "0", text: "Eks adalah bilangan yang belum diketahui."),
-            MetraAssistantSentence(id: "1", text: "Eks ditambah tiga sama dengan tujuh.")
-        ],
-        selectedID: "1"
-    )
-    MetraAssistantSheet(selection: selection)
+    MetraAssistantSheet(selection: MetraAssistantSelection(
+        id: "preview-sentence",
+        sentence: "Volume bangun ruang diperoleh dari tiga ukuran: panjang dikali lebar dikali tinggi.",
+        topicTitle: "Kenapa Pangkat Tiga?",
+        materialTitle: "Memahami Volume Kubus",
+        supportingText: "V sama dengan sisi dikali sisi dikali sisi."
+    ))
 }
