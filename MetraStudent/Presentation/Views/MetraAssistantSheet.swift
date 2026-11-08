@@ -15,6 +15,11 @@ struct MetraAssistantSheet: View {
     private var isRecording: Bool { viewModel.phase == .recording }
     private var isProcessing: Bool { viewModel.phase == .transcribing || viewModel.phase == .thinking }
 
+    private var showsReadyStatus: Bool {
+        viewModel.phase == .idle && viewModel.canAsk &&
+            viewModel.question.isEmpty && viewModel.errorMessage == nil
+    }
+
     private var resultFocus: Focus? {
         guard viewModel.errorMessage == nil else { return nil }
         if viewModel.answer != nil { return .answer }
@@ -42,9 +47,11 @@ struct MetraAssistantSheet: View {
 
     private var sheet: some View {
         VStack(spacing: 0) {
-            content
-                .accessibilityElement(children: .contain)
-                .accessibilitySortPriority(1)
+            GeometryReader { viewport in
+                content(viewportHeight: viewport.size.height)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilitySortPriority(1)
             footer
                 .accessibilityElement(children: .contain)
         }
@@ -67,7 +74,7 @@ struct MetraAssistantSheet: View {
         .accessibilityAction(.magicTap, viewModel.ask)
     }
 
-    private var content: some View {
+    private func content(viewportHeight: CGFloat) -> some View {
         ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
@@ -90,12 +97,17 @@ struct MetraAssistantSheet: View {
                     .background(.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 20))
                     .accessibilityElement(children: .combine)
 
-                    if viewModel.phase == .idle, viewModel.canAsk,
-                       viewModel.question.isEmpty, viewModel.errorMessage == nil {
-                        Label(viewModel.status, systemImage: "mic")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
+                    if showsReadyStatus {
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            Label(viewModel.status, systemImage: "mic")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                            Spacer(minLength: 0)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .accessibilityHidden(true)
                     }
 
                     availabilityNotice
@@ -131,7 +143,11 @@ struct MetraAssistantSheet: View {
                     }
                 }
                 .padding(24)
-                .frame(maxWidth: 680, alignment: .leading)
+                .frame(
+                    maxWidth: 680,
+                    minHeight: showsReadyStatus ? viewportHeight : nil,
+                    alignment: .topLeading
+                )
                 .frame(maxWidth: .infinity)
             }
             .onChange(of: resultFocus) { _, target in
