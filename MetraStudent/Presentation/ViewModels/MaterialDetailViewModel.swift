@@ -53,23 +53,10 @@ final class MaterialDetailViewModel {
     func checkSavedStatus() {
         errorMessage = nil
         do {
-            let savedMaterials = try mathMaterialRepository.fetchSavedMaterials()
-            let normalizedTitle = material.title
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased()
-            
-            if let matchedMaterial = savedMaterials.first(where: {
-                $0.id == material.id ||
-                $0.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedTitle
-            }) {
-                self.savedMaterialID = matchedMaterial.id
-                self.isSaved = true
-                self.hasDuplicateTitle = false
-            } else {
-                self.savedMaterialID = nil
-                self.isSaved = false
-                self.hasDuplicateTitle = false
-            }
+            let status = try mathMaterialRepository.evaluateSaveStatus(for: material)
+            savedMaterialID = status.isSaved ? material.id : nil
+            isSaved = status.isSaved
+            hasDuplicateTitle = status.hasDuplicateTitle
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -88,14 +75,22 @@ final class MaterialDetailViewModel {
         }
     }
     
-    func unsaveMaterial() {
+    func removeSavedMaterial(from tab: AppTab) {
         guard isSaved else { return }
         errorMessage = nil
         do {
             let targetID = savedMaterialID ?? material.id
             try mathMaterialRepository.deleteMaterial(id: targetID)
-            checkSavedStatus()
-            notificationManager?.announceAccessibility("Materi dihapus dari pustaka")
+            isSaved = false
+            savedMaterialID = nil
+
+            if tab == .document {
+                notificationManager?.announceAccessibility("Dokumen dihapus.")
+                coordinator?.navigateBack(in: .document)
+            } else {
+                checkSavedStatus()
+                notificationManager?.announceAccessibility("Materi dihapus dari pustaka")
+            }
             
         } catch {
             self.errorMessage = error.localizedDescription

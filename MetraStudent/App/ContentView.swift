@@ -30,7 +30,7 @@ struct ContentView: View {
             NavigationStack(path: $coordinator.documentPath) {
                 coordinator.buildDocument()
                     .navigationDestination(for: AppRoutes.self) { route in
-                        coordinator.buildDestination(for: route)
+                        coordinator.buildDestination(for: route, in: .document)
                     }
             }
             .tabItem {

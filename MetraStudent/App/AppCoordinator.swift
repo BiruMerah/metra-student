@@ -21,6 +21,7 @@ final class AppCoordinator: AppCoordinating {
     // MARK: - Dependencies (Domain Protocols)
     let mathMaterialRepository: MathMaterialProtocol
     let notificationManager: NotificationProtocol
+    private let storageIsPersistent: Bool
     let assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)?
     
     // MARK: - ViewModels
@@ -34,6 +35,8 @@ final class AppCoordinator: AppCoordinating {
     @ObservationIgnored
     lazy var documentViewModel = DocumentViewModel(
         mathMaterialRepository: mathMaterialRepository,
+        storageIsPersistent: storageIsPersistent,
+        notificationManager: notificationManager,
         coordinator: self
     )
     
@@ -41,10 +44,12 @@ final class AppCoordinator: AppCoordinating {
     init(
         mathMaterialRepository: MathMaterialProtocol,
         notificationManager: NotificationProtocol,
+        storageIsPersistent: Bool = true,
         assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
     ) {
         self.mathMaterialRepository = mathMaterialRepository
         self.notificationManager = notificationManager
+        self.storageIsPersistent = storageIsPersistent
         self.assistantEngineFactory = assistantEngineFactory
     }
 
@@ -113,7 +118,7 @@ final class AppCoordinator: AppCoordinating {
     }
     
     @ViewBuilder
-    func buildDestination(for route: AppRoutes) -> some View {
+    func buildDestination(for route: AppRoutes, in tab: AppTab = .channel) -> some View {
         switch route {
         case .materialDetail(let material):
             MaterialDetailView(
@@ -122,7 +127,8 @@ final class AppCoordinator: AppCoordinating {
                     mathMaterialRepository: mathMaterialRepository,
                     notificationManager: notificationManager,
                     coordinator: self
-                )
+                ),
+                sourceTab: tab
             )
 
         case .topicDetail(let topics, let initialIndex, let speechStyle):
