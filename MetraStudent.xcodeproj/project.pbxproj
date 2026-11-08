@@ -6,6 +6,10 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D9C000000000000000000001 /* MetraDocumentPipeline in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = D9C000000000000000000002 /* MetraDocumentPipeline */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		5F15BAD63092417C00275EE7 /* MetraStudent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetraStudent.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -35,6 +39,7 @@
 		5F15BAD33092417C00275EE7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				D9C000000000000000000001 /* MetraDocumentPipeline in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -73,6 +78,9 @@
 				5F15BAD83092417C00275EE7 /* MetraStudent */,
 			);
 			name = MetraStudent;
+			packageProductDependencies = (
+				D9C000000000000000000002 /* MetraDocumentPipeline */,
+			);
 			productName = MetraStudent;
 			productReference = 5F15BAD63092417C00275EE7 /* MetraStudent.app */;
 			productType = "com.apple.product-type.application";
@@ -102,6 +110,9 @@
 			);
 			mainGroup = 5F15BACD3092417C00275EE7;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D9C000000000000000000003 /* XCLocalSwiftPackageReference "Packages/MetraDocumentPipeline" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5F15BAD73092417C00275EE7 /* Products */;
 			projectDirPath = "";
@@ -259,6 +270,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MetraStudent/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Metra for Student";
@@ -309,6 +321,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MetraStudent/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Metra for Student";
@@ -365,6 +378,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D9C000000000000000000003 /* XCLocalSwiftPackageReference "Packages/MetraDocumentPipeline" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/MetraDocumentPipeline;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D9C000000000000000000002 /* MetraDocumentPipeline */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D9C000000000000000000003 /* XCLocalSwiftPackageReference "Packages/MetraDocumentPipeline" */;
+			productName = MetraDocumentPipeline;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5F15BACE3092417C00275EE7 /* Project object */;
 	validationLevel = 1;

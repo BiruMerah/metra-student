@@ -9,6 +9,8 @@ import SwiftUI
 
 struct MaterialDetailView: View {
     @Bindable var viewModel: MaterialDetailViewModel
+    var sourceTab: AppTab = .channel
+    @State private var confirmsDocumentDeletion = false
 
     var body: some View {
         List {
@@ -48,10 +50,18 @@ struct MaterialDetailView: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if viewModel.isSaved {
+                if sourceTab == .document {
+                    if viewModel.isSaved {
+                        Button(role: .destructive) {
+                            confirmsDocumentDeletion = true
+                        } label: {
+                            Label("Hapus Dokumen", systemImage: "trash")
+                        }
+                    }
+                } else if viewModel.isSaved {
                     Menu {
                         Button(role: .destructive) {
-                            viewModel.unsaveMaterial()
+                            viewModel.removeSavedMaterial(from: sourceTab)
                         } label: {
                             Label("Hapus dari Pustaka", systemImage: "bookmark.slash")
                         }
@@ -71,6 +81,14 @@ struct MaterialDetailView: View {
         }
         .onAppear {
             viewModel.checkSavedStatus()
+        }
+        .alert("Hapus Dokumen?", isPresented: $confirmsDocumentDeletion) {
+            Button("Batal", role: .cancel) {}
+            Button("Hapus Dokumen", role: .destructive) {
+                viewModel.removeSavedMaterial(from: .document)
+            }
+        } message: {
+            Text("Materi “\(viewModel.material.title)” akan dihapus dari Dokumen Tersimpan.")
         }
         .alert("Terjadi Kesalahan", isPresented: Binding(
             get: { viewModel.errorMessage != nil },

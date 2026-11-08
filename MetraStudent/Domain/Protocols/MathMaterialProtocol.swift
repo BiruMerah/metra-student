@@ -15,11 +15,17 @@ protocol MathMaterialProtocol {
     
     func saveMaterial(_ material: MathMaterialModel) throws
     
-    func deleteMaterial(id: UUID) throws
+    func deleteMaterials(ids: Set<UUID>) throws
     
     func overview(for material: MathMaterialModel) -> MaterialOverview
     
     func topics(for material: MathMaterialModel) -> [MathTopicModel]
+}
+
+extension MathMaterialProtocol {
+    func deleteMaterial(id: UUID) throws {
+        try deleteMaterials(ids: [id])
+    }
 }
 
 nonisolated struct MaterialSaveStatus: Equatable, Sendable {

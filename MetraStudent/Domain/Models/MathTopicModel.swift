@@ -18,6 +18,9 @@ nonisolated struct MetraContentPart: Codable, Equatable, Hashable, Sendable {
     var mathML: String?
     var clearSpeak: String?
     var simpleSpeak: String?
+    var speakEasy: String? = nil
+    var speakEasyFallbackTags: [String]? = nil
+    var speakEasyError: String? = nil
 
     static func prose(_ text: String) -> Self { .init(kind: .text, text: text) }
 

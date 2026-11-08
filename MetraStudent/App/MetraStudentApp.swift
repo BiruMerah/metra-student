@@ -16,6 +16,7 @@ struct MetraStudentApp: App {
     init() {
         // MARK: - Data Layer setup
         let container: ModelContainer
+        let storageIsPersistent: Bool
         do {
             let config = ModelConfiguration(
                 schema: DatabaseSchema.schema,
@@ -23,6 +24,7 @@ struct MetraStudentApp: App {
                 cloudKitDatabase: .none // Prevent conflict with cloudKit entitlement
             )
             container = try ModelContainer(for: DatabaseSchema.schema, configurations: config)
+            storageIsPersistent = true
         } catch {
             print("SwiftData store error: \(error). Falling back to in-memory store.")
             do {
@@ -32,6 +34,7 @@ struct MetraStudentApp: App {
                     cloudKitDatabase: .none
                 )
                 container = try ModelContainer(for: DatabaseSchema.schema, configurations: fallbackConfig)
+                storageIsPersistent = false
             } catch {
                 fatalError("Failed to initialize SwiftData ModelContainer: \(error)")
             }
@@ -44,6 +47,7 @@ struct MetraStudentApp: App {
         let initialCoordinator = AppCoordinator(
             mathMaterialRepository: mathMaterialRepository,
             notificationManager: notificationManager,
+            storageIsPersistent: storageIsPersistent,
             assistantEngineFactory: { translator in
                 AIAssistantPipeline(assistantTranslator: translator, model: FoundationModel())
             }

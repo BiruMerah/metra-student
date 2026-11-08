@@ -19,7 +19,7 @@ enum AppTab: String, CaseIterable, Identifiable {
             return "Channel"
             
         case .document:
-            return "Document"
+            return "Dokumen"
         }
     }
     

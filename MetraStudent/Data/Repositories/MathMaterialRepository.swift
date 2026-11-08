@@ -44,26 +44,38 @@ final class MathMaterialRepository: MathMaterialProtocol {
         let predicate = #Predicate<MathMaterialEntity> { $0.id == targetId }
         let descriptor = FetchDescriptor<MathMaterialEntity>(predicate: predicate)
         
-        if let existing = try modelContext.fetch(descriptor).first {
-            existing.update(from: material)
-        } else {
-            let entity = MathMaterialEntity.from(domain: material)
-            modelContext.insert(entity)
-        }
-        try modelContext.save()
-    }
-    
-    func deleteMaterial(id: UUID) throws {
-        let targetId = id
-        let predicate = #Predicate<MathMaterialEntity> { $0.id == targetId }
-        let descriptor = FetchDescriptor<MathMaterialEntity>(predicate: predicate)
-        
-        if let entity = try modelContext.fetch(descriptor).first {
-            modelContext.delete(entity)
+        do {
+            if let existing = try modelContext.fetch(descriptor).first {
+                existing.update(from: material)
+            } else {
+                let entity = MathMaterialEntity.from(domain: material)
+                modelContext.insert(entity)
+            }
             try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
         }
     }
     
+    func deleteMaterials(ids: Set<UUID>) throws {
+        guard !ids.isEmpty else { return }
+        let targetIDs = Array(ids)
+        let descriptor = FetchDescriptor<MathMaterialEntity>(
+            predicate: #Predicate { targetIDs.contains($0.id) }
+        )
+        do {
+            let entities = try modelContext.fetch(descriptor)
+            for entity in entities {
+                modelContext.delete(entity)
+            }
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+    }
+
     func overview(for material: MathMaterialModel) -> MaterialOverview {
         return material.materialOverview
     }
@@ -117,9 +129,8 @@ final class InMemoryMathMaterialRepository: MathMaterialProtocol {
         try addSavedMaterial(material: material)
     }
     
-    func deleteMaterial(id: UUID) throws {
-        // Reuses your existing deleteSavedMaterial logic
-        try deleteSavedMaterial(id: id)
+    func deleteMaterials(ids: Set<UUID>) throws {
+        materials.removeAll { ids.contains($0.id) }
     }
     
     func overview(for material: MathMaterialModel) -> MaterialOverview {

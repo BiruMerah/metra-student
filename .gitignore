@@ -1,3 +1,6 @@
 .DS_Store
 *.xcuserstate
 xcuserdata/
+/Packages/MetraDocumentPipeline/Binaries/
+/Packages/MetraDocumentPipeline/.build/
+/Packages/MetraDocumentPipeline/**/*.onnx
