@@ -18,12 +18,17 @@ final class ChannelViewModel {
     // MARK: - Dependencies
     private let mathMaterialRepository: MathMaterialProtocol
     private let notificationManager: NotificationProtocol
-    weak var coordinator: (any AppCoordinating)?
-    private let cloudManager: CloudKitManager
+    weak var coordinator: AppCoordinator?
+    private let cloudKitManager: CloudKitManager
+    @ObservationIgnored var onMaterialsAutosaved: (() -> Void)?
     
     // MARK: - Channel State
     var channels: [ClassroomChannelModel] = []
-    var materialsCountByChannel: [String: Int] = [:]
+    var materialsByChannel: [String: [MathMaterialModel]] = [:]
+    var isLoadingMaterials: Bool = false
+    var savedStatusByMaterialID: [UUID: Bool] = [:]
+    var feedbackMessage: String?
+    var isShowingJoinSheet: Bool = false
     
     var accountStatusMessage: String = "Memeriksa iCloud..."
     var isSignedInToiCloud: Bool = false
@@ -48,13 +53,13 @@ final class ChannelViewModel {
     init(
         mathMaterialRepository: MathMaterialProtocol,
         notificationManager: NotificationProtocol,
-        coordinator: (any AppCoordinating)? = nil,
-        cloudManager: CloudKitManager = .shared
+        coordinator: AppCoordinator? = nil,
+        cloudKitManager: CloudKitManager = .shared
     ) {
         self.mathMaterialRepository = mathMaterialRepository
         self.notificationManager = notificationManager
         self.coordinator = coordinator
-        self.cloudManager = cloudManager
+        self.cloudKitManager = cloudKitManager
         
         if let savedName = UserDefaults.standard.string(forKey: userNameKey),
            !savedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -94,13 +99,13 @@ final class ChannelViewModel {
         
         accountStatusMessage = "Memuat data channel..."
         await reloadAllChannels()
-        try? await cloudManager.subscribeToChanges()
+        try? await cloudKitManager.subscribeToChanges()
         accountStatusMessage = "Terhubung ke iCloud"
     }
     
     func checkAccountStatus() async {
         do {
-            let status = try await cloudManager.checkAccountStatus()
+            let status = try await cloudKitManager.checkAccountStatus()
             switch status {
             case .available:
                 isSignedInToiCloud = true
@@ -129,26 +134,34 @@ final class ChannelViewModel {
         isLoading = true
         defer { isLoading = false }
         
-        let savedCodes = cloudManager.getSavedChannelCodes()
+        let savedCodes = cloudKitManager.getSavedChannelCodes()
         guard !savedCodes.isEmpty else {
             channels = []
-            materialsCountByChannel = [:]
+            materialsByChannel = [:]
+            onMaterialsAutosaved?()
             return
         }
         
         var loadedChannels: [ClassroomChannelModel] = []
-        var counts: [String: Int] = [:]
+        var allMaterialsByChannel: [String: [MathMaterialModel]] = [:]
         
         for code in savedCodes {
-            if let channel = try? await cloudManager.fetchChannel(byCode: code) {
+            if let channel = try? await cloudKitManager.fetchChannel(byCode: code) {
                 loadedChannels.append(channel)
-                let count = await cloudManager.countMaterials(for: channel.code)
-                counts[channel.code.uppercased()] = count
+                let upperCode = channel.code.uppercased()
+                if let fetchedMaterials = try? await cloudKitManager.fetchMaterials(for: upperCode) {
+                    allMaterialsByChannel[upperCode] = fetchedMaterials
+                    for material in fetchedMaterials {
+                        try? mathMaterialRepository.saveMaterial(material)
+                        savedStatusByMaterialID[material.id] = true
+                    }
+                }
             }
         }
         
         self.channels = loadedChannels
-        self.materialsCountByChannel = counts
+        self.materialsByChannel = allMaterialsByChannel
+        onMaterialsAutosaved?()
     }
     
     @discardableResult
@@ -164,13 +177,20 @@ final class ChannelViewModel {
         defer { isLoading = false }
         
         do {
-            let channel = try await cloudManager.joinChannel(
+            let channel = try await cloudKitManager.joinChannel(
                 code: cleanCode,
                 displayMember: student
             )
             upsertChannel(channel)
-            let count = await cloudManager.countMaterials(for: channel.code)
-            materialsCountByChannel[channel.code.uppercased()] = count
+            let upperCode = channel.code.uppercased()
+            if let fetchedMaterials = try? await cloudKitManager.fetchMaterials(for: upperCode) {
+                materialsByChannel[upperCode] = fetchedMaterials
+                for material in fetchedMaterials {
+                    try? mathMaterialRepository.saveMaterial(material)
+                    savedStatusByMaterialID[material.id] = true
+                }
+            }
+            onMaterialsAutosaved?()
             return channel
         } catch let ckError as CKError where ckError.code == .unknownItem {
             errorMessage = "Channel dengan kode '\(cleanCode)' tidak ditemukan. Pastikan kode benar."
@@ -182,17 +202,56 @@ final class ChannelViewModel {
     }
     
     func leaveChannel(_ channel: ClassroomChannelModel) {
-        cloudManager.removeSavedChannelCodeLocally(channel.code)
+        cloudKitManager.removeSavedChannelCodeLocally(channel.code)
         channels.removeAll { $0.code == channel.code }
-        materialsCountByChannel.removeValue(forKey: channel.code.uppercased())
+        materialsByChannel.removeValue(forKey: channel.code.uppercased())
     }
     
-    func fileCount(for channel: ClassroomChannelModel) -> Int {
-        let key = cloudManager.channelMaterialsKey(for: channel.code)
-        if let localCount = UserDefaults.standard.stringArray(forKey: key)?.count, localCount > 0 {
-            return localCount
+    // MARK: - Channel Materials Actions
+    func loadMaterials(for channel: ClassroomChannelModel) async {
+        let code = channel.code.uppercased()
+        isLoadingMaterials = true
+        defer { isLoadingMaterials = false }
+        
+        do {
+            let fetchedMaterials = try await cloudKitManager.fetchMaterials(for: code)
+            materialsByChannel[code] = fetchedMaterials
+            
+            // Update saved status cache for these materials
+            for material in fetchedMaterials {
+                if let status = try? mathMaterialRepository.evaluateSaveStatus(for: material) {
+                    savedStatusByMaterialID[material.id] = status.isSaved
+                }
+            }
+        } catch {
+            errorMessage = "Gagal memuat materi channel: \(error.localizedDescription)"
         }
-        return materialsCountByChannel[channel.code.uppercased()] ?? 0
+    }
+    
+    func isMaterialSavedLocally(_ material: MathMaterialModel) -> Bool {
+        if let cached = savedStatusByMaterialID[material.id] {
+            return cached
+        }
+        if let status = try? mathMaterialRepository.evaluateSaveStatus(for: material) {
+            savedStatusByMaterialID[material.id] = status.isSaved
+            return status.isSaved
+        }
+        return false
+    }
+    
+    func saveMaterialLocally(_ material: MathMaterialModel) {
+        do {
+            try mathMaterialRepository.saveMaterial(material)
+            savedStatusByMaterialID[material.id] = true
+            notificationManager.announceAccessibility("Materi “\(material.title)” berhasil disimpan ke Dokumen")
+            feedbackMessage = "Materi “\(material.title)” berhasil disimpan ke Dokumen."
+        } catch {
+            errorMessage = "Gagal menyimpan materi: \(error.localizedDescription)"
+        }
+    }
+    
+    func openMaterialDetail(_ material: MathMaterialModel) {
+        coordinator?.navigate(to: .material(material))
     }
     
     private func upsertChannel(_ channel: ClassroomChannelModel) {

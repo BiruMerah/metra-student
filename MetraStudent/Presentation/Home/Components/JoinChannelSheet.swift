@@ -47,7 +47,7 @@ struct JoinChannelSheet: View {
                     }
                     .disabled(joinChannelCodeInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                 } header: {
-                    Text("Kode Undangan Kelas")
+                    Text("Kode Undangan Channel")
                 } footer: {
                     Text("Masukkan 6 karakter kode channel yang diberikan oleh guru Anda.")
                 }

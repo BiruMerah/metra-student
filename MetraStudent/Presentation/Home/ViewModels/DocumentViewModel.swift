@@ -7,7 +7,7 @@ final class DocumentViewModel {
     private let mathMaterialRepository: MathMaterialProtocol
     private let storageIsPersistent: Bool
     private let notificationManager: NotificationProtocol?
-    weak var coordinator: (any AppCoordinating)?
+    weak var coordinator: AppCoordinator?
 
     @ObservationIgnored private var importTask: Task<Void, Never>?
     private(set) var savedMaterials: [MathMaterialModel] = []
@@ -28,7 +28,7 @@ final class DocumentViewModel {
         mathMaterialRepository: MathMaterialProtocol,
         storageIsPersistent: Bool = true,
         notificationManager: NotificationProtocol? = nil,
-        coordinator: (any AppCoordinating)? = nil
+        coordinator: AppCoordinator? = nil
     ) {
         self.mathMaterialRepository = mathMaterialRepository
         self.storageIsPersistent = storageIsPersistent
@@ -155,6 +155,10 @@ final class DocumentViewModel {
 
     func open(_ material: MathMaterialModel) {
         successMessage = nil
-        coordinator?.navigate(to: .materialDetail(material), in: .document)
+        coordinator?.navigate(to: .material(material))
+    }
+
+    func clearSuccessMessage() {
+        successMessage = nil
     }
 }

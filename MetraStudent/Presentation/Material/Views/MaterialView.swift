@@ -1,15 +1,14 @@
 //
-//  MaterialDetailView.swift
+//  MaterialView.swift
 //  MetraStudent
 //
-//  Created by Fidel Fausta Cavell on 29/10/26.
+//  Created by Fidel Fausta Cavell on 09/11/26.
 //
 
 import SwiftUI
 
-struct MaterialDetailView: View {
-    @Bindable var viewModel: MaterialDetailViewModel
-    var sourceTab: AppTab = .channel
+struct MaterialView: View {
+    @Bindable var viewModel: MaterialViewModel
     @State private var confirmsDocumentDeletion = false
 
     var body: some View {
@@ -50,25 +49,12 @@ struct MaterialDetailView: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if sourceTab == .document {
-                    if viewModel.isSaved {
-                        Button(role: .destructive) {
-                            confirmsDocumentDeletion = true
-                        } label: {
-                            Label("Hapus Dokumen", systemImage: "trash")
-                        }
-                    }
-                } else if viewModel.isSaved {
-                    Menu {
-                        Button(role: .destructive) {
-                            viewModel.removeSavedMaterial(from: sourceTab)
-                        } label: {
-                            Label("Hapus dari Pustaka", systemImage: "bookmark.slash")
-                        }
+                if viewModel.isSaved {
+                    Button(role: .destructive) {
+                        confirmsDocumentDeletion = true
                     } label: {
-                        Label("Materi Tersimpan", systemImage: "bookmark.fill")
+                        Label("Hapus Dokumen", systemImage: "trash")
                     }
-                    .accessibilityHint("Buka pilihan materi tersimpan")
                 } else {
                     Button {
                         viewModel.saveMaterial()
@@ -85,7 +71,7 @@ struct MaterialDetailView: View {
         .alert("Hapus Dokumen?", isPresented: $confirmsDocumentDeletion) {
             Button("Batal", role: .cancel) {}
             Button("Hapus Dokumen", role: .destructive) {
-                viewModel.removeSavedMaterial(from: .document)
+                viewModel.removeSavedMaterial()
             }
         } message: {
             Text("Materi “\(viewModel.material.title)” akan dihapus dari Dokumen Tersimpan.")
@@ -189,8 +175,8 @@ struct MaterialDetailView: View {
         sections: MathSectionModel.sampleSections
     )
     return NavigationStack(path: Bindable(coordinator).channelPath) {
-        MaterialDetailView(
-            viewModel: MaterialDetailViewModel(
+        MaterialView(
+            viewModel: MaterialViewModel(
                 material: sampleMaterial,
                 mathMaterialRepository: coordinator.mathMaterialRepository,
                 notificationManager: coordinator.notificationManager,

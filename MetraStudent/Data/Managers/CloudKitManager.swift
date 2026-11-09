@@ -12,7 +12,7 @@ import CloudKit
 final class CloudKitManager {
     static let shared = CloudKitManager()
     
-    let container = CKContainer.default()
+    let container = CKContainer(identifier: "iCloud.id.birumerah.metra")
     
     var publicDatabase: CKDatabase {
         container.publicCloudDatabase
@@ -134,7 +134,15 @@ final class CloudKitManager {
         record["materialID"] = material.id.uuidString
         record["title"] = material.title
         record["category"] = material.category
-        record["createdAt"] = Date()
+        record["createdAt"] = material.createdAt
+        record["overview"] = material.overview
+        record["content"] = material.content
+        if let sectionsData = try? JSONEncoder().encode(material.sections) {
+            record["sectionsData"] = sectionsData
+        }
+        if let materialData = try? JSONEncoder().encode(material) {
+            record["materialData"] = materialData
+        }
         _ = try? await publicDatabase.save(record)
     }
     
@@ -242,7 +250,7 @@ final class CloudKitManager {
         }
     }
     
-    // MARK: - Materials Count Helper
+    // MARK: - Materials Count & Fetch Helpers
     func countMaterials(for channelCode: String) async -> Int {
         let upperCode = channelCode.uppercased()
         let predicate = NSPredicate(format: "channelCode == %@", upperCode)
@@ -251,6 +259,49 @@ final class CloudKitManager {
             return records.count
         }
         return 0
+    }
+    
+    func fetchMaterials(for channelCode: String) async throws -> [MathMaterialModel] {
+        let upperCode = channelCode.uppercased()
+        let predicate = NSPredicate(format: "channelCode == %@", upperCode)
+        let query = CKQuery(recordType: materialRecordType, predicate: predicate)
+        let records = try await queryRecords(query, from: publicDatabase)
+        
+        let materials = records.compactMap { parseMaterial(from: $0) }
+        return materials.sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    private func parseMaterial(from record: CKRecord) -> MathMaterialModel? {
+        if let materialData = record["materialData"] as? Data,
+           let decoded = try? JSONDecoder().decode(MathMaterialModel.self, from: materialData) {
+            return decoded
+        }
+        
+        guard let title = record["title"] as? String else { return nil }
+        let idString = record["materialID"] as? String ?? record.recordID.recordName
+        let id = UUID(uuidString: idString) ?? UUID()
+        let category = record["category"] as? String ?? "Materi"
+        let content = record["content"] as? String ?? ""
+        let createdAt = record["createdAt"] as? Date ?? record.creationDate ?? Date()
+        let overview = record["overview"] as? String
+        
+        var sections: [MathSectionModel] = []
+        if let sectionsData = record["sectionsData"] as? Data,
+           let decodedSections = try? JSONDecoder().decode([MathSectionModel].self, from: sectionsData) {
+            sections = decodedSections
+        } else if !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            sections = [MathSectionModel(title: title, content: [.text(content)])]
+        }
+        
+        return MathMaterialModel(
+            id: id,
+            title: title,
+            category: category,
+            content: content,
+            createdAt: createdAt,
+            overview: overview,
+            sections: sections
+        )
     }
     
     // MARK: - Subscriptions
