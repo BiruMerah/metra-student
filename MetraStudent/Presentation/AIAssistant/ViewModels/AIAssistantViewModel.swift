@@ -1,102 +1,163 @@
-//
-//  AIAssistantViewModel.swift
-//  MetraStudent
-//
-//  Created by Fidel Fausta Cavell on 01/11/26.
-//
-
 import Foundation
 import Observation
 
-@Observable
 @MainActor
-final class AIAssistantViewModel: Identifiable {
-    let selection: AIAssistantSelection
-    let translationBridge: AIAssistantTranslationBridge
-    private(set) var results: [AIAssistantResult] = []
-    private(set) var phase: AIAssistantProgress?
-    private(set) var activeAction: AIAssistantAction?
+@Observable
+final class AIAssistantViewModel {
+    enum Phase: Equatable {
+        case idle, requestingPermissions, recording, transcribing, thinking
+    }
+
+    private(set) var phase = Phase.idle
+    private(set) var permissionsGranted = false
+    private(set) var question = ""
+    private(set) var answer: String?
     private(set) var errorMessage: String?
     private(set) var availabilityMessage: String?
-    
-    private let engine: any AssistantProvidingProtocol
+    let selection: AIAssistantSelection
+    private let capture: any AssistantVoiceCapturingProtocol
+    private let model: FoundationModel
     private var work: Task<Void, Never>?
+    private var recordingLimit: Task<Void, Never>?
     private var requestID = UUID()
-    
+
     init(
         selection: AIAssistantSelection,
-        engine: (any AssistantProvidingProtocol)? = nil,
-        engineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
+        capture: (any AssistantVoiceCapturingProtocol)? = nil,
+        model: FoundationModel? = nil
     ) {
         self.selection = selection
-        self.translationBridge = AIAssistantTranslationBridge()
-        self.engine = engine ?? engineFactory?(AIAssistantTranslationBridge()) ?? AIAssistantPipeline(assistantTranslator: AIAssistantTranslationBridge())
+        self.capture = capture ?? MetraSpeechCapture()
+        self.model = model ?? FoundationModel()
         refreshAvailability()
     }
-    
-    var isBusy: Bool { phase != nil }
-    var id: String { selection.id }
-    var hasReachedRequestLimit: Bool { results.count >= AIAssistantAction.allCases.count }
-    
-    var followUpAction: AIAssistantAction? {
-        guard results.count == 1 else { return nil }
-        return results[0].action.alternative
-    }
-    
-    func canRequest(_ action: AIAssistantAction) -> Bool {
-        !isBusy && !hasReachedRequestLimit && !results.contains(where: { $0.action == action })
-    }
-    
-    var status: String {
+
+    var canAsk: Bool {
         switch phase {
-        case .translatingSource: "Menyiapkan materi…"
-        case .generating: activeAction == .summarize ? "Membuat ringkasan…" : "Membuat penjelasan…"
-        case .translatingResult: "Menyiapkan jawaban bahasa Indonesia…"
-        case nil: "Pilih bantuan yang kamu perlukan."
+        case .idle: availabilityMessage == nil
+        case .recording: true
+        case .requestingPermissions, .transcribing, .thinking: false
         }
     }
-    
-    func refreshAvailability() { availabilityMessage = engine.availabilityMessage }
-    
-    func select(_ action: AIAssistantAction) {
-        guard canRequest(action) else { return }
+
+    func ask() {
+        guard canAsk else { return }
+        if phase == .recording {
+            finishRecording()
+        } else if permissionsGranted {
+            beginRecording()
+        } else {
+            requestPermissionsAndRecord()
+        }
+    }
+
+    var status: String {
+        switch phase {
+        case .idle: return "Siap menerima pertanyaan"
+        case .requestingPermissions: return "Menyiapkan izin mikrofon dan pengenalan suara"
+        case .recording: return "Mendengarkan pertanyaanmu…"
+        case .transcribing: return "Mengenali ucapan…"
+        case .thinking: return "Menyiapkan jawaban…"
+        }
+    }
+
+    func refreshAvailability() { availabilityMessage = model.availabilityMessage }
+
+    private func requestPermissionsAndRecord() {
+        guard phase == .idle else { return }
         refreshAvailability()
         guard availabilityMessage == nil else { return }
-        cancel()
         errorMessage = nil
-        activeAction = action
-        phase = .generating
+        phase = .requestingPermissions
         let id = requestID
         work = Task { [weak self] in
             guard let self else { return }
             do {
-                let result = try await engine.result(action: action, selection: selection) { [weak self] progress in
-                    guard let self, requestID == id else { return }
-                    phase = progress
-                }
+                try await capture.requestPermissions()
                 try Task.checkCancellation()
                 guard requestID == id else { return }
-                guard result.action == action else {
-                    throw AIAssistantFailure.message("Jenis jawaban belum sesuai permintaan. Silakan coba lagi.")
-                }
-                results.append(result)
-                phase = nil
-                work = nil
-                
+                permissionsGranted = true
+                phase = .idle
+                beginRecording()
             } catch {
                 guard requestID == id, !Task.isCancelled else { return }
-                phase = nil
-                work = nil
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? "Proses belum berhasil. Silakan coba lagi."
+                fail(error)
             }
         }
     }
-    
+
+    private func beginRecording() {
+        refreshAvailability()
+        guard availabilityMessage == nil else { return }
+        cancel()
+        errorMessage = nil
+        question = ""
+        answer = nil
+        do {
+            try capture.start(localeIdentifier: "id-ID")
+            phase = .recording
+            let id = requestID
+            recordingLimit = Task { [weak self] in
+                do { try await Task.sleep(for: .seconds(60)) } catch { return }
+                guard let self, requestID == id, phase == .recording else { return }
+                finishRecording()
+            }
+        } catch { fail(error) }
+    }
+
+    // Accept only the first stop event for a recording.
+    private func finishRecording() {
+        guard phase == .recording else { return }
+        recordingLimit?.cancel()
+        recordingLimit = nil
+        phase = .transcribing
+        let id = requestID
+        work = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let transcript = try await capture.finish()
+                try Task.checkCancellation()
+                guard requestID == id else { return }
+                let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { throw AIAssistantFailure.message("Belum ada ucapan yang dikenali. Rekam ulang pertanyaanmu.") }
+                question = trimmed
+                phase = .thinking
+                let response = try await model.answer(question: trimmed, selection: selection)
+                try Task.checkCancellation()
+                guard requestID == id else { return }
+                answer = response
+                phase = .idle
+            } catch {
+                guard requestID == id, !Task.isCancelled else { return }
+                fail(error)
+            }
+        }
+    }
+
     func cancel() {
         requestID = UUID()
         work?.cancel()
         work = nil
-        engine.cancel()
-        phase = nil
+        recordingLimit?.cancel()
+        recordingLimit = nil
+        capture.cancel()
+        phase = .idle
+    }
+
+    func interrupt() {
+        guard phase != .idle else { return }
+        cancel()
+        errorMessage = "Aktivitas suara dihentikan karena ada interupsi. Rekam ulang saat kamu siap."
+    }
+
+    private func fail(_ error: Error) {
+        if let failure = error as? AIAssistantFailure, case .permissionDenied = failure {
+            permissionsGranted = false
+        }
+        capture.cancel()
+        recordingLimit?.cancel()
+        recordingLimit = nil
+        phase = .idle
+        errorMessage = (error as? LocalizedError)?.errorDescription ?? "Terjadi kendala. Coba lagi."
     }
 }
