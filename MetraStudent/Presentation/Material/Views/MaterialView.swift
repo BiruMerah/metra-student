@@ -10,7 +10,7 @@ import SwiftUI
 struct MaterialView: View {
     @Bindable var viewModel: MaterialViewModel
     @State private var confirmsDocumentDeletion = false
-
+    
     var body: some View {
         List {
             Section {
@@ -21,26 +21,25 @@ struct MaterialView: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                     .listRowBackground(Color.clear)
             }
-
+            
             Section("Overview") {
-                overviewContent
+                MaterialOverviewView(overview: viewModel.overview)
             }
-
+            
             Section {
                 ForEach(Array(viewModel.sections.enumerated()), id: \.element.id) { index, section in
-                    Button {
-                        viewModel.openSection(at: index)
-                    } label: {
-                        sectionRow(section, index: index)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Segmen \(index + 1), \(section.title)")
-                    .accessibilityHint("Buka detail topik")
+                    MaterialSectionRow(
+                        section: section,
+                        index: index,
+                        onTap: {
+                            viewModel.openSection(at: index)
+                        }
+                    )
                 }
             } header: {
-                Text("Topik")
+                Text("Segmen")
             } footer: {
-                Text("Pilih topik untuk melihat detailnya.")
+                Text("Pilih segmen untuk melihat detailnya.")
             }
         }
         .listStyle(.insetGrouped)
@@ -49,19 +48,10 @@ struct MaterialView: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if viewModel.isSaved {
-                    Button(role: .destructive) {
-                        confirmsDocumentDeletion = true
-                    } label: {
-                        Label("Hapus Dokumen", systemImage: "trash")
-                    }
-                } else {
-                    Button {
-                        viewModel.saveMaterial()
-                    } label: {
-                        Label("Simpan ke Pustaka", systemImage: "bookmark")
-                    }
-                    .disabled(!viewModel.canSave)
+                Button(role: .destructive) {
+                    confirmsDocumentDeletion = true
+                } label: {
+                    Label("Hapus Dokumen", systemImage: "trash")
                 }
             }
         }
@@ -85,82 +75,6 @@ struct MaterialView: View {
             }
         } message: {
             Text(viewModel.errorMessage ?? "")
-        }
-    }
-
-    private var overviewContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let summary = viewModel.overview.summaryText,
-               !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text(summary)
-                    .font(.body)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
-
-                if !viewModel.overview.pageLabels.isEmpty {
-                    overviewLine("Halaman", value: viewModel.overview.pageLabels.joined(separator: ", "))
-                }
-            } else {
-                overviewLine("Bab", value: viewModel.overview.chapter)
-                overviewLine("Subbab", value: viewModel.overview.subchapter)
-                overviewLine("Halaman", value: viewModel.overview.pageNumber.formatted())
-            }
-        }
-        .padding(.vertical, 6)
-    }
-
-    private func overviewLine(_ title: String, value: String) -> some View {
-        Text("\(title): \(value)")
-            .font(.body)
-            .fixedSize(horizontal: false, vertical: true)
-            .textSelection(.enabled)
-            .accessibilityLabel("\(title), \(value)")
-    }
-
-    @ViewBuilder
-    private var overviewCounts: some View {
-        countBadge("\(viewModel.sections.count) Topik", symbol: "list.bullet")
-            .accessibilityLabel("\(viewModel.sections.count) topik pembelajaran")
-        countBadge("\(viewModel.overview.questionCount) Soal", symbol: "questionmark.circle")
-            .accessibilityLabel("\(viewModel.overview.questionCount) soal latihan")
-    }
-
-    private func countBadge(_ title: String, symbol: String) -> some View {
-        Label(title, systemImage: symbol)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.primary.opacity(0.06), in: Capsule())
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(title)
-    }
-
-    private func sectionRow(_ section: MathSectionModel, index: Int) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "doc.text.fill")
-                .font(.title2)
-                .foregroundStyle(.blue)
-                .frame(width: 52, height: 52)
-                .background(.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(section.title)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
-        }
-        .contentShape(Rectangle())
-        .alignmentGuide(.listRowSeparatorLeading) { dimensions in
-            dimensions[.leading] + 64
         }
     }
 }

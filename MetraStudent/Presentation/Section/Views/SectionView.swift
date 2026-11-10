@@ -11,13 +11,9 @@ struct SectionView: View {
     private enum ReadingFocus: Hashable {
         case title
         case progress
-        case highlight(Int)
         case sentence(String)
-        case previousTopic
-        case nextTopic
     }
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AccessibilityFocusState(for: .voiceOver) private var readingFocus: ReadingFocus?
     @State private var viewModel: SectionViewModel
     @State private var assistant: AIAssistantViewModel?
@@ -70,12 +66,16 @@ struct SectionView: View {
                     .padding(.top, 24)
                     .accessibilityElement(children: .contain)
 
-                    assistantHint
+                    AssistantHintCard()
                         .padding(.top, 24)
 
-                    topicNavigation
-                        .padding(.top, 24)
-                        .accessibilityElement(children: .contain)
+                    SectionNavigationView(
+                        hasPrevious: viewModel.hasPreviousSection,
+                        hasNext: viewModel.hasNextSection,
+                        onPrevious: viewModel.previousSection,
+                        onNext: viewModel.nextSection
+                    )
+                    .padding(.top, 24)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -140,11 +140,11 @@ struct SectionView: View {
         case .text, .analogy:
             sentences(in: block)
         case .spokenMath:
-            highlightBox(title: "Notasi Matematika", symbol: "function", tint: .indigo, block: block) {
+            SectionHighlightCard(title: "Notasi Matematika", symbol: "function", tint: .indigo) {
                 sentences(in: block)
             }
         case .visual:
-            highlightBox(title: "Visual Matematika", symbol: "chart.xyaxis.line", tint: .blue, block: block) {
+            SectionHighlightCard(title: "Visual Matematika", symbol: "chart.xyaxis.line", tint: .blue) {
                 sentences(in: block)
             }
         }
@@ -153,19 +153,10 @@ struct SectionView: View {
     private func sentences(in block: SectionReadingBlock, spacing: CGFloat = 16) -> some View {
         VStack(alignment: .leading, spacing: spacing) {
             ForEach(block.sentences) { sentence in
-                Text(sentence.text)
-                    .font(.body)
-                    .lineSpacing(4)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2) { openAssistant(sentenceID: sentence.id) }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(sentence.text)
-//                    .accessibilityHint("Ketuk dua kali untuk membuka Metra Assistant dan meringkas atau menjelaskan kalimat ini.")
-                    .accessibilityAction { openAssistant(sentenceID: sentence.id) }
-                    .accessibilityFocused($readingFocus, equals: .sentence(sentence.id))
-                    .accessibilityIdentifier("topic-sentence-\(sentence.id)")
+                SectionSentenceView(sentence: sentence) {
+                    openAssistant(sentenceID: sentence.id)
+                }
+                .accessibilityFocused($readingFocus, equals: .sentence(sentence.id))
             }
         }
         .accessibilityElement(children: .contain)
@@ -181,138 +172,11 @@ struct SectionView: View {
             selectionError = error.localizedDescription
         }
     }
-
-    private func highlightBox<Content: View>(
-        title: String,
-        symbol: String,
-        tint: Color,
-        block: SectionReadingBlock,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .foregroundStyle(tint)
-                    .accessibilityHidden(true)
-                Text(title)
-                    .foregroundStyle(.primary)
-            }
-            .font(.subheadline.weight(.semibold))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(title)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityFocused($readingFocus, equals: .highlight(block.id))
-            content()
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Color(uiColor: .secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 12)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(tint.opacity(0.4), lineWidth: 1)
-                .accessibilityHidden(true)
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    private var assistantHint: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "info.circle")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Petunjuk Metra Assistant")
-                    .font(.subheadline.weight(.semibold))
-                Text("Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan meminta ringkasan atau penjelasan.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Color(uiColor: .secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 12)
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Petunjuk Metra Assistant. Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan meminta ringkasan atau penjelasan.")
-    }
-
-    private var topicNavigation: some View {
-        VStack(spacing: 0) {
-            Divider().accessibilityHidden(true)
-
-            ViewThatFits(in: .horizontal) {
-                if !dynamicTypeSize.isAccessibilitySize {
-                    HStack(spacing: 12) {
-                        topicNavigationButtons
-                    }
-                }
-
-                VStack(spacing: 12) {
-                    topicNavigationButtons
-                }
-            }
-            .padding(.top, 16)
-        }
-    }
-
-    @ViewBuilder
-    private var topicNavigationButtons: some View {
-        navigationButton(
-            title: "Segmen Sebelumnya",
-            symbol: "backward.end.fill",
-            enabled: viewModel.hasPreviousSection,
-            action: viewModel.previousSection
-        )
-        .accessibilityFocused($readingFocus, equals: .previousTopic)
-        .accessibilityHidden(!viewModel.hasPreviousSection)
-
-        navigationButton(
-            title: "Segmen Selanjutnya",
-            symbol: "forward.end.fill",
-            enabled: viewModel.hasNextSection,
-            action: viewModel.nextSection
-        )
-        .accessibilityFocused($readingFocus, equals: .nextTopic)
-        .accessibilityHidden(!viewModel.hasNextSection)
-    }
-
-    private func navigationButton(
-        title: String,
-        symbol: String,
-        enabled: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: symbol)
-                .font(.subheadline.weight(.semibold))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .padding(.horizontal, 8)
-        }
-        .buttonStyle(.bordered)
-        .buttonBorderShape(.capsule)
-        .disabled(!enabled)
-        .accessibilityLabel(title)
-    }
 }
 
-#Preview("Light") {
+#Preview {
     NavigationStack {
         SectionView(sections: SectionViewModel.sampleSections)
     }
 }
 
-#Preview("Dark") {
-    NavigationStack {
-        SectionView(sections: SectionViewModel.sampleSections, initialSectionIndex: 2)
-    }
-    .preferredColorScheme(.dark)
-}
