@@ -6,10 +6,5 @@
 	<string>Mikrofon digunakan untuk merekam pertanyaan tentang materi yang kamu pilih.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Ucapan diubah menjadi teks untuk Metra Assistant. Audio dapat diproses oleh layanan pengenalan suara Apple jika pengenalan di perangkat belum tersedia.</string>
-	<key>NSBonjourServices</key>
-	<array>
-		<string>_classroom-poc._tcp</string>
-		<string>_classroom-poc._udp</string>
-	</array>
 </dict>
 </plist>
