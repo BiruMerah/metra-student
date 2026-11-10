@@ -13,7 +13,7 @@ final class DocumentViewModel {
     private(set) var savedMaterials: [MathMaterialModel] = []
     private(set) var progress: String?
     private(set) var isCancelling = false
-    private(set) var successMessage: String?
+    private(set) var completedImport: MathMaterialModel?
     var errorMessage: String?
 
     var importUnavailableReason: String? {
@@ -22,7 +22,7 @@ final class DocumentViewModel {
         return nil
     }
 
-    var canImport: Bool { importUnavailableReason == nil && progress == nil }
+    var canImport: Bool { importUnavailableReason == nil && progress == nil && completedImport == nil }
 
     init(
         mathMaterialRepository: MathMaterialProtocol,
@@ -83,7 +83,6 @@ final class DocumentViewModel {
         convert: @escaping @MainActor (@escaping @MainActor (String) -> Void) async throws -> MathMaterialModel
     ) {
         guard canImport else { return }
-        successMessage = nil
         errorMessage = nil
         progress = initialProgress
         importTask = Task { [weak self] in
@@ -123,7 +122,7 @@ final class DocumentViewModel {
             savedMaterials.removeAll { $0.id == material.id }
             savedMaterials.append(material)
             savedMaterials.sort { $0.createdAt > $1.createdAt }
-            successMessage = "“\(material.title)” sudah tersimpan."
+            completedImport = material
             notificationManager?.announceAccessibility("Dokumen berhasil disimpan.")
         }
     }
@@ -145,7 +144,9 @@ final class DocumentViewModel {
             return false
         }
         savedMaterials.removeAll { ids.contains($0.id) }
-        successMessage = nil
+        if let completedImport, ids.contains(completedImport.id) {
+            self.completedImport = nil
+        }
         notificationManager?.announceAccessibility(count == 1 ? "Dokumen dihapus." : "\(count) dokumen dihapus.")
         return true
     }
@@ -163,11 +164,11 @@ final class DocumentViewModel {
     }
 
     func open(_ material: MathMaterialModel) {
-        successMessage = nil
+        dismissImportSuccess()
         coordinator?.navigate(to: .material(material))
     }
 
-    func clearSuccessMessage() {
-        successMessage = nil
+    func dismissImportSuccess() {
+        completedImport = nil
     }
 }

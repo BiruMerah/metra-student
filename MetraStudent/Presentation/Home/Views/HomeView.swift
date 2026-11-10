@@ -88,10 +88,10 @@ struct HomeView: View {
     
     private var isShowingSuccessAlert: Binding<Bool> {
         Binding(
-            get: { documentViewModel.successMessage != nil },
+            get: { documentViewModel.completedImport != nil },
             set: {
                 if !$0 {
-                    documentViewModel.clearSuccessMessage()
+                    documentViewModel.dismissImportSuccess()
                 }
             }
         )
@@ -344,16 +344,20 @@ struct HomeView: View {
                 }
             }
         }
-        .onChange(of: documentViewModel.successMessage) { _, newMessage in
-            guard let newMessage else { return }
-            playConversionCompletionSound(message: newMessage)
+        .onChange(of: documentViewModel.completedImport?.id) {
+            guard let material = documentViewModel.completedImport else { return }
+            playConversionCompletionSound(message: importSuccessMessage(for: material))
         }
-        .alert(IndonesianSpeech.text("Konversi Selesai"), isPresented: isShowingSuccessAlert) {
-            Button(indonesian: "Tutup") {
-                documentViewModel.clearSuccessMessage()
+        .alert(
+            IndonesianSpeech.text("Konversi Selesai"),
+            isPresented: isShowingSuccessAlert,
+            presenting: documentViewModel.completedImport
+        ) { material in
+            Button(indonesian: "Buka Materi") {
+                documentViewModel.open(material)
             }
-        } message: {
-            IndonesianSpeech.text(documentViewModel.successMessage ?? "Dokumen berhasil dikonversi dan disimpan.")
+        } message: { material in
+            IndonesianSpeech.text(importSuccessMessage(for: material))
         }
         .alert(IndonesianSpeech.text("Pemberitahuan"), isPresented: isShowingErrorAlert) {
             Button(indonesian: "Tutup") {
@@ -398,6 +402,10 @@ struct HomeView: View {
     }
     
     // MARK: - Audio & Accessibility Feedback on Completion
+    private func importSuccessMessage(for material: MathMaterialModel) -> String {
+        "“\(material.title)” sudah tersimpan."
+    }
+
     private func playConversionCompletionSound(message: String) {
         AudioServicesPlaySystemSound(1007)
         #if canImport(UIKit)

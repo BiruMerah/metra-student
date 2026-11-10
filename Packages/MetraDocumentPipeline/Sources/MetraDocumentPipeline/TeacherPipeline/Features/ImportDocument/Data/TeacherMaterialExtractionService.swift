@@ -18,6 +18,7 @@ final class TeacherMaterialExtractionService: MaterialPreparationProtocol {
         try await inspector.inspect(pages, retry: retry, onAssessment: onAssessment, onProgress: onProgress)
     }
     var modelStatus: String { engine.diagramModelStatus }
+    var sourceChunks: [ReadyChunk] { engine.lastReadyDocument?.chunks ?? [] }
 
     func cancel() { engine.cancel() }
 
