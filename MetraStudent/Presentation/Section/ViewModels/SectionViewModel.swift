@@ -29,6 +29,7 @@ struct SectionReadingBlock: Identifiable {
 @Observable
 @MainActor
 final class SectionViewModel {
+    let materialTitle: String
     private(set) var currentSectionIndex: Int
     private(set) var readingBlocks: [SectionReadingBlock] = []
     var speechStyle: SpeechStyle {
@@ -38,7 +39,6 @@ final class SectionViewModel {
         }
     }
     private let sections: [MathSectionModel]
-    private let materialTitle: String
 
     var section: MathSectionModel { sections[currentSectionIndex] }
     var progress: String { "Segmen \(currentSectionIndex + 1) dari \(sections.count)" }
