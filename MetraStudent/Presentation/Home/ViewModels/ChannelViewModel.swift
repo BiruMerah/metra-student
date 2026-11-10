@@ -30,7 +30,7 @@ final class ChannelViewModel {
     var feedbackMessage: String?
     var isShowingJoinSheet: Bool = false
     
-    var accountStatusMessage: String = "Memeriksa iCloud..."
+    var accountStatusMessage: String = "Memeriksa akun iCloud…"
     var isSignedInToiCloud: Bool = false
     var isLoading: Bool = false
     var isInitialSyncing: Bool = true
@@ -86,7 +86,7 @@ final class ChannelViewModel {
         
         isInitialSyncing = true
         isLoading = true
-        accountStatusMessage = "Menyinkronkan dengan iCloud..."
+        accountStatusMessage = "Menyinkronkan dengan iCloud…"
         
         defer {
             isInitialSyncing = false
@@ -97,7 +97,7 @@ final class ChannelViewModel {
         await checkAccountStatus()
         guard isSignedInToiCloud else { return }
         
-        accountStatusMessage = "Memuat data channel..."
+        accountStatusMessage = "Memuat daftar kelas…"
         await reloadAllChannels()
         try? await cloudKitManager.subscribeToChanges()
         accountStatusMessage = "Terhubung ke iCloud"
@@ -125,8 +125,8 @@ final class ChannelViewModel {
             }
         } catch {
             isSignedInToiCloud = false
-            accountStatusMessage = "Gagal memeriksa status iCloud"
-            errorMessage = "Gagal memeriksa status iCloud: \(error.localizedDescription)"
+            accountStatusMessage = "Status akun iCloud belum bisa diperiksa."
+            errorMessage = "Status akun iCloud belum bisa diperiksa. Periksa koneksi internet, lalu coba lagi."
         }
     }
     
@@ -169,7 +169,7 @@ final class ChannelViewModel {
         let student = studentName ?? displayName
         let cleanCode = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         guard !cleanCode.isEmpty else {
-            errorMessage = "Masukkan kode undangan channel."
+            errorMessage = "Masukkan kode undangan kelas."
             return nil
         }
         
@@ -193,10 +193,13 @@ final class ChannelViewModel {
             onMaterialsAutosaved?()
             return channel
         } catch let ckError as CKError where ckError.code == .unknownItem {
-            errorMessage = "Channel dengan kode '\(cleanCode)' tidak ditemukan. Pastikan kode benar."
+            errorMessage = CloudKitManager.JoinError.notFound(cleanCode).errorDescription
+            return nil
+        } catch let error as CloudKitManager.JoinError {
+            errorMessage = error.errorDescription
             return nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "Kamu belum bisa bergabung dengan kelas. Periksa koneksi internet dan akun iCloud, lalu coba lagi."
             return nil
         }
     }
@@ -224,7 +227,7 @@ final class ChannelViewModel {
                 }
             }
         } catch {
-            errorMessage = "Gagal memuat materi channel: \(error.localizedDescription)"
+            errorMessage = "Materi kelas belum bisa dimuat. Periksa koneksi internet, lalu coba lagi."
         }
     }
     
@@ -246,7 +249,7 @@ final class ChannelViewModel {
             notificationManager.announceAccessibility("Materi “\(material.title)” berhasil disimpan ke Dokumen")
             feedbackMessage = "Materi “\(material.title)” berhasil disimpan ke Dokumen."
         } catch {
-            errorMessage = "Gagal menyimpan materi: \(error.localizedDescription)"
+            errorMessage = "Materi belum bisa disimpan. Coba lagi."
         }
     }
     

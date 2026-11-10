@@ -30,10 +30,10 @@ enum DocumentConverter {
     }
 
     static func convertPhoto(
-        _ data: Data, title: String, onProgress: @escaping @MainActor (String) -> Void
+        _ data: Data, title: String, fromCamera: Bool = false, onProgress: @escaping @MainActor (String) -> Void
     ) async throws -> MathMaterialModel {
         #if os(iOS)
-        let payload = try await DocumentPipeline.convertPhoto(data, title: title, onProgress: onProgress)
+        let payload = try await DocumentPipeline.convertPhoto(data, title: title, fromCamera: fromCamera, onProgress: onProgress)
         return try JSONDecoder().decode(PortableMaterial.self, from: payload).studentMaterial
         #else
         throw UnsupportedPlatform()

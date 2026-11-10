@@ -147,7 +147,7 @@ final class AIAssistantViewModel {
     func interrupt() {
         guard phase != .idle else { return }
         cancel()
-        errorMessage = "Aktivitas suara dihentikan karena ada interupsi. Rekam ulang saat kamu siap."
+        errorMessage = "Perekaman atau pemrosesan suara terhenti. Rekam ulang saat kamu siap."
     }
 
     private func fail(_ error: Error) {
@@ -158,6 +158,6 @@ final class AIAssistantViewModel {
         recordingLimit?.cancel()
         recordingLimit = nil
         phase = .idle
-        errorMessage = (error as? LocalizedError)?.errorDescription ?? "Terjadi kendala. Coba lagi."
+        errorMessage = (error as? AIAssistantFailure)?.errorDescription ?? "Asisten Metra belum bisa memproses pertanyaanmu. Coba lagi."
     }
 }

@@ -14,7 +14,7 @@ struct MaterialOverviewView: View {
         VStack(alignment: .leading, spacing: 10) {
             if let summary = overview.summaryText,
                !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text(summary)
+                IndonesianSpeech.text(summary)
                     .font(.body)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
@@ -25,25 +25,27 @@ struct MaterialOverviewView: View {
             } else {
                 overviewLine("Bab", value: overview.chapter)
                 overviewLine("Subbab", value: overview.subchapter)
-                overviewLine("Halaman", value: overview.pageNumber.formatted())
+                overviewLine("Halaman", value: overview.pageNumber.formatted(.number.locale(IndonesianSpeech.locale)))
             }
         }
         .padding(.vertical, 6)
     }
 
     private func overviewLine(_ title: String, value: String) -> some View {
-        Text("\(title): \(value)")
+        IndonesianSpeech.text("\(title): \(value)")
             .font(.body)
             .fixedSize(horizontal: false, vertical: true)
             .textSelection(.enabled)
-            .accessibilityLabel("\(title), \(value)")
+            .accessibilityLabel(IndonesianSpeech.text("\(title), \(value)"))
     }
 }
 
 #Preview {
     List {
-        Section("Overview") {
+        Section {
             MaterialOverviewView(overview: MaterialOverview.sample)
+        } header: {
+            IndonesianSpeech.text("Ringkasan Materi")
         }
     }
     .listStyle(.insetGrouped)

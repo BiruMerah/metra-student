@@ -31,14 +31,14 @@ struct SectionView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(viewModel.section.title)
+                    IndonesianSpeech.text(viewModel.section.title)
                         .font(.title.weight(.bold))
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityFocused($readingFocus, equals: .title)
                         .id("topic-start")
 
-                    Text(viewModel.progress)
+                    IndonesianSpeech.text(viewModel.progress)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .padding(.top, 8)
@@ -49,7 +49,7 @@ struct SectionView: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         if viewModel.readingBlocks.isEmpty {
-                            Text("Konten topik ini belum tersedia.")
+                            IndonesianSpeech.text("Konten topik ini belum tersedia.")
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(viewModel.readingBlocks) { block in
@@ -101,28 +101,29 @@ struct SectionView: View {
             }
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("Detail Topik")
+        .navigationTitle(IndonesianSpeech.text("Detail Topik"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Picker(
-                        "Gaya Pembacaan",
                         selection: Binding(
                             get: { viewModel.speechStyle },
                             set: { viewModel.speechStyle = $0 }
                         )
                     ) {
                         ForEach(SpeechStyle.allCases) { speechStyle in
-                            Text(speechStyle.label).tag(speechStyle)
+                            IndonesianSpeech.text(speechStyle.localizedLabel).tag(speechStyle)
                         }
+                    } label: {
+                        IndonesianSpeech.text("Gaya pembacaan")
                     }
                 } label: {
-                    Label("Gaya Pembacaan: \(viewModel.speechStyle.label)", systemImage: "waveform")
+                    Label(indonesian: "Gaya pembacaan: \(viewModel.speechStyle.localizedLabel)", systemImage: "waveform")
                 }
-                .accessibilityLabel("Gaya pembacaan matematika, \(viewModel.speechStyle.label)")
-                .accessibilityHint("Ketuk dua kali untuk mengganti antara ClearSpeak dan SimpleSpeak")
+                .accessibilityLabel(IndonesianSpeech.text("Gaya pembacaan matematika, \(viewModel.speechStyle.localizedLabel)"))
+                .accessibilityHint(IndonesianSpeech.text("Pilih bacaan terperinci atau bacaan ringkas."))
             }
         }
         .sheet(item: $assistant, onDismiss: {
@@ -132,19 +133,19 @@ struct SectionView: View {
         }) { selection in
             AIAssistantView(selection: selection)
         }
-        .alert("Metra Assistant belum dapat dibuka", isPresented: Binding(
+        .alert(IndonesianSpeech.text("Asisten Metra belum bisa dibuka"), isPresented: Binding(
             get: { selectionError != nil },
             set: { if !$0 { selectionError = nil } }
         )) {
-            Button("Tutup", role: .cancel) { selectionError = nil }
+            Button(indonesian: "Tutup", role: .cancel) { selectionError = nil }
         } message: {
-            Text(selectionError ?? "")
+            IndonesianSpeech.text(selectionError ?? "")
         }
-        .alert("Selesaikan materi?", isPresented: $confirmsMaterialCompletion) {
-            Button("Batal", role: .cancel) {}
-            Button("Selesaikan Materi", action: onFinish)
+        .alert(IndonesianSpeech.text("Selesaikan materi?"), isPresented: $confirmsMaterialCompletion) {
+            Button(indonesian: "Batal", role: .cancel) {}
+            Button(indonesian: "Selesaikan Materi", action: onFinish)
         } message: {
-            Text("Kamu yakin ingin mengakhiri sesi belajar materi “\(viewModel.materialTitle)”?")
+            IndonesianSpeech.text("Kamu yakin ingin mengakhiri sesi belajar materi “\(viewModel.materialTitle)”?")
         }
     }
 
@@ -183,7 +184,16 @@ struct SectionView: View {
             readingFocus = nil
             assistant = session
         } catch {
-            selectionError = error.localizedDescription
+            selectionError = (error as? AIAssistantFailure)?.errorDescription ?? "Pilih ulang kalimat yang ingin kamu pelajari."
+        }
+    }
+}
+
+private extension SpeechStyle {
+    var localizedLabel: String {
+        switch self {
+        case .clearSpeak: "Bacaan terperinci"
+        case .simpleSpeak: "Bacaan ringkas"
         }
     }
 }

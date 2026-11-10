@@ -18,13 +18,40 @@ struct HomeView: View {
     @Bindable var documentViewModel: DocumentViewModel
     
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
+    @AccessibilityFocusState(for: .voiceOver) private var isImportProgressFocused: Bool
     @State private var searchText = ""
     @State private var isShowingPDFPicker = false
     @State private var isShowingPhotoPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
+    #if os(iOS)
+    @State private var isShowingCamera = false
+    @State private var capturedCameraPhoto: Data?
+    #endif
     
     private var isConverting: Bool {
         documentViewModel.progress != nil
+    }
+
+    private var shouldFocusImportProgress: Bool {
+        isVoiceOverEnabled && isConverting && scenePhase == .active && !isShowingPDFPicker && !isShowingPhotoPicker
+    }
+
+    private var cameraAction: (() -> Void)? {
+        #if os(iOS)
+        { isShowingCamera = true }
+        #else
+        nil
+        #endif
+    }
+
+    private var addDocumentButton: some View {
+        AddDocumentButton(
+            isDisabled: !documentViewModel.canImport || isConverting,
+            onSelectPDF: { isShowingPDFPicker = true },
+            onSelectPhoto: { isShowingPhotoPicker = true },
+            onTakePhoto: cameraAction
+        )
     }
     
     private var trimmedSearchText: String {
@@ -47,7 +74,9 @@ struct HomeView: View {
     
     private var isShowingErrorAlert: Binding<Bool> {
         Binding(
-            get: { channelViewModel.errorMessage != nil || documentViewModel.errorMessage != nil },
+            get: {
+                !channelViewModel.isShowingJoinSheet && (channelViewModel.errorMessage != nil || documentViewModel.errorMessage != nil)
+            },
             set: {
                 if !$0 {
                     channelViewModel.errorMessage = nil
@@ -68,7 +97,7 @@ struct HomeView: View {
         )
     }
     
-    var body: some View {
+    private var homeList: some View {
         List {
             if channelViewModel.channels.isEmpty {
                 // MARK: - Not joining any channel state
@@ -92,15 +121,7 @@ struct HomeView: View {
                             )
                         }
                         
-                        AddDocumentButton(
-                            isDisabled: !documentViewModel.canImport || isConverting,
-                            onSelectPDF: {
-                                isShowingPDFPicker = true
-                            },
-                            onSelectPhoto: {
-                                isShowingPhotoPicker = true
-                            }
-                        )
+                        addDocumentButton
                     }
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                     .listRowBackground(Color.clear)
@@ -128,7 +149,7 @@ struct HomeView: View {
                         )
                         .swipeActions {
                             if !isConverting {
-                                Button("Keluar", role: .destructive) {
+                                Button(indonesian: "Keluar", role: .destructive) {
                                     channelViewModel.leaveChannel(channel)
                                 }
                             }
@@ -140,18 +161,10 @@ struct HomeView: View {
                 .accessibilityHidden(isConverting)
                 
                 Section {
-                    AddDocumentButton(
-                        isDisabled: !documentViewModel.canImport || isConverting,
-                        onSelectPDF: {
-                            isShowingPDFPicker = true
-                        },
-                        onSelectPhoto: {
-                            isShowingPhotoPicker = true
-                        }
-                    )
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+                    addDocumentButton
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
                 .disabled(isConverting)
                 .opacity(isConverting ? 0.45 : 1.0)
@@ -164,7 +177,8 @@ struct HomeView: View {
                 progress: documentViewModel.progress,
                 isCancelling: documentViewModel.isCancelling,
                 successMessage: nil,
-                onCancel: documentViewModel.cancelImport
+                onCancel: documentViewModel.cancelImport,
+                progressFocus: $isImportProgressFocused
             )
             
             Section {
@@ -174,22 +188,28 @@ struct HomeView: View {
                 
                 if matchingDocuments.isEmpty {
                     if isSearching {
-                        ContentUnavailableView(
-                            "Dokumen tidak ditemukan",
-                            systemImage: "magnifyingglass",
-                            description: Text("Tidak ada dokumen yang cocok dengan “\(trimmedSearchText)”.")
-                        )
+                        ContentUnavailableView {
+                            Label {
+                                IndonesianSpeech.text("Dokumen tidak ditemukan")
+                            } icon: {
+                                Image(systemName: "magnifyingglass")
+                                    .accessibilityHidden(true)
+                            }
+                        } description: {
+                            IndonesianSpeech.text("Tidak ada dokumen yang cocok dengan “\(trimmedSearchText)”.")
+                        }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
+                        .accessibilityElement(children: .combine)
                     } else {
                         VStack(spacing: 8) {
                             Image(systemName: "doc.text")
                                 .font(.largeTitle)
                                 .foregroundStyle(.secondary)
                                 .accessibilityHidden(true)
-                            Text("Belum Ada Materi")
+                            IndonesianSpeech.text("Belum Ada Materi")
                                 .font(.headline)
-                            Text("Materi yang dibagikan guru di channel atau dokumen yang Anda tambahkan akan otomatis tersimpan dan muncul di sini.")
+                            IndonesianSpeech.text("Materi dari guru dan dokumen yang kamu tambahkan akan muncul di sini.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
@@ -214,7 +234,7 @@ struct HomeView: View {
                         )
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             if !isConverting {
-                                Button("Hapus", role: .destructive) {
+                                Button(indonesian: "Hapus", role: .destructive) {
                                     _ = documentViewModel.deleteMaterials(ids: [material.id])
                                 }
                             }
@@ -223,16 +243,16 @@ struct HomeView: View {
                 }
             } header: {
                 HStack {
-                    Text("Daftar Dokumen")
+                    IndonesianSpeech.text("Daftar Dokumen")
                     Spacer()
                     if !documentViewModel.savedMaterials.isEmpty {
-                        Text(documentCountText)
+                        IndonesianSpeech.text(documentCountText)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                     }
                 }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(documentHeaderAccessibilityLabel)
+                .accessibilityLabel(IndonesianSpeech.text(documentHeaderAccessibilityLabel))
                 .accessibilityAddTraits(.isHeader)
             }
             .disabled(isConverting)
@@ -241,11 +261,28 @@ struct HomeView: View {
         }
         .listStyle(.insetGrouped)
         .listSectionSpacing(12)
-        .navigationTitle("Metra")
+    }
+
+    var body: some View {
+        ScrollViewReader { scroll in
+            homeList
+                .task(id: shouldFocusImportProgress) {
+                    guard shouldFocusImportProgress else { return }
+                    do {
+                        // Let the picker dismiss, then bring the status row into view.
+                        try await Task.sleep(for: .milliseconds(300))
+                        scroll.scrollTo(ImportStatusSection.progressID, anchor: .center)
+                        try await Task.sleep(for: .milliseconds(150))
+                    } catch { return }
+                    guard shouldFocusImportProgress, !Task.isCancelled else { return }
+                    isImportProgressFocused = true
+                }
+        }
+        .navigationTitle(IndonesianSpeech.text("Metra"))
         .task(id: searchText) {
             guard isSearching else { return }
             try? await Task.sleep(for: .milliseconds(600))
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, !isConverting else { return }
             announceSearchResult()
         }
         .refreshable {
@@ -256,11 +293,17 @@ struct HomeView: View {
         .sheet(isPresented: $channelViewModel.isShowingJoinSheet) {
             JoinChannelSheet(
                 isPresented: $channelViewModel.isShowingJoinSheet,
+                errorMessage: $channelViewModel.errorMessage,
                 isLoading: channelViewModel.isLoading
             ) { code in
                 await channelViewModel.joinChannel(code: code) != nil
             }
         }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $isShowingCamera, onDismiss: importCapturedPhoto) {
+            DocumentCameraView { capturedCameraPhoto = $0 }
+        }
+        #endif
         .photosPicker(
             isPresented: $isShowingPhotoPicker,
             selection: $selectedPhoto,
@@ -305,22 +348,30 @@ struct HomeView: View {
             guard let newMessage else { return }
             playConversionCompletionSound(message: newMessage)
         }
-        .alert("Konversi Selesai", isPresented: isShowingSuccessAlert) {
-            Button("Ok") {
+        .alert(IndonesianSpeech.text("Konversi Selesai"), isPresented: isShowingSuccessAlert) {
+            Button(indonesian: "Tutup") {
                 documentViewModel.clearSuccessMessage()
             }
         } message: {
-            Text(documentViewModel.successMessage ?? "Dokumen berhasil dikonversi dan disimpan.")
+            IndonesianSpeech.text(documentViewModel.successMessage ?? "Dokumen berhasil dikonversi dan disimpan.")
         }
-        .alert("Pemberitahuan", isPresented: isShowingErrorAlert) {
-            Button("Tutup") {
+        .alert(IndonesianSpeech.text("Pemberitahuan"), isPresented: isShowingErrorAlert) {
+            Button(indonesian: "Tutup") {
                 channelViewModel.errorMessage = nil
                 documentViewModel.errorMessage = nil
             }
         } message: {
-            Text(channelViewModel.errorMessage ?? documentViewModel.errorMessage ?? "")
+            IndonesianSpeech.text(channelViewModel.errorMessage ?? documentViewModel.errorMessage ?? "")
         }
     }
+
+    #if os(iOS)
+    private func importCapturedPhoto() {
+        guard let data = capturedCameraPhoto else { return }
+        capturedCameraPhoto = nil
+        documentViewModel.importCameraPhoto(data)
+    }
+    #endif
     
     // MARK: - Search Helpers
     private var documentCountText: String {
@@ -343,7 +394,7 @@ struct HomeView: View {
         let message = count == 0
             ? "Tidak ada dokumen yang cocok"
             : "\(count) dokumen ditemukan"
-        AccessibilityNotification.Announcement(message).post()
+        IndonesianSpeech.announce(message)
     }
     
     // MARK: - Audio & Accessibility Feedback on Completion
@@ -353,7 +404,7 @@ struct HomeView: View {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
         #endif
-        AccessibilityNotification.Announcement("Konversi selesai. \(message)").post()
+        IndonesianSpeech.announce("Konversi selesai. \(message)")
     }
 }
 

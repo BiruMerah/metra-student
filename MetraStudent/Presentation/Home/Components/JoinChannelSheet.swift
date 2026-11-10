@@ -9,6 +9,7 @@ import SwiftUI
 
 struct JoinChannelSheet: View {
     @Binding var isPresented: Bool
+    @Binding var errorMessage: String?
     let isLoading: Bool
     let onJoin: (String) async -> Bool
     
@@ -18,11 +19,11 @@ struct JoinChannelSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Kode Channel (contoh: MTK10A)", text: $joinChannelCodeInput)
+                    TextField("Kode kelas (contoh: MTK10A)", text: $joinChannelCodeInput)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.characters)
                         .font(.headline.monospaced())
-                        .accessibilityLabel("Kolom Kode Channel")
+                        .accessibilityLabel(IndonesianSpeech.text("Kode undangan kelas"))
                     
                     Button {
                         let codeToJoin = joinChannelCodeInput
@@ -39,27 +40,36 @@ struct JoinChannelSheet: View {
                             if isLoading {
                                 ProgressView()
                                     .padding(.trailing, 4)
+                                    .accessibilityHidden(true)
                             }
-                            Text("Gabung")
+                            IndonesianSpeech.text(isLoading ? "Sedang bergabung…" : "Gabung")
                                 .font(.headline)
                             Spacer()
                         }
                     }
                     .disabled(joinChannelCodeInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                 } header: {
-                    Text("Kode Undangan Channel")
+                    IndonesianSpeech.text("Kode undangan kelas")
                 } footer: {
-                    Text("Masukkan 6 karakter kode channel yang diberikan oleh guru Anda.")
+                    IndonesianSpeech.text("Masukkan enam karakter kode undangan dari guru.")
                 }
             }
-            .navigationTitle("Gabung Channel")
+            .navigationTitle(IndonesianSpeech.text("Gabung Kelas"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Batal") {
+                    Button(indonesian: "Batal") {
                         isPresented = false
                     }
                 }
+            }
+            .alert(IndonesianSpeech.text("Belum bisa bergabung"), isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button(indonesian: "Tutup", role: .cancel) { errorMessage = nil }
+            } message: {
+                IndonesianSpeech.text(errorMessage ?? "")
             }
         }
         .presentationDetents([.medium])
@@ -67,7 +77,7 @@ struct JoinChannelSheet: View {
 }
 
 #Preview {
-    JoinChannelSheet(isPresented: .constant(true), isLoading: false) { _ in
+    JoinChannelSheet(isPresented: .constant(true), errorMessage: .constant(nil), isLoading: false) { _ in
         true
     }
 }

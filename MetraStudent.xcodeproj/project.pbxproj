@@ -273,9 +273,9 @@
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MetraStudent/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Metra for Student";
+				INFOPLIST_KEY_CFBundleDisplayName = "Metra untuk Siswa";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra Student uses the local network so Students can discover and join a Teacher's classroom network room and receive study materials.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra menggunakan jaringan lokal agar siswa dapat menemukan kelas, bergabung dengan kelas, dan menerima materi dari guru.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -324,9 +324,9 @@
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MetraStudent/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Metra for Student";
+				INFOPLIST_KEY_CFBundleDisplayName = "Metra untuk Siswa";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra Student uses the local network so Students can discover and join a Teacher's classroom network room and receive study materials.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra menggunakan jaringan lokal agar siswa dapat menemukan kelas, bergabung dengan kelas, dan menerima materi dari guru.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

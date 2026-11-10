@@ -19,12 +19,12 @@ struct SectionHighlightCard<Content: View>: View {
                 Image(systemName: symbol)
                     .foregroundStyle(tint)
                     .accessibilityHidden(true)
-                Text(title)
+                IndonesianSpeech.text(title)
                     .foregroundStyle(.primary)
             }
             .font(.subheadline.weight(.semibold))
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(title)
+            .accessibilityLabel(IndonesianSpeech.text(title))
             .accessibilityAddTraits(.isHeader)
             
             content()
@@ -50,7 +50,7 @@ struct SectionHighlightCard<Content: View>: View {
         symbol: "function",
         tint: .indigo
     ) {
-        Text("dua dikali eks sama dengan sepuluh")
+        IndonesianSpeech.text("dua dikali eks sama dengan sepuluh")
             .font(.body)
     }
     .padding()

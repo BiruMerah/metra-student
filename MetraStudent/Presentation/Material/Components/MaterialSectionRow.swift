@@ -23,7 +23,7 @@ struct MaterialSectionRow: View {
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(section.title)
+                    IndonesianSpeech.text(section.title)
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.primary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -42,8 +42,8 @@ struct MaterialSectionRow: View {
         .alignmentGuide(.listRowSeparatorLeading) { dimensions in
             dimensions[.leading] + 64
         }
-        .accessibilityLabel("Segmen \(index + 1), \(section.title)")
-        .accessibilityHint("Buka detail topik")
+        .accessibilityLabel(IndonesianSpeech.text("Segmen \(index + 1), \(section.title)"))
+        .accessibilityHint(IndonesianSpeech.text("Buka detail topik"))
     }
 }
 

@@ -140,11 +140,11 @@ final class OnDeviceExtractionService: MaterialExtractionProtocol {
     private static func userProgress(_ raw: String) -> String {
         if let range = raw.range(of:"Deskripsi alternatif rumus ") {
             let number = raw[range.upperBound...].prefix { $0.isNumber || $0 == "/" }
-            return "Menyiapkan deskripsi alternatif rumus \(number)…"
+            return "Menyiapkan deskripsi alternatif rumus \(number.replacingOccurrences(of: "/", with: " dari "))…"
         }
         if raw.contains("formula "), let range = raw.range(of: "formula ") {
             let number = raw[range.upperBound...].prefix { $0.isNumber || $0 == "/" }
-            return "Membaca bagian matematika \(number)…"
+            return "Membaca bagian matematika \(number.replacingOccurrences(of: "/", with: " dari "))…"
         }
         if raw.localizedCaseInsensitiveContains("diagram") { return "Membaca gambar dan diagram…" }
         if raw.localizedCaseInsensitiveContains("pembatalan") { return "Menyelesaikan pembatalan…" }

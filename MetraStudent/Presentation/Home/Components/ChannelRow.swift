@@ -22,19 +22,19 @@ struct ChannelRow: View {
                     .accessibilityHidden(true)
                 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(channel.name)
+                    IndonesianSpeech.text(channel.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
                         .lineLimit(2)
                     
-                    Text("Guru: \(channel.createdBy)")
+                    IndonesianSpeech.text("Guru: \(channel.createdBy)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Channel \(channel.name). Guru: \(channel.createdBy).")
+            .accessibilityLabel(IndonesianSpeech.text("Kelas \(channel.name). Guru: \(channel.createdBy)."))
             
             Spacer(minLength: 8)
             
@@ -42,7 +42,7 @@ struct ChannelRow: View {
                 Button(role: .destructive, action: onLeave) {
                     HStack(spacing: 4) {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("Keluar")
+                        IndonesianSpeech.text("Keluar")
                     }
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 12)
@@ -51,8 +51,8 @@ struct ChannelRow: View {
                     .foregroundStyle(.red)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Keluar dari channel \(channel.name)")
-                .accessibilityHint("Ketuk dua kali untuk keluar dari channel kelas ini")
+                .accessibilityLabel(IndonesianSpeech.text("Keluar dari kelas \(channel.name)"))
+                .accessibilityHint(IndonesianSpeech.text("Keluar dari kelas ini."))
             }
         }
         .padding(.vertical, 4)

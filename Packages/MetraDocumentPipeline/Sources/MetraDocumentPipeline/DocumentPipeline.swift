@@ -27,10 +27,10 @@ public enum DocumentPipeline {
     }
 
     public static func convertPhoto(
-        _ data: Data, title: String, onProgress: @escaping @MainActor (String) -> Void
+        _ data: Data, title: String, fromCamera: Bool = false, onProgress: @escaping @MainActor (String) -> Void
     ) async throws -> Data {
         try await convert(title: title, preparesImage: true, onProgress: onProgress) {
-            [try readImage(data, origin: .photoLibrary)]
+            [try readImage(data, origin: fromCamera ? .camera : .photoLibrary)]
         }
     }
 
@@ -47,39 +47,47 @@ public enum DocumentPipeline {
             try? FileManager.default.removeItem(at: workspace)
             isConverting = false
         }
-        if FileManager.default.fileExists(atPath: workspace.path) {
-            try FileManager.default.removeItem(at: workspace)
-        }
-        let inputs = try await loadInputs()
-        try Task.checkCancellation()
-        let pages: [MaterialImageInput]
-        if preparesImage {
-            onProgress("Menyiapkan gambar…")
-            pages = try await VisionDocumentImagePreparer().prepare(inputs, remainingPages: TeacherPDFPageImporter.pageLimit)
-        } else {
-            pages = inputs
-        }
-        try Task.checkCancellation()
-
-        let stem = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let materialTitle = stem.isEmpty ? "Materi baru" : String(stem.prefix(120))
-        let extraction = TeacherMaterialExtractionService()
-        let result: TeacherExtractionResult
         do {
-            result = try await extraction.extract(pages: pages, title: materialTitle, firstBookPage: nil,
-                                                  onProgress: onProgress)
-        } catch let recovery as TeacherConversionRecovery {
-            let failed = Set(recovery.assessments.filter { $0.status != .ready }.map(\.id))
-            let numbers = pages.enumerated().compactMap { failed.contains($0.element.id) ? String($0.offset + 1) : nil }
-            throw ImportError.invalid(numbers.isEmpty
-                ? "Dokumen tidak menghasilkan bacaan. Coba gunakan dokumen yang lebih jelas."
-                : "Halaman \(numbers.joined(separator: ", ")) belum bisa dibaca. Periksa halaman tersebut dan coba lagi.")
+            if FileManager.default.fileExists(atPath: workspace.path) {
+                try FileManager.default.removeItem(at: workspace)
+            }
+            let inputs = try await loadInputs()
+            try Task.checkCancellation()
+            let pages: [MaterialImageInput]
+            if preparesImage {
+                onProgress("Menyiapkan gambar…")
+                pages = try await VisionDocumentImagePreparer().prepare(inputs, remainingPages: TeacherPDFPageImporter.pageLimit)
+            } else {
+                pages = inputs
+            }
+            try Task.checkCancellation()
+
+            let stem = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let materialTitle = stem.isEmpty ? "Materi baru" : String(stem.prefix(120))
+            let extraction = TeacherMaterialExtractionService()
+            let result: TeacherExtractionResult
+            do {
+                result = try await extraction.extract(pages: pages, title: materialTitle, firstBookPage: nil,
+                                                      onProgress: onProgress)
+            } catch let recovery as TeacherConversionRecovery {
+                let failed = Set(recovery.assessments.filter { $0.status != .ready }.map(\.id))
+                let numbers = pages.enumerated().compactMap { failed.contains($0.element.id) ? String($0.offset + 1) : nil }
+                throw ImportError.invalid(numbers.isEmpty
+                    ? "Dokumen tidak menghasilkan bacaan. Coba gunakan dokumen yang lebih jelas."
+                    : "Halaman \(numbers.joined(separator: ", ")) belum bisa dibaca. Periksa halaman tersebut dan coba lagi.")
+            }
+            try Task.checkCancellation()
+            var material = result.material
+            material.reviewStatus = .draft
+            material.validatedAt = nil
+            return try JSONEncoder().encode(material)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as TeacherUserFacingError {
+            throw error
+        } catch {
+            throw ImportError.invalid("Dokumen belum bisa dikonversi. Periksa apakah berkas bisa dibuka, lalu coba lagi.")
         }
-        try Task.checkCancellation()
-        var material = result.material
-        material.reviewStatus = .draft
-        material.validatedAt = nil
-        return try JSONEncoder().encode(material)
     }
 
     private nonisolated static func readPages(from url: URL) throws -> [MaterialImageInput] {
@@ -127,7 +135,7 @@ public enum DocumentPipeline {
         return .init(data: data, fileName: name, origin: origin)
     }
 
-    private enum ImportError: LocalizedError {
+    private enum ImportError: TeacherUserFacingError {
         case invalid(String)
         var errorDescription: String? {
             switch self { case .invalid(let message): message }

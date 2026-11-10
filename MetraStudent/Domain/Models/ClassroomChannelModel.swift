@@ -52,7 +52,7 @@ struct ClassroomChannelModel: Identifiable, Hashable, Sendable {
         self.recordID = record.recordID
         self.code = code.uppercased()
         self.name = name
-        self.createdBy = record["createdBy"] as? String ?? "Unknown"
+        self.createdBy = record["createdBy"] as? String ?? "Tidak diketahui"
         self.createdAt = record["createdAt"] as? Date ?? record.creationDate ?? Date()
         self.members = record["members"] as? [String] ?? []
         

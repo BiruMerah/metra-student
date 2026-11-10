@@ -34,7 +34,7 @@ struct DisplayProfileRow: View {
                         .onSubmit {
                             isNameFieldFocused = false
                         }
-                        .accessibilityLabel("Nama Tampilan Siswa")
+                        .accessibilityLabel(IndonesianSpeech.text("Nama Tampilan Siswa"))
                     
                     HStack(spacing: 5) {
                         if isInitialSyncing {
@@ -44,12 +44,12 @@ struct DisplayProfileRow: View {
                             Image(systemName: isSignedInToiCloud ? "checkmark.icloud.fill" : "exclamationmark.icloud.fill")
                                 .foregroundStyle(isSignedInToiCloud ? .green : .red)
                         }
-                        Text(accountStatusMessage)
+                        IndonesianSpeech.text(accountStatusMessage)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Status iCloud: \(accountStatusMessage)")
+                    .accessibilityLabel(IndonesianSpeech.text("Status iCloud: \(accountStatusMessage)"))
                 }
                 
                 Image(systemName: "pencil")

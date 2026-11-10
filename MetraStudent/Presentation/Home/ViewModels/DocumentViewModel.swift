@@ -40,12 +40,12 @@ final class DocumentViewModel {
         do {
             savedMaterials = try mathMaterialRepository.fetchSavedMaterials()
         } catch {
-            errorMessage = "Daftar dokumen belum dapat dimuat. Coba buka kembali tab Dokumen."
+            errorMessage = "Daftar dokumen belum bisa dimuat. Coba buka ulang halaman utama."
         }
     }
 
     func importDocument(from url: URL) {
-        startImport(progress: "Membuka PDF…") { onProgress in
+        startImport(progress: "Membuka berkas PDF…") { onProgress in
             try await DocumentConverter.convert(url, onProgress: onProgress)
         }
     }
@@ -61,11 +61,21 @@ final class DocumentViewModel {
                 throw PhotoImportError.unreadable
             }
             try Task.checkCancellation()
-            let date = Date.now.formatted(
-                .dateTime.day().month(.abbreviated).year().hour().minute().locale(Locale(identifier: "id_ID"))
-            )
-            return try await DocumentConverter.convertPhoto(data, title: "Foto \(date)", onProgress: onProgress)
+            return try await DocumentConverter.convertPhoto(data, title: Self.photoTitle, onProgress: onProgress)
         }
+    }
+
+    func importCameraPhoto(_ data: Data) {
+        startImport(progress: "Menyiapkan foto kamera…") { onProgress in
+            try await DocumentConverter.convertPhoto(data, title: Self.photoTitle, fromCamera: true, onProgress: onProgress)
+        }
+    }
+
+    private static var photoTitle: String {
+        let date = Date.now.formatted(
+            .dateTime.day().month(.abbreviated).year().hour().minute().locale(Locale(identifier: "id_ID"))
+        )
+        return "Foto \(date)"
     }
 
     private func startImport(
@@ -76,7 +86,6 @@ final class DocumentViewModel {
         successMessage = nil
         errorMessage = nil
         progress = initialProgress
-        notificationManager?.announceAccessibility(initialProgress)
         importTask = Task { [weak self] in
             guard let self else { return }
             defer {

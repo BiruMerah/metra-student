@@ -53,11 +53,10 @@ struct ImageIngestor {
         )
     }
 
-    /// The presentation adapter already encoded UIImagePicker's image once.
-    /// Preserve those delivered JPEG bytes rather than encoding them a second time.
+    /// Preserve the camera adapter's delivered image bytes before normalization.
     func ingestCameraData(_ data: Data, fileName: String) throws -> ImportedSourcePage {
         try ingest(data, fileName: fileName, origin: .camera,
-                   captureRepresentation: "UIImagePickerController originalImage re-encoded with jpegData(0.95); source EXIF is not asserted")
+                   captureRepresentation: "Camera adapter image data; EXIF is read from the delivered image")
     }
 
     private func ingest(
@@ -166,7 +165,7 @@ struct ImageIngestor {
     }
 }
 
-enum IngestError: LocalizedError {
+enum IngestError: TeacherUserFacingError {
     case photoDataUnavailable
     case unsupportedImage
     case normalizationFailed
@@ -175,8 +174,8 @@ enum IngestError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .photoDataUnavailable: "Data foto dari galeri tidak tersedia. Coba pilih ulang foto tersebut."
-        case .unsupportedImage: "File tidak dapat dibaca sebagai gambar raster."
-        case .normalizationFailed: "Gambar tidak dapat dinormalisasi tanpa kehilangan sumber."
+        case .unsupportedImage: "Berkas belum bisa dibaca sebagai gambar. Pilih foto atau gambar lain."
+        case .normalizationFailed: "Gambar belum bisa disiapkan. Coba pilih ulang foto atau ambil foto baru."
         case .cameraEncodingFailed: "Foto kamera tidak dapat disimpan sebagai JPEG."
         }
     }
