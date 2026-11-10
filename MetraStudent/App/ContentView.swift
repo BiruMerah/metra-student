@@ -15,32 +15,16 @@ struct ContentView: View {
     }
     
     var body: some View {
-        TabView(selection: $coordinator.selectedTab) {
-            NavigationStack(path: $coordinator.channelPath) {
-                coordinator.buildChannel()
-                    .navigationDestination(for: AppRoutes.self) { route in
-                        coordinator.buildDestination(for: route)
-                    }
-            }
-            .tabItem {
-                Label(AppTab.channel.title, systemImage: AppTab.channel.iconName)
-            }
-            .tag(AppTab.channel)
-            
-            NavigationStack(path: $coordinator.documentPath) {
-                coordinator.buildDocument()
-                    .navigationDestination(for: AppRoutes.self) { route in
-                        coordinator.buildDestination(for: route, in: .document)
-                    }
-            }
-            .tabItem {
-                Label(AppTab.document.title, systemImage: AppTab.document.iconName)
-            }
-            .tag(AppTab.document)
+        NavigationStack(path: $coordinator.channelPath) {
+            coordinator.buildHome()
+                .navigationDestination(for: AppRoutes.self) { route in
+                    coordinator.buildDestination(for: route)
+                }
         }
     }
 }
 
+// MARK: - Preview
 #Preview {
     let coordinator = AppCoordinator.makePreview()
     return ContentView(coordinator: coordinator)

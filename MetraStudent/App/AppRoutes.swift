@@ -8,19 +8,6 @@
 import Foundation
 
 enum AppRoutes: Hashable {
-    case materialDetail(MathMaterialModel)
-    case sectionDetail(materialTitle: String, sections: [MathSectionModel], initialIndex: Int, speechStyle: SpeechStyle = .clearSpeak)
-}
-
-@MainActor
-protocol AppCoordinating: AnyObject {
-    func navigate(to route: AppRoutes, in tab: AppTab?)
-    func navigateBack(in tab: AppTab?)
-    func popToRoot(in tab: AppTab)
-}
-
-extension AppCoordinating {
-    func navigate(to route: AppRoutes) {
-        navigate(to: route, in: nil)
-    }
+    case material(MathMaterialModel)
+    case section(materialTitle: String, sections: [MathSectionModel], initialIndex: Int, speechStyle: SpeechStyle = .clearSpeak)
 }

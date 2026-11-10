@@ -1,8 +1,8 @@
 //
-//  MaterialDetailViewModel.swift
+//  MaterialViewModel.swift
 //  MetraStudent
 //
-//  Created by Fidel Fausta Cavell on 31/10/26.
+//  Created by Fidel Fausta Cavell on 09/11/26.
 //
 
 import Foundation
@@ -10,7 +10,7 @@ import Observation
 
 @Observable
 @MainActor
-final class MaterialDetailViewModel {
+final class MaterialViewModel {
     // MARK: - Observable UI State
     let material: MathMaterialModel
     let overview: MaterialOverview
@@ -28,13 +28,13 @@ final class MaterialDetailViewModel {
     // MARK: - Dependencies
     private let mathMaterialRepository: MathMaterialProtocol
     private let notificationManager: NotificationProtocol?
-    weak var coordinator: (any AppCoordinating)?
+    weak var coordinator: AppCoordinator?
     
     init(
         material: MathMaterialModel,
         mathMaterialRepository: MathMaterialProtocol,
         notificationManager: NotificationProtocol? = nil,
-        coordinator: (any AppCoordinating)? = nil,
+        coordinator: AppCoordinator? = nil,
         overview: MaterialOverview? = nil,
         sections: [MathSectionModel]? = nil
     ) {
@@ -75,7 +75,7 @@ final class MaterialDetailViewModel {
         }
     }
     
-    func removeSavedMaterial(from tab: AppTab) {
+    func removeSavedMaterial() {
         guard isSaved else { return }
         errorMessage = nil
         do {
@@ -83,15 +83,8 @@ final class MaterialDetailViewModel {
             try mathMaterialRepository.deleteMaterial(id: targetID)
             isSaved = false
             savedMaterialID = nil
-
-            if tab == .document {
-                notificationManager?.announceAccessibility("Dokumen dihapus.")
-                coordinator?.navigateBack(in: .document)
-            } else {
-                checkSavedStatus()
-                notificationManager?.announceAccessibility("Materi dihapus dari pustaka")
-            }
-            
+            notificationManager?.announceAccessibility("Dokumen dihapus.")
+            coordinator?.navigateBack()
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -101,7 +94,7 @@ final class MaterialDetailViewModel {
     func openSection(at index: Int) {
         guard sections.indices.contains(index) else { return }
         coordinator?.navigate(
-            to: .sectionDetail(
+            to: .section(
                 materialTitle: material.title,
                 sections: sections,
                 initialIndex: index,

@@ -12,11 +12,9 @@ import SwiftData
 
 @Observable
 @MainActor
-final class AppCoordinator: AppCoordinating {
+final class AppCoordinator {
     // MARK: - Navigation State
-    var selectedTab: AppTab = .channel
     var channelPath = NavigationPath()
-    var documentPath = NavigationPath()
     
     // MARK: - Dependencies (Domain Protocols)
     let mathMaterialRepository: MathMaterialProtocol
@@ -25,11 +23,17 @@ final class AppCoordinator: AppCoordinating {
     
     // MARK: - ViewModels
     @ObservationIgnored
-    lazy var channelViewModel: ChannelViewModel = ChannelViewModel(
-        mathMaterialRepository: mathMaterialRepository,
-        notificationManager: notificationManager,
-        coordinator: self
-    )
+    lazy var channelViewModel: ChannelViewModel = {
+        let vm = ChannelViewModel(
+            mathMaterialRepository: mathMaterialRepository,
+            notificationManager: notificationManager,
+            coordinator: self
+        )
+        vm.onMaterialsAutosaved = { [weak self] in
+            self?.documentViewModel.reload()
+        }
+        return vm
+    }()
     
     @ObservationIgnored
     lazy var documentViewModel = DocumentViewModel(
@@ -57,78 +61,44 @@ final class AppCoordinator: AppCoordinating {
         )
     }
     
-    // MARK: - Tab Management
-    func selectTab(_ tab: AppTab) {
-        if selectedTab == tab {
-            popToRoot(in: tab)
-        } else {
-            selectedTab = tab
-        }
-    }
-    
     // MARK: - Stack Navigation
-    func navigate(to route: AppRoutes, in tab: AppTab? = nil) {
-        let targetTab = tab ?? selectedTab
-        switch targetTab {
-        case .channel:
-            channelPath.append(route)
-            
-        case .document:
-            documentPath.append(route)
+    func navigate(to route: AppRoutes) {
+        channelPath.append(route)
+    }
+    
+    func navigateBack() {
+        if !channelPath.isEmpty {
+            channelPath.removeLast()
         }
     }
     
-    func navigateBack(in tab: AppTab? = nil) {
-        let targetTab = tab ?? selectedTab
-        switch targetTab {
-        case .channel:
-            if !channelPath.isEmpty {
-                channelPath.removeLast()
-            }
-            
-        case .document:
-            if !documentPath.isEmpty {
-                documentPath.removeLast()
-            }
-        }
-    }
-    
-    func popToRoot(in tab: AppTab) {
-        switch tab {
-        case .channel:
-            channelPath.removeLast(channelPath.count)
-            
-        case .document:
-            documentPath.removeLast(documentPath.count)
-        }
+    func popToRoot() {
+        channelPath.removeLast(channelPath.count)
     }
     
     // MARK: - View Builders
     @ViewBuilder
-    func buildChannel() -> some View {
-        ChannelView(viewModel: channelViewModel)
+    func buildHome() -> some View {
+        HomeView(
+            channelViewModel: channelViewModel,
+            documentViewModel: documentViewModel
+        )
     }
     
     @ViewBuilder
-    func buildDocument() -> some View {
-        DocumentView(viewModel: documentViewModel)
-    }
-    
-    @ViewBuilder
-    func buildDestination(for route: AppRoutes, in tab: AppTab = .channel) -> some View {
+    func buildDestination(for route: AppRoutes) -> some View {
         switch route {
-        case .materialDetail(let material):
-            MaterialDetailView(
-                viewModel: MaterialDetailViewModel(
+        case .material(let material):
+            MaterialView(
+                viewModel: MaterialViewModel(
                     material: material,
                     mathMaterialRepository: mathMaterialRepository,
                     notificationManager: notificationManager,
                     coordinator: self
-                ),
-                sourceTab: tab
+                )
             )
 
-        case .sectionDetail(let materialTitle, let sections, let initialIndex, let speechStyle):
+        case .section(let materialTitle, let sections, let initialIndex, let speechStyle):
             SectionView(
                 viewModel: SectionViewModel(
                     materialTitle: materialTitle,

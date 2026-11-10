@@ -17,8 +17,8 @@ struct DocumentRow: View {
 
     private var metadata: String {
         let date = material.createdAt.formatted(.dateTime.day().month(.abbreviated).year().locale(Locale(identifier: "id_ID")))
-        let topicCount = material.sections.count
-        return topicCount > 0 ? "\(date) · \(topicCount) topik" : date
+        let sectionCount = material.sections.count
+        return sectionCount > 0 ? "\(date) · \(sectionCount) segmen" : date
     }
 
     var body: some View {
