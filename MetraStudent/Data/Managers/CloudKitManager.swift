@@ -26,8 +26,8 @@ final class CloudKitManager {
         container.sharedCloudDatabase
     }
     
-    private let channelRecordType = "ClassroomChannel"
-    private let materialRecordType = "SharedMaterial"
+    private let classroomChannelRecordType = "ClassroomChannel"
+    private let sharedMaterialRecordType = "SharedMaterial"
     private let savedChannelCodesKey = "metra.savedChannelCodes"
     private let savedChannelNamesKey = "metra.savedChannelNames"
     
@@ -129,28 +129,43 @@ final class CloudKitManager {
     func shareMaterialToCloudKit(material: MathMaterialModel, channelCode: String) async {
         let upperCode = channelCode.uppercased()
         let recordID = CKRecord.ID(recordName: "MATERIAL_\(upperCode)_\(material.id.uuidString)")
-        let record = CKRecord(recordType: materialRecordType, recordID: recordID)
+        let record = CKRecord(recordType: sharedMaterialRecordType, recordID: recordID)
         record["channelCode"] = upperCode
         record["materialID"] = material.id.uuidString
         record["title"] = material.title
         record["category"] = material.category
+        record["overview"] = material.overview ?? ""
+        record["defaultSpeechStyle"] = material.defaultSpeechStyle.rawValue
+        record["reviewStatus"] = material.reviewStatus.rawValue
+        record["revision"] = material.revision
+        record["format"] = "metra.material"
+        record["schemaVersion"] = 1
         record["createdAt"] = material.createdAt
-        record["overview"] = material.overview
-        record["content"] = material.content
-        if let sectionsData = try? JSONEncoder().encode(material.sections) {
-            record["sectionsData"] = sectionsData
+        record["updatedAt"] = Date()
+        
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .iso8601
+        if let encodedData = try? encoder.encode(material),
+           let jsonString = String(data: encodedData, encoding: .utf8) {
+            record["content"] = jsonString
+        } else {
+            record["content"] = material.content
         }
-        if let materialData = try? JSONEncoder().encode(material) {
-            record["materialData"] = materialData
+        
+        do {
+            let saved = try await publicDatabase.save(record)
+            print("✅ [CloudKit] Siswa berhasil membagikan materi '\(material.title)' ke channel \(upperCode): \(saved.recordID.recordName)")
+        } catch {
+            print("❌ [CloudKit] Gagal membagikan materi '\(material.title)' ke channel \(upperCode): \(error.localizedDescription)")
         }
-        _ = try? await publicDatabase.save(record)
     }
     
     // MARK: - Channel Cloud Operations
     private func fetchChannelRecord(byCode code: String) async throws -> CKRecord? {
         let normalizedCode = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         let predicate = NSPredicate(format: "code == %@", normalizedCode)
-        let query = CKQuery(recordType: channelRecordType, predicate: predicate)
+        let query = CKQuery(recordType: classroomChannelRecordType, predicate: predicate)
         let records = try await queryRecords(query, from: publicDatabase)
         return records.first
     }
@@ -254,7 +269,7 @@ final class CloudKitManager {
     func countMaterials(for channelCode: String) async -> Int {
         let upperCode = channelCode.uppercased()
         let predicate = NSPredicate(format: "channelCode == %@", upperCode)
-        let query = CKQuery(recordType: materialRecordType, predicate: predicate)
+        let query = CKQuery(recordType: sharedMaterialRecordType, predicate: predicate)
         if let records = try? await queryRecords(query, from: publicDatabase) {
             return records.count
         }
@@ -264,7 +279,7 @@ final class CloudKitManager {
     func fetchMaterials(for channelCode: String) async throws -> [MathMaterialModel] {
         let upperCode = channelCode.uppercased()
         let predicate = NSPredicate(format: "channelCode == %@", upperCode)
-        let query = CKQuery(recordType: materialRecordType, predicate: predicate)
+        let query = CKQuery(recordType: sharedMaterialRecordType, predicate: predicate)
         let records = try await queryRecords(query, from: publicDatabase)
         
         let materials = records.compactMap { parseMaterial(from: $0) }
@@ -272,55 +287,116 @@ final class CloudKitManager {
     }
     
     private func parseMaterial(from record: CKRecord) -> MathMaterialModel? {
-        if let materialData = record["materialData"] as? Data,
-           let decoded = try? JSONDecoder().decode(MathMaterialModel.self, from: materialData) {
-            return decoded
-        }
-        
         guard let title = record["title"] as? String else { return nil }
         let idString = record["materialID"] as? String ?? record.recordID.recordName
         let id = UUID(uuidString: idString) ?? UUID()
         let category = record["category"] as? String ?? "Materi"
-        let content = record["content"] as? String ?? ""
         let createdAt = record["createdAt"] as? Date ?? record.creationDate ?? Date()
         let overview = record["overview"] as? String
+        let revision = (record["revision"] as? Int) ?? 1
+        let defaultSpeechStyle = SpeechStyle(rawValue: record["defaultSpeechStyle"] as? String ?? "") ?? .clearSpeak
+        let reviewStatus = ReviewStatus(rawValue: record["reviewStatus"] as? String ?? "") ?? .draft
+        let validatedAt = record["validatedAt"] as? Date
         
-        var sections: [MathSectionModel] = []
-        if let sectionsData = record["sectionsData"] as? Data,
-           let decodedSections = try? JSONDecoder().decode([MathSectionModel].self, from: sectionsData) {
-            sections = decodedSections
-        } else if !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            sections = [MathSectionModel(title: title, content: [.text(content)])]
+        if let contentStr = record["content"] as? String,
+           let data = contentStr.data(using: .utf8) {
+            
+            let isoDecoder = JSONDecoder()
+            isoDecoder.dateDecodingStrategy = .iso8601
+            
+            // Try decoding as PortableEnvelope (from Teacher app via MetraMaterialFile)
+            if let envelope = try? isoDecoder.decode(PortableEnvelope.self, from: data) {
+                return envelope.material.studentMaterial
+            }
+            
+            // Try decoding as direct MetraPortableMaterial
+            if let portable = try? isoDecoder.decode(PortableMaterial.self, from: data) {
+                return portable.studentMaterial
+            }
+            
+            //Try standard JSONDecoder for MathMaterialModel
+            let standardDecoder = JSONDecoder()
+            if let model = try? standardDecoder.decode(MathMaterialModel.self, from: data) {
+                return model
+            }
+            
+            // Try decoding as [MathSectionModel]
+            if let sections = try? standardDecoder.decode([MathSectionModel].self, from: data) {
+                return MathMaterialModel(
+                    id: id,
+                    title: title,
+                    category: category,
+                    content: contentStr,
+                    createdAt: createdAt,
+                    revision: revision,
+                    defaultSpeechStyle: defaultSpeechStyle,
+                    reviewStatus: reviewStatus,
+                    validatedAt: validatedAt,
+                    overview: overview,
+                    sections: sections
+                )
+            }
+            
+            let trimmed = contentStr.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                return MathMaterialModel(
+                    id: id,
+                    title: title,
+                    category: category,
+                    content: trimmed,
+                    createdAt: createdAt,
+                    revision: revision,
+                    defaultSpeechStyle: defaultSpeechStyle,
+                    reviewStatus: reviewStatus,
+                    validatedAt: validatedAt,
+                    overview: overview,
+                    sections: [MathSectionModel(title: title, content: [.text(trimmed)])]
+                )
+            }
         }
         
         return MathMaterialModel(
             id: id,
             title: title,
             category: category,
-            content: content,
+            content: "",
             createdAt: createdAt,
+            revision: revision,
+            defaultSpeechStyle: defaultSpeechStyle,
+            reviewStatus: reviewStatus,
+            validatedAt: validatedAt,
             overview: overview,
-            sections: sections
+            sections: []
         )
     }
     
     // MARK: - Subscriptions
     func subscribeToChanges() async throws {
-        let subscriptionID = "metra-classroom-changes"
+        let channelSubscriptionID = "metra-classroom-changes"
+        let materialSubscriptionID = "metra-materials-changes"
         let predicate = NSPredicate(value: true)
         
-        let subscription = CKQuerySubscription(
-            recordType: channelRecordType,
+        let channelSubscription = CKQuerySubscription(
+            recordType: classroomChannelRecordType,
             predicate: predicate,
-            subscriptionID: subscriptionID,
+            subscriptionID: channelSubscriptionID,
             options: [.firesOnRecordCreation, .firesOnRecordUpdate, .firesOnRecordDeletion]
         )
+        let channelNotificationInfo = CKSubscription.NotificationInfo()
+        channelNotificationInfo.shouldSendContentAvailable = true
+        channelSubscription.notificationInfo = channelNotificationInfo
+        _ = try? await publicDatabase.save(channelSubscription)
         
-        let notificationInfo = CKSubscription.NotificationInfo()
-        notificationInfo.shouldSendContentAvailable = true
-        subscription.notificationInfo = notificationInfo
-        
-        _ = try? await publicDatabase.save(subscription)
+        let materialSubscription = CKQuerySubscription(
+            recordType: sharedMaterialRecordType,
+            predicate: predicate,
+            subscriptionID: materialSubscriptionID,
+            options: [.firesOnRecordCreation, .firesOnRecordUpdate, .firesOnRecordDeletion]
+        )
+        let materialNotificationInfo = CKSubscription.NotificationInfo()
+        materialNotificationInfo.shouldSendContentAvailable = true
+        materialSubscription.notificationInfo = materialNotificationInfo
+        _ = try? await publicDatabase.save(materialSubscription)
     }
     
     // MARK: - Private Helpers

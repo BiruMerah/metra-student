@@ -288,6 +288,9 @@ struct HomeView: View {
         .onAppear {
             documentViewModel.reload()
         }
+        .refreshable {
+            await channelViewModel.reloadAllChannels()
+        }
         .task {
             await channelViewModel.initialize()
         }

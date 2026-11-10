@@ -124,3 +124,55 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
         )
     }
 }
+
+// MARK: - Portable Envelope Decoding (from Teacher app / CloudKit)
+nonisolated struct PortableEnvelope: Decodable, Sendable {
+    let format: String?
+    let schemaVersion: Int?
+    let material: PortableMaterial
+}
+
+nonisolated struct PortableMaterial: Decodable, Sendable {
+    struct Topic: Decodable, Sendable {
+        let id: UUID
+        let title: String
+        let chunks: [MathChunk]
+    }
+
+    let id: UUID
+    let title: String
+    let category: String?
+    let content: String?
+    let createdAt: Date?
+    let revision: Int?
+    let defaultSpeechStyle: SpeechStyle?
+    let reviewStatus: ReviewStatus?
+    let validatedAt: Date?
+    let overview: String?
+    let topics: [Topic]?
+
+    var studentMaterial: MathMaterialModel {
+        let mappedSections: [MathSectionModel] = (topics ?? []).map { topic in
+            MathSectionModel(
+                id: topic.id,
+                title: topic.title,
+                content: [],
+                chunks: topic.chunks
+            )
+        }
+
+        return MathMaterialModel(
+            id: id,
+            title: title,
+            category: category ?? "Matematika",
+            content: content ?? "",
+            createdAt: createdAt ?? Date(),
+            revision: revision ?? 1,
+            defaultSpeechStyle: defaultSpeechStyle ?? .clearSpeak,
+            reviewStatus: reviewStatus ?? .draft,
+            validatedAt: validatedAt,
+            overview: overview,
+            sections: mappedSections
+        )
+    }
+}
