@@ -9,7 +9,7 @@ import Foundation
 
 enum AppRoutes: Hashable {
     case materialDetail(MathMaterialModel)
-    case sectionDetail(sections: [MathSectionModel], initialIndex: Int, speechStyle: SpeechStyle = .clearSpeak)
+    case sectionDetail(materialTitle: String, sections: [MathSectionModel], initialIndex: Int, speechStyle: SpeechStyle = .clearSpeak)
 }
 
 @MainActor

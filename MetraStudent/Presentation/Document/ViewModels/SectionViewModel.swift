@@ -34,13 +34,11 @@ final class SectionViewModel {
     var speechStyle: SpeechStyle {
         didSet {
             guard oldValue != speechStyle else { return }
-            assistantSessions.removeAll()
             prepareContent()
         }
     }
     private let sections: [MathSectionModel]
-    private let assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)?
-    private var assistantSessions: [String: AIAssistantViewModel] = [:]
+    private let materialTitle: String
 
     var section: MathSectionModel { sections[currentSectionIndex] }
     var progress: String { "Segmen \(currentSectionIndex + 1) dari \(sections.count)" }
@@ -51,16 +49,16 @@ final class SectionViewModel {
     }
 
     init(
+        materialTitle: String,
         sections: [MathSectionModel],
         initialSectionIndex: Int = 0,
-        initialSpeechStyle: SpeechStyle = .clearSpeak,
-        assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
+        initialSpeechStyle: SpeechStyle = .clearSpeak
     ) {
         precondition(!sections.isEmpty, "A section reader needs at least one section")
+        self.materialTitle = materialTitle
         self.sections = sections
         self.currentSectionIndex = min(max(initialSectionIndex, 0), sections.count - 1)
         self.speechStyle = initialSpeechStyle
-        self.assistantEngineFactory = assistantEngineFactory
         prepareContent()
     }
 
@@ -77,31 +75,18 @@ final class SectionViewModel {
     }
 
     func assistantSelection(sentenceID: String) throws -> AIAssistantSelection {
-        let sentences = readingBlocks.flatMap(\.sentences).map {
-            AIAssistantSentence(id: $0.id, text: $0.text)
+        let sentences = readingBlocks.flatMap(\.sentences)
+        guard let selected = sentences.first(where: { $0.id == sentenceID }) else {
+            throw AIAssistantFailure.message("Kalimat tidak ditemukan. Pilih kembali bagian materi yang ingin dipelajari.")
         }
-        return try AIAssistantSelection.make(
-            topicID: section.id,
+
+        return AIAssistantSelection(
+            id: "\(section.id)-\(selected.id)",
+            sentence: selected.text,
             topicTitle: section.title,
-            sentences: sentences,
-            selectedID: sentenceID
+            materialTitle: materialTitle,
+            supportingText: sentences.map(\.text).joined(separator: "\n")
         )
-    }
-
-    func assistantSession(
-        sentenceID: String,
-        engine: (any AssistantProvidingProtocol)? = nil
-    ) throws -> AIAssistantViewModel {
-        let selection = try assistantSelection(sentenceID: sentenceID)
-        if let existing = assistantSessions[selection.id] { return existing }
-
-        let session = AIAssistantViewModel(
-            selection: selection,
-            engine: engine,
-            engineFactory: assistantEngineFactory
-        )
-        assistantSessions[selection.id] = session
-        return session
     }
 
     private func prepareContent() {

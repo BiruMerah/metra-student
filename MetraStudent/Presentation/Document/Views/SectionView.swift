@@ -17,10 +17,9 @@ struct SectionView: View {
         case nextTopic
     }
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AccessibilityFocusState(for: .voiceOver) private var readingFocus: ReadingFocus?
     @State private var viewModel: SectionViewModel
-    @State private var assistant: AIAssistantViewModel?
+    @State private var assistant: AIAssistantSelection?
     @State private var lastSelectedSentenceID: String?
     @State private var selectionError: String?
 
@@ -29,11 +28,13 @@ struct SectionView: View {
     }
 
     init(
+        materialTitle: String,
         sections: [MathSectionModel],
         initialSectionIndex: Int = 0,
         initialSpeechStyle: SpeechStyle = .clearSpeak
     ) {
         _viewModel = State(initialValue: SectionViewModel(
+            materialTitle: materialTitle,
             sections: sections,
             initialSectionIndex: initialSectionIndex,
             initialSpeechStyle: initialSpeechStyle
@@ -41,57 +42,54 @@ struct SectionView: View {
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(viewModel.section.title)
-                        .font(.title.weight(.bold))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                        .accessibilityFocused($readingFocus, equals: .title)
-                        .id("topic-start")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(viewModel.section.title)
+                    .font(.title.weight(.bold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityFocused($readingFocus, equals: .title)
 
-                    Text(viewModel.progress)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 8)
-                        .accessibilityFocused($readingFocus, equals: .progress)
+                Text(viewModel.progress)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 8)
+                    .accessibilityFocused($readingFocus, equals: .progress)
 
-                    VStack(alignment: .leading, spacing: 20) {
-                        if viewModel.readingBlocks.isEmpty {
-                            Text("Konten topik ini belum tersedia.")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(viewModel.readingBlocks) { block in
-                                contentBlock(block)
-                            }
+                assistantHint
+                    .padding(.top, 24)
+
+                VStack(alignment: .leading, spacing: 20) {
+                    if viewModel.readingBlocks.isEmpty {
+                        Text("Konten topik ini belum tersedia.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(viewModel.readingBlocks) { block in
+                            contentBlock(block)
                         }
                     }
+                }
+                .padding(.top, 24)
+                .accessibilityElement(children: .contain)
+
+                topicNavigation
                     .padding(.top, 24)
                     .accessibilityElement(children: .contain)
-
-                    assistantHint
-                        .padding(.top, 24)
-
-                    topicNavigation
-                        .padding(.top, 24)
-                        .accessibilityElement(children: .contain)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                .padding(.bottom, 32)
             }
-            .accessibilityElement(children: .contain)
-            .task(id: viewModel.section.id) {
-                readingFocus = nil
-                proxy.scrollTo("topic-start", anchor: .top)
-                // Let the topic change settle before moving VoiceOver focus.
-                do { try await Task.sleep(for: .milliseconds(300)) }
-                catch { return }
-                readingFocus = .title
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
+            .padding(.bottom, 32)
         }
+        .accessibilityElement(children: .contain)
+        .task {
+            readingFocus = nil
+            // Give VoiceOver time to find the title in the new scroll view.
+            do { try await Task.sleep(for: .milliseconds(300)) }
+            catch { return }
+            readingFocus = .title
+        }
+        .id(viewModel.currentSectionIndex)
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("Detail Topik")
         .navigationBarTitleDisplayMode(.inline)
@@ -117,12 +115,16 @@ struct SectionView: View {
                 .accessibilityHint("Ketuk dua kali untuk mengganti antara ClearSpeak dan SimpleSpeak")
             }
         }
+        .transaction {
+            $0.animation = nil
+            $0.disablesAnimations = true
+        }
         .sheet(item: $assistant, onDismiss: {
             if let lastSelectedSentenceID {
                 readingFocus = .sentence(lastSelectedSentenceID)
             }
-        }) { session in
-            AIAssistantView(viewModel: session)
+        }) { selection in
+            AIAssistantView(selection: selection)
         }
         .alert("Metra Assistant belum dapat dibuka", isPresented: Binding(
             get: { selectionError != nil },
@@ -162,7 +164,8 @@ struct SectionView: View {
                     .onTapGesture(count: 2) { openAssistant(sentenceID: sentence.id) }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(sentence.text)
-//                    .accessibilityHint("Ketuk dua kali untuk membuka Metra Assistant dan meringkas atau menjelaskan kalimat ini.")
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityHint("Ketuk dua kali untuk bertanya tentang kalimat ini.")
                     .accessibilityAction { openAssistant(sentenceID: sentence.id) }
                     .accessibilityFocused($readingFocus, equals: .sentence(sentence.id))
                     .accessibilityIdentifier("topic-sentence-\(sentence.id)")
@@ -173,10 +176,10 @@ struct SectionView: View {
 
     private func openAssistant(sentenceID: String) {
         do {
-            let session = try viewModel.assistantSession(sentenceID: sentenceID)
+            let selection = try viewModel.assistantSelection(sentenceID: sentenceID)
             lastSelectedSentenceID = sentenceID
             readingFocus = nil
-            assistant = session
+            assistant = selection
         } catch {
             selectionError = error.localizedDescription
         }
@@ -228,7 +231,7 @@ struct SectionView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Petunjuk Metra Assistant")
                     .font(.subheadline.weight(.semibold))
-                Text("Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan meminta ringkasan atau penjelasan.")
+                Text("Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan bertanya dengan suara.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -241,47 +244,34 @@ struct SectionView: View {
             in: RoundedRectangle(cornerRadius: 12)
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Petunjuk Metra Assistant. Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan meminta ringkasan atau penjelasan.")
+        .accessibilityLabel("Petunjuk Metra Assistant. Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan bertanya dengan suara.")
     }
 
     private var topicNavigation: some View {
         VStack(spacing: 0) {
             Divider().accessibilityHidden(true)
 
-            ViewThatFits(in: .horizontal) {
-                if !dynamicTypeSize.isAccessibilitySize {
-                    HStack(spacing: 12) {
-                        topicNavigationButtons
-                    }
-                }
+            VStack(spacing: 12) {
+                navigationButton(
+                    title: "Segmen Selanjutnya",
+                    symbol: "forward.end.fill",
+                    enabled: viewModel.hasNextSection,
+                    action: viewModel.nextSection
+                )
+                .accessibilityFocused($readingFocus, equals: .nextTopic)
+                .accessibilityHidden(!viewModel.hasNextSection)
 
-                VStack(spacing: 12) {
-                    topicNavigationButtons
-                }
+                navigationButton(
+                    title: "Segmen Sebelumnya",
+                    symbol: "backward.end.fill",
+                    enabled: viewModel.hasPreviousSection,
+                    action: viewModel.previousSection
+                )
+                .accessibilityFocused($readingFocus, equals: .previousTopic)
+                .accessibilityHidden(!viewModel.hasPreviousSection)
             }
             .padding(.top, 16)
         }
-    }
-
-    @ViewBuilder
-    private var topicNavigationButtons: some View {
-        navigationButton(
-            title: "Segmen Sebelumnya",
-            symbol: "backward.end.fill",
-            enabled: viewModel.hasPreviousSection,
-            action: viewModel.previousSection
-        )
-        .accessibilityFocused($readingFocus, equals: .previousTopic)
-        .accessibilityHidden(!viewModel.hasPreviousSection)
-
-        navigationButton(
-            title: "Segmen Selanjutnya",
-            symbol: "forward.end.fill",
-            enabled: viewModel.hasNextSection,
-            action: viewModel.nextSection
-        )
-        .accessibilityFocused($readingFocus, equals: .nextTopic)
-        .accessibilityHidden(!viewModel.hasNextSection)
     }
 
     private func navigationButton(
@@ -296,23 +286,31 @@ struct SectionView: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .padding(.horizontal, 8)
+                .foregroundStyle(enabled ? Color.accentColor : Color.secondary)
+                .background(Color.primary.opacity(0.06), in: Capsule())
+                .contentShape(Capsule())
         }
-        .buttonStyle(.bordered)
-        .buttonBorderShape(.capsule)
+        .buttonStyle(SectionNavigationButtonStyle())
         .disabled(!enabled)
         .accessibilityLabel(title)
+    }
+
+    private struct SectionNavigationButtonStyle: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
+        }
     }
 }
 
 #Preview("Light") {
     NavigationStack {
-        SectionView(sections: SectionViewModel.sampleSections)
+        SectionView(materialTitle: "Persamaan Linear Satu Variabel", sections: SectionViewModel.sampleSections)
     }
 }
 
 #Preview("Dark") {
     NavigationStack {
-        SectionView(sections: SectionViewModel.sampleSections, initialSectionIndex: 2)
+        SectionView(materialTitle: "Persamaan Linear Satu Variabel", sections: SectionViewModel.sampleSections, initialSectionIndex: 2)
     }
     .preferredColorScheme(.dark)
 }

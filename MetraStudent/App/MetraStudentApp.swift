@@ -47,10 +47,7 @@ struct MetraStudentApp: App {
         let initialCoordinator = AppCoordinator(
             mathMaterialRepository: mathMaterialRepository,
             notificationManager: notificationManager,
-            storageIsPersistent: storageIsPersistent,
-            assistantEngineFactory: { translator in
-                AIAssistantPipeline(assistantTranslator: translator, model: FoundationModel())
-            }
+            storageIsPersistent: storageIsPersistent
         )
         _coordinator = State(wrappedValue: initialCoordinator)
     }

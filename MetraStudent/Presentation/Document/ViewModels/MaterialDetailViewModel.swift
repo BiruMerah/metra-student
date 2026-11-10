@@ -102,6 +102,7 @@ final class MaterialDetailViewModel {
         guard sections.indices.contains(index) else { return }
         coordinator?.navigate(
             to: .sectionDetail(
+                materialTitle: material.title,
                 sections: sections,
                 initialIndex: index,
                 speechStyle: selectedSpeechStyle

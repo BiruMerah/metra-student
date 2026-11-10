@@ -7,15 +7,15 @@ cd "$task_repo_root"
 
 xcrun swiftc -parse-as-library -swift-version 5 -default-isolation MainActor \
   -module-cache-path "$task_check_dir/cache" \
-  MetraStudent/Domain/Models/MathTopicModel.swift \
-  MetraStudent/Domain/Models/MetraAssistantModels.swift \
-  MetraStudent/Domain/Protocols/MetraAssistantProtocol.swift \
-  MetraStudent/Presentation/Helpers/TopicSentenceChunker.swift \
-  MetraStudent/Presentation/ViewModels/TopicViewModel.swift \
-  MetraStudent/Data/Managers/FoundationMetraAssistantModel.swift \
-  MetraStudent/Data/Managers/MetraAssistantPipeline.swift \
-  MetraStudent/Data/Managers/MetraTranslationBridge.swift \
-  MetraStudent/Presentation/ViewModels/MetraAssistantViewModel.swift \
+  MetraStudent/Domain/Models/MathSectionModel.swift \
+  MetraStudent/Domain/Models/AIAssistantModel.swift \
+  MetraStudent/Domain/Protocols/AIAssistant/AssistantGeneratingProtocol.swift \
+  MetraStudent/Domain/Protocols/AIAssistant/AssistantVoiceCapturingProtocol.swift \
+  MetraStudent/Domain/Helpers/TopicSentenceChunker.swift \
+  MetraStudent/Presentation/Document/ViewModels/SectionViewModel.swift \
+  MetraStudent/Data/AISources/FoundationModel.swift \
+  MetraStudent/Data/AISources/MetraSpeechCapture.swift \
+  MetraStudent/Presentation/AIAssistant/ViewModels/AIAssistantViewModel.swift \
   Tests/AssistantLogicChecks.swift \
   -o "$task_check_dir/checks"
 "$task_check_dir/checks"

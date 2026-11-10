@@ -1,301 +1,266 @@
 import Foundation
-
-private struct CheckFailure: Error, CustomStringConvertible {
-    let description: String
-}
+import FoundationModels
 
 @main
 @MainActor
 struct AssistantLogicChecks {
-    static var checks = 0
-
-    static func expect(_ condition: @autoclosure () -> Bool, _ message: String) throws {
-        guard condition() else { throw CheckFailure(description: message) }
-        checks += 1
-    }
-
-    static func rejects(_ operation: () throws -> Void, _ message: String) throws {
-        do { try operation() }
-        catch { checks += 1; return }
-        throw CheckFailure(description: message)
-    }
-
-    static func selection(_ texts: [String] = ["Eks adalah bilangan yang belum diketahui.", "Eks ditambah tiga sama dengan tujuh."]) throws -> MetraAssistantSelection {
-        let sentences = texts.enumerated().map { MetraAssistantSentence(id: String($0.offset), text: $0.element) }
-        return try .make(topicID: UUID(), topicTitle: "Persamaan", sentences: sentences, selectedID: sentences.last!.id)
-    }
+    private static let reply = "Volume diperoleh dengan mengalikan panjang, lebar, dan tinggi."
+    private static let question = "Mengapa pangkat tiga?"
+    private static let english = "The volume of a cube is calculated by multiplying its length, width, and height."
 
     static func main() async throws {
-        try checkSelections()
-        try checkOutputRules()
-        try await checkPipeline()
-        try await checkController()
-        try await checkSessionCache()
-        print("PASS: \(checks) checks — context boundaries, output limits, verbal math, translation, two-request flow, cached sessions and cancellation")
+        let selection = try selectionsFromSectionReader()
+        try selectionFollowsSpeechStyle()
+        try await directQuestionAndAskAgain(selection)
+        try await unavailableModelAndDeniedPermission(selection)
+        try await lateResultsAreIgnored(selection)
+        try await languageErrorsAndRetry(selection)
+        print("All Metra Assistant Method 3 checks passed.")
     }
 
-    static func checkSelections() throws {
-        let reader = TopicViewModel(topics: TopicViewModel.sampleTopics)
-        for _ in TopicViewModel.sampleTopics.indices {
+    private static func selectionsFromSectionReader() throws -> AIAssistantSelection {
+        let materialTitle = "Persamaan Linear Satu Variabel"
+        let reader = SectionViewModel(materialTitle: materialTitle, sections: SectionViewModel.sampleSections)
+        var ids = Set<String>()
+        var first: AIAssistantSelection?
+        repeat {
             let sentences = reader.readingBlocks.flatMap(\.sentences)
-            for (index, sentence) in sentences.enumerated() {
+            for sentence in sentences {
                 let selected = try reader.assistantSelection(sentenceID: sentence.id)
-                try expect(selected.topicID == reader.topic.id, "Selection crossed topics")
-                try expect(selected.selectedSentence == sentence.text, "Selected sentence changed")
-                try expect(selected.sourceSentences(for: .summarize) == Array(sentences.prefix(index + 1)).map(\.text), "Summary includes future text or omits earlier text")
-                try expect(selected.sourceSentences(for: .explain).last == sentence.text, "Explain must end at the selected sentence")
+                try expect(ids.insert(selected.id).inserted, "Selection ID collides with another sentence")
+                try expect(selected.sentence == sentence.text, "The selected sentence changed")
+                try expect(selected.materialTitle == materialTitle, "The material title is missing")
+                try expect(selected.topicTitle == reader.section.title, "The topic title is wrong")
+                try expect(selected.supportingText == sentences.map(\.text).joined(separator: "\n"), "Context must include the current section in order")
+                first = first ?? selected
             }
-            reader.nextTopic()
-        }
-        try rejects({ _ = try reader.assistantSelection(sentenceID: "missing") }, "Invalid sentence accepted")
-        let repeated = try selection(["Kalimat sama.", "Kalimat sama.", "Kalimat terakhir."])
-        try expect(repeated.sentencesThroughSelection.map(\.id) == ["0", "1", "2"], "Repeated text lost positional identity")
-        let texts = ["Rusuk kubus sama panjang.", "Bagian pertama.", "Bagian kedua.", "Bagian ketiga.", "Bagian keempat.", "Panjang.", "Lebar.", "Tinggi.", "Ketiganya dikalikan.", "Rusuk kubus menentukan volumenya."]
-        let retrieved = try selection(texts).sourceSentences(for: .explain)
-        try expect(retrieved.first == texts.first && retrieved.last == texts.last, "Explain lost relevant older context")
-        try expect(retrieved.count < texts.count, "Explain context is unbounded")
-        try expect(FoundationMetraAssistantModel.groups(texts, wordBudget: 5).flatMap { $0 } == texts, "Grouping dropped source text")
+            guard reader.hasNextSection else { break }
+            reader.nextSection()
+        } while true
+
+        do {
+            _ = try reader.assistantSelection(sentenceID: "missing")
+            throw CheckFailure("A missing sentence was accepted")
+        } catch is AIAssistantFailure {}
+
+        return try first.unwrap("No sample sentences were exercised")
     }
 
-    static func checkOutputRules() throws {
-        let point = "Eks adalah bilangan yang belum diketahui."
-        let five = try MetraAssistantResult.validated(action: .summarize, points: [
-            point, "Persamaan memiliki dua ruas yang sama nilainya.", "Kedua ruas harus tetap seimbang.",
-            "Kurangi kedua ruas dengan tiga.", "Periksa jawaban dengan mengganti nilai eks."
+    private static func selectionFollowsSpeechStyle() throws {
+        let clear = "Eks ditambah tiga sama dengan tujuh."
+        let simple = "Eks tambah tiga sama dengan tujuh."
+        let section = MathSectionModel(title: "Contoh", chunks: [
+            MathChunk(parts: [.init(kind: .math, clearSpeak: clear, simpleSpeak: simple)])
         ])
-        try expect(five.points.count == 5, "Five summary points must be accepted")
-        try rejects({ _ = try MetraAssistantResult.validated(action: .summarize, points: [point, point]) }, "Duplicate summary points accepted")
-        try rejects({ _ = try MetraAssistantResult.validated(action: .summarize, points: Array(repeating: point, count: 6)) }, "Six summary points accepted")
-        try rejects({ _ = try MetraAssistantResult.validated(action: .summarize, points: []) }, "Empty summary accepted")
-        try rejects({ _ = try MetraAssistantResult.validated(action: .summarize, points: [String(repeating: "panjang ", count: 25)]) }, "Noncompact summary accepted")
-        let exact100 = point + String(repeating: " ", count: 100 - point.count - 6) + "Benar."
-        let explanation = try MetraAssistantResult.validated(action: .explain, points: [exact100])
-        try expect(explanation.points[0].count == 100, "Exactly one hundred characters must be accepted, including internal spaces")
-        try rejects({ _ = try MetraAssistantResult.validated(action: .explain, points: [exact100 + "!"]) }, "One hundred and one characters accepted")
-        try rejects({ _ = try MetraAssistantResult.validated(action: .explain, points: [point, point]) }, "Multiple explanation points accepted")
-        for symbolic in ["x + 3 = 7", "Eks sama dengan 4.", "Sisi pangkat ³.", "Setengah adalah ½.", "Eks - tiga.", "Dua × tiga.", #"\frac{satu}{dua}"#, "Dua cm.", "Nilainya lima %.", "Benar ✅"] {
-            try expect(!MetraAssistantResult.isVerbalMath(symbolic), "Symbolic output accepted: \(symbolic)")
-        }
-        try expect(MetraAssistantResult.isVerbalMath("Kedua ruas sama-sama dikurangi tiga."), "Ordinary Indonesian hyphen rejected")
-        try rejects({ _ = try MetraAssistantResult.validated(action: .explain, points: ["The unknown value makes both sides of this equation equal."]) }, "English final answer accepted")
-        try expect(!MetraMathGuard.preservesUnits(points: ["One inch."], source: ["One centimeter."]), "Unit conversion accepted")
-        try expect(MetraMathGuard.preservesUnits(points: ["One centimetre."], source: ["One centimeter."]), "Equivalent unit spelling rejected")
+        let reader = SectionViewModel(materialTitle: "Aljabar", sections: [section])
+        let sentenceID = try reader.lastSentenceID.unwrap("No spoken math sentence")
+        let clearSelection = try reader.assistantSelection(sentenceID: sentenceID)
+        try expect(clearSelection.sentence == clear && clearSelection.supportingText == clear,
+                   "Assistant should receive the ClearSpeak sentence and context")
+        reader.speechStyle = .simpleSpeak
+        let simpleSelection = try reader.assistantSelection(sentenceID: sentenceID)
+        try expect(simpleSelection.sentence == simple && simpleSelection.supportingText == simple,
+                   "Assistant should receive updated SimpleSpeak sentence and context")
     }
 
-    static func checkPipeline() async throws {
-        let input = try selection()
-        let translator = TranslatorStub()
-        let model = ModelStub()
-        model.outputLanguage = "id"
-        let direct = MetraAssistantPipeline(translator: translator, model: model)
-        _ = try await direct.result(action: .explain, selection: input) { _ in }
-        try expect(translator.calls.isEmpty, "Indonesian-capable model must not translate")
-        try expect(model.inputs[0] == input.sourceSentences(for: .explain), "Direct model received the wrong prefix")
+    private static func directQuestionAndAskAgain(_ selection: AIAssistantSelection) async throws {
+        let capture = CaptureStub()
+        let generator = GeneratorStub([reply, reply])
+        let controller = makeController(selection, capture, generator)
 
-        let englishModel = ModelStub()
-        englishModel.outputLanguage = "en"
-        let bridge = TranslatorStub()
-        let translated = MetraAssistantPipeline(translator: bridge, model: englishModel)
-        _ = try await translated.result(action: .summarize, selection: input) { _ in }
-        try expect(bridge.calls.map(\.source) == ["id", "en"], "Translation directions changed")
-        try expect(bridge.calls[0].texts == input.sourceSentences(for: .summarize), "Translator received future context")
-        try expect(bridge.calls[1].texts == englishModel.outputs[0], "Translation must process generated text only")
+        controller.ask()
+        try await until { controller.phase == .recording }
+        try expect(capture.permissionRequests == 1 && capture.locales == ["id-ID"], "The first ask should authorize and record in Indonesian")
 
-        let retryModel = ModelStub()
-        retryModel.outputs = [[String(repeating: "panjang ", count: 20)], ["Eks adalah bilangan yang belum diketahui."]]
-        let retried = MetraAssistantPipeline(translator: TranslatorStub(), model: retryModel)
-        let short = try await retried.result(action: .explain, selection: input) { _ in }
-        try expect(short.points == retryModel.outputs[1], "Overlong explanation was truncated or displayed")
-        try expect(retryModel.briefFlags == [false, true], "Overlong answer did not request a shorter generation")
-
-        let translatedLong = TranslatorStub()
-        translatedLong.outputQueue = [[String(repeating: "panjang ", count: 20)], ["Eks adalah bilangan yang belum diketahui."]]
-        let postTranslation = MetraAssistantPipeline(translator: translatedLong, model: englishModel)
-        _ = try await postTranslation.result(action: .explain, selection: input) { _ in }
-        try expect(englishModel.briefFlags.suffix(2) == [false, true], "Final Indonesian length was not revalidated")
-
-        let unitTranslator = TranslatorStub()
-        unitTranslator.outputQueue = [["Rusuk panjangnya satu inci."], ["Rusuk panjangnya satu sentimeter."]]
-        let units = MetraAssistantPipeline(translator: unitTranslator, model: englishModel)
-        let preserved = try await units.result(action: .explain, selection: selection(["Rusuk panjangnya satu sentimeter."])) { _ in }
-        try expect(preserved.points == ["Rusuk panjangnya satu sentimeter."], "Translation introduced a different unit")
-
-        let invalidModel = ModelStub()
-        invalidModel.outputs = [["x = 4"]]
-        do {
-            _ = try await MetraAssistantPipeline(translator: TranslatorStub(), model: invalidModel).result(action: .explain, selection: input) { _ in }
-            throw CheckFailure(description: "Persistently symbolic output was displayed")
-        } catch is MetraAssistantFailure {
-            try expect(invalidModel.briefFlags.count == 3, "Invalid output retries are not bounded")
+        controller.ask()
+        controller.ask()
+        try await until { capture.transcription != nil }
+        try expect(capture.finishCount == 1 && generator.requests.isEmpty, "Only the final transcript should submit, exactly once")
+        capture.resolve(" \(question) ")
+        try await until { controller.answer != nil }
+        try expect(controller.question == question && controller.answer == reply, "The question and answer must both be visible")
+        try expect(generator.requests.count == 1, "One question should generate one answer")
+        try expect(controller.phase == .idle && controller.canAsk, "An answer should immediately allow another question")
+        let request = generator.requests[0]
+        for value in [selection.sentence, selection.supportingText, selection.topicTitle, selection.materialTitle, question] {
+            try expect(request.prompt.contains(value), "The original question or topic context is missing")
         }
+        try expect(request.instructions.contains("bahasa Indonesia"), "Model instructions must request Indonesian")
 
-        let incomplete = TranslatorStub()
-        incomplete.incomplete = true
-        let neverModel = ModelStub()
-        neverModel.outputLanguage = "en"
-        do {
-            _ = try await MetraAssistantPipeline(translator: incomplete, model: neverModel).result(action: .summarize, selection: input) { _ in }
-            throw CheckFailure(description: "Incomplete translation accepted")
-        } catch is MetraAssistantFailure {
-            try expect(neverModel.inputs.isEmpty, "Model ran on incomplete translation")
-        }
+        controller.ask()
+        try expect(controller.phase == .recording && controller.answer == nil && controller.question.isEmpty,
+                   "Asking again must start a fresh recording and clear the previous result")
+        controller.ask()
+        try await until { capture.transcription != nil }
+        let nextQuestion = "Bagaimana menghitung volume kubus?"
+        capture.resolve(nextQuestion)
+        try await until { controller.answer != nil }
+        try expect(controller.question == nextQuestion && controller.answer == reply, "The next result must pair with the new question")
+        try expect(capture.permissionRequests == 1 && generator.requests.count == 2 && controller.canAsk,
+                   "The second answer should allow another question without requesting permission again")
     }
 
-    static func checkController() async throws {
-        for firstAction in MetraAssistantAction.allCases {
-            let engine = EngineStub()
-            let controller = MetraAssistantViewModel(selection: try selection(), engine: engine)
-            try expect(controller.followUpAction == nil && !controller.hasReachedRequestLimit, "Fresh sentence is already limited")
-            controller.select(firstAction)
-            controller.select(firstAction.alternative)
-            await settle()
-            try expect(engine.actions == [firstAction], "Duplicate taps started overlapping requests")
-            engine.resolve()
-            await settle()
-            try expect(controller.results.count == 1 && !controller.isBusy, "First request did not complete")
-            try expect(controller.followUpAction == firstAction.alternative, "Follow-up must be the unused action")
-            try expect(!controller.canRequest(firstAction), "Completed action can be requested again")
-            try expect(controller.canRequest(firstAction.alternative), "Unused action was blocked")
-            controller.select(firstAction)
-            await settle()
-            try expect(engine.actions.count == 1, "Completed action started a new generation")
+    private static func unavailableModelAndDeniedPermission(_ selection: AIAssistantSelection) async throws {
+        let capture = CaptureStub()
+        let generator = GeneratorStub([reply])
+        generator.availabilityMessage = "Model belum siap."
+        let controller = makeController(selection, capture, generator)
+        controller.ask()
+        try expect(!controller.canAsk && capture.permissionRequests == 0, "An unavailable model must block recording")
 
-            controller.select(firstAction.alternative)
-            await settle()
-            engine.resolve()
-            await settle()
-            try expect(controller.results.map(\.action) == [firstAction, firstAction.alternative], "Follow-up replaced or reordered history")
-            try expect(controller.hasReachedRequestLimit && controller.followUpAction == nil, "Third request is still offered")
-            for action in MetraAssistantAction.allCases {
-                try expect(!controller.canRequest(action), "Action still available after both results")
-                controller.select(action)
-            }
-            await settle()
-            try expect(engine.actions.count == 2, "More than two successful requests were made")
-            controller.cancel()
-            controller.select(firstAction)
-            await settle()
-            try expect(engine.actions.count == 2 && controller.results.count == 2, "Cancellation reset completed requests")
-        }
+        generator.availabilityMessage = nil
+        controller.refreshAvailability()
+        capture.permissionFailure = AIAssistantFailure.permissionDenied("Mikrofon ditolak.")
+        controller.ask()
+        try await until { controller.errorMessage != nil }
+        try expect(!controller.permissionsGranted && capture.locales.isEmpty && generator.requests.isEmpty, "Denied permission must leave recording idle")
+    }
 
-        let engine = EngineStub()
-        let controller = MetraAssistantViewModel(selection: try selection(), engine: engine)
-        controller.select(.summarize)
+    private static func lateResultsAreIgnored(_ selection: AIAssistantSelection) async throws {
+        let capture = CaptureStub()
+        let generator = GeneratorStub([])
+        let controller = makeController(selection, capture, generator)
+
+        controller.ask()
+        try await until { controller.phase == .recording }
+        controller.ask()
+        try await until { capture.transcription != nil }
+        controller.interrupt()
+        capture.resolve(question)
         await settle()
+        try expect(generator.requests.isEmpty && controller.errorMessage != nil, "An interrupted transcript must never reach the model")
+
+        try await submit(controller, capture)
+        try await until { generator.response != nil }
         controller.cancel()
-        engine.resolve()
+        generator.resolve(reply)
         await settle()
-        try expect(controller.results.isEmpty && !controller.isBusy, "Late cancelled result was appended")
-        try expect(controller.canRequest(.summarize), "Cancelled request consumed an action")
-
-        controller.select(.summarize)
-        await settle()
-        engine.resolve()
-        await settle()
-        engine.availabilityMessage = "Aktifkan Apple Intelligence."
-        controller.select(.explain)
-        await settle()
-        try expect(engine.actions.count == 2, "Unavailable model started a request")
-        try expect(controller.availabilityMessage != nil, "Unavailable state is not visible")
-        engine.availabilityMessage = nil
-        engine.failure = MetraAssistantFailure.message("Proses gagal.")
-        controller.select(.explain)
-        await settle()
-        try expect(controller.errorMessage == "Proses gagal." && controller.results.count == 1, "Failure removed history or hid error")
-        try expect(controller.canRequest(.explain) && !controller.hasReachedRequestLimit, "Failed follow-up consumed an action")
-        engine.failure = nil
-        controller.select(.explain)
-        await settle()
-        engine.resolve()
-        await settle()
-        try expect(controller.results.count == 2 && controller.errorMessage == nil, "Retry failed to complete the remaining action")
+        try expect(controller.phase == .idle && controller.answer == nil, "A cancelled answer must never appear")
     }
 
-    static func checkSessionCache() async throws {
-        let reader = TopicViewModel(topics: TopicViewModel.sampleTopics)
-        let sentences = reader.readingBlocks.flatMap(\.sentences)
-        let engine = EngineStub()
-        let first = try reader.assistantSession(sentenceID: sentences[0].id, engine: engine)
-        first.select(.explain)
-        await settle()
-        engine.resolve()
-        await settle()
-        first.cancel()
+    private static func languageErrorsAndRetry(_ selection: AIAssistantSelection) async throws {
+        let generator = GeneratorStub([english, reply])
+        let answer = try await FoundationModel(generator: generator).answer(question: question, selection: selection)
+        try expect(answer == reply && generator.requests.count == 2, "A confidently foreign result must be retried once")
 
-        let reopened = try reader.assistantSession(sentenceID: sentences[0].id, engine: engine)
-        try expect(first === reopened, "Reopening a sentence creates a new request budget")
-        try expect(reopened.results.count == 1 && reopened.followUpAction == .summarize, "Reopening lost the first result or wrong follow-up")
-        reopened.select(.summarize)
-        await settle()
-        engine.resolve()
-        await settle()
-        reopened.cancel()
-        let completed = try reader.assistantSession(sentenceID: sentences[0].id, engine: engine)
-        completed.select(.explain)
-        completed.select(.summarize)
-        await settle()
-        try expect(completed.hasReachedRequestLimit && engine.actions.count == 2, "Reopening a completed sentence allowed another request")
+        let repeated = GeneratorStub([english, english])
+        do {
+            _ = try await FoundationModel(generator: repeated).answer(question: question, selection: selection)
+            throw CheckFailure("A second foreign answer was accepted")
+        } catch is AIAssistantFailure {}
+        try expect(repeated.requests.count == 2, "Language retry must be bounded")
 
-        let other = try reader.assistantSession(sentenceID: sentences[1].id, engine: EngineStub())
-        try expect(other !== completed && other.results.isEmpty && other.canRequest(.explain), "Different sentence shares another sentence's limit")
-        reader.nextTopic()
-        let nextSentence = reader.readingBlocks.flatMap(\.sentences)[0]
-        let nextTopic = try reader.assistantSession(sentenceID: nextSentence.id, engine: EngineStub())
-        try expect(nextTopic !== completed && nextTopic.results.isEmpty, "Same local sentence ID across topics shares a limit")
-        reader.previousTopic()
-        let returned = try reader.assistantSession(sentenceID: sentences[0].id, engine: engine)
-        try expect(returned === completed && returned.hasReachedRequestLimit, "Moving between topics resets the sentence budget")
+        let unsupported = GeneratorStub([])
+        unsupported.failure = LanguageModelError.unsupportedLanguageOrLocale(.init(
+            languageCode: .init("id"), debugDescription: "Indonesian rejected by runtime"
+        ))
+        do {
+            _ = try await FoundationModel(generator: unsupported).answer(question: question, selection: selection)
+            throw CheckFailure("Runtime language rejection was accepted")
+        } catch let failure as AIAssistantFailure {
+            try expect(failure.localizedDescription.contains("menolak permintaan bahasa Indonesia"), "Runtime language rejection must be explained")
+        }
+        try expect(unsupported.requests.count == 1, "A runtime language error must not switch to a translation workflow")
     }
 
-    static func settle() async { for _ in 0..<100 { await Task.yield() } }
+    private static func submit(_ controller: AIAssistantViewModel, _ capture: CaptureStub) async throws {
+        controller.ask()
+        try await until { controller.phase == .recording }
+        controller.ask()
+        try await until { capture.transcription != nil }
+        capture.resolve(question)
+    }
+
+    private static func makeController(
+        _ selection: AIAssistantSelection,
+        _ capture: CaptureStub,
+        _ generator: GeneratorStub
+    ) -> AIAssistantViewModel {
+        AIAssistantViewModel(
+            selection: selection,
+            capture: capture,
+            model: FoundationModel(generator: generator)
+        )
+    }
+
+    private static func until(_ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now + .seconds(2)
+        while !condition() {
+            try expect(ContinuousClock.now < deadline, "Timed out waiting for assistant state")
+            try await Task.sleep(for: .milliseconds(1))
+        }
+    }
+
+    private static func settle() async {
+        for _ in 0..<20 { await Task.yield() }
+    }
+
+    private static func expect(_ condition: Bool, _ message: String) throws {
+        if !condition { throw CheckFailure(message) }
+    }
+}
+
+private struct CheckFailure: Error {
+    let message: String
+    init(_ message: String) { self.message = message }
+}
+
+private extension Optional {
+    func unwrap(_ message: String) throws -> Wrapped {
+        guard let self else { throw CheckFailure(message) }
+        return self
+    }
 }
 
 @MainActor
-private final class TranslatorStub: MetraAssistantTranslating {
-    struct Call { let texts: [String]; let source: String }
-    var calls: [Call] = []
-    var outputQueue: [[String]] = []
-    var incomplete = false
-    func translate(_ texts: [String], from source: String, to target: String) async throws -> [String] {
-        calls.append(Call(texts: texts, source: source))
-        if incomplete { return [] }
-        if target == "en" { return texts.map { _ in "The unknown value makes both sides equal." } }
-        if !outputQueue.isEmpty { return outputQueue.removeFirst() }
-        return texts.map { _ in "Eks adalah bilangan yang belum diketahui." }
+private final class CaptureStub: AssistantVoiceCapturingProtocol {
+    var permissionRequests = 0
+    var permissionFailure: AIAssistantFailure?
+    var locales: [String] = []
+    var finishCount = 0
+    var transcription: CheckedContinuation<String, Never>?
+
+    func requestPermissions() async throws {
+        permissionRequests += 1
+        if let permissionFailure { throw permissionFailure }
     }
+
+    func start(localeIdentifier: String) throws { locales.append(localeIdentifier) }
+
+    func finish() async throws -> String {
+        finishCount += 1
+        return await withCheckedContinuation { transcription = $0 }
+    }
+
     func cancel() {}
-}
 
-@MainActor
-private final class ModelStub: MetraAssistantGenerating {
-    var availabilityMessage: String?
-    var outputLanguage = "id"
-    var outputs = [["Eks adalah bilangan yang belum diketahui."]]
-    var inputs: [[String]] = []
-    var briefFlags: [Bool] = []
-    func generate(action: MetraAssistantAction, sentences: [String], extraBrief: Bool) async throws -> [String] {
-        inputs.append(sentences)
-        briefFlags.append(extraBrief)
-        return outputs[min(inputs.count - 1, outputs.count - 1)]
+    func resolve(_ text: String) {
+        let continuation = transcription
+        transcription = nil
+        continuation?.resume(returning: text)
     }
 }
 
 @MainActor
-private final class EngineStub: MetraAssistantProviding {
+private final class GeneratorStub: AssistantGeneratingProtocol {
     var availabilityMessage: String?
-    var actions: [MetraAssistantAction] = []
-    var failure: Error?
-    private var pending: CheckedContinuation<MetraAssistantResult, Never>?
-    func result(action: MetraAssistantAction, selection: MetraAssistantSelection, progress: @escaping @MainActor (MetraAssistantProgress) -> Void) async throws -> MetraAssistantResult {
-        actions.append(action)
-        progress(.generating)
+    var failure: LanguageModelError?
+    var requests: [(instructions: String, prompt: String)] = []
+    var response: CheckedContinuation<String, Never>?
+    private var answers: [String]
+
+    init(_ answers: [String]) { self.answers = answers }
+
+    func respond(instructions: String, prompt: String) async throws -> String {
+        requests.append((instructions, prompt))
         if let failure { throw failure }
-        return await withCheckedContinuation { pending = $0 }
+        if !answers.isEmpty { return answers.removeFirst() }
+        return await withCheckedContinuation { response = $0 }
     }
-    func resolve() {
-        guard let pending, let action = actions.last else { return }
-        self.pending = nil
-        pending.resume(returning: try! .validated(action: action, points: ["Eks adalah bilangan yang belum diketahui."]))
+
+    func resolve(_ text: String) {
+        let continuation = response
+        response = nil
+        continuation?.resume(returning: text)
     }
-    func cancel() { /* Deliberately allow late completion to test stale-result protection. */ }
 }

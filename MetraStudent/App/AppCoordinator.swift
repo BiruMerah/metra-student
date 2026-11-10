@@ -22,7 +22,6 @@ final class AppCoordinator: AppCoordinating {
     let mathMaterialRepository: MathMaterialProtocol
     let notificationManager: NotificationProtocol
     private let storageIsPersistent: Bool
-    let assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)?
     
     // MARK: - ViewModels
     @ObservationIgnored
@@ -44,13 +43,11 @@ final class AppCoordinator: AppCoordinating {
     init(
         mathMaterialRepository: MathMaterialProtocol,
         notificationManager: NotificationProtocol,
-        storageIsPersistent: Bool = true,
-        assistantEngineFactory: ((any AssistantTranslatingProtocol) -> any AssistantProvidingProtocol)? = nil
+        storageIsPersistent: Bool = true
     ) {
         self.mathMaterialRepository = mathMaterialRepository
         self.notificationManager = notificationManager
         self.storageIsPersistent = storageIsPersistent
-        self.assistantEngineFactory = assistantEngineFactory
     }
 
     static func makePreview(savedMaterials: [MathMaterialModel] = []) -> AppCoordinator {
@@ -131,13 +128,13 @@ final class AppCoordinator: AppCoordinating {
                 sourceTab: tab
             )
 
-        case .sectionDetail(let sections, let initialIndex, let speechStyle):
+        case .sectionDetail(let materialTitle, let sections, let initialIndex, let speechStyle):
             SectionView(
                 viewModel: SectionViewModel(
+                    materialTitle: materialTitle,
                     sections: sections,
                     initialSectionIndex: initialIndex,
-                    initialSpeechStyle: speechStyle,
-                    assistantEngineFactory: assistantEngineFactory
+                    initialSpeechStyle: speechStyle
                 )
             )
         }
