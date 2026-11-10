@@ -19,23 +19,12 @@ struct SectionView: View {
     @State private var assistant: AIAssistantSelection?
     @State private var lastSelectedSentenceID: String?
     @State private var selectionError: String?
+    @State private var confirmsMaterialCompletion = false
+    private let onFinish: () -> Void
 
-    init(viewModel: SectionViewModel) {
+    init(viewModel: SectionViewModel, onFinish: @escaping () -> Void) {
         _viewModel = State(initialValue: viewModel)
-    }
-
-    init(
-        materialTitle: String,
-        sections: [MathSectionModel],
-        initialSectionIndex: Int = 0,
-        initialSpeechStyle: SpeechStyle = .clearSpeak
-    ) {
-        _viewModel = State(initialValue: SectionViewModel(
-            materialTitle: materialTitle,
-            sections: sections,
-            initialSectionIndex: initialSectionIndex,
-            initialSpeechStyle: initialSpeechStyle
-        ))
+        self.onFinish = onFinish
     }
 
     var body: some View {
@@ -55,7 +44,10 @@ struct SectionView: View {
                         .padding(.top, 8)
                         .accessibilityFocused($readingFocus, equals: .progress)
 
-                    VStack(alignment: .leading, spacing: 20) {
+                    AssistantHintCard()
+                        .padding(.top, 16)
+
+                    VStack(alignment: .leading, spacing: 12) {
                         if viewModel.readingBlocks.isEmpty {
                             Text("Konten topik ini belum tersedia.")
                                 .foregroundStyle(.secondary)
@@ -65,19 +57,33 @@ struct SectionView: View {
                             }
                         }
                     }
-                    .padding(.top, 24)
+                    .padding(.top, 16)
                     .accessibilityElement(children: .contain)
 
-                    AssistantHintCard()
-                        .padding(.top, 24)
+                    VStack(spacing: 12) {
+                        Divider().accessibilityHidden(true)
 
-                    SectionNavigationView(
-                        hasPrevious: viewModel.hasPreviousSection,
-                        hasNext: viewModel.hasNextSection,
-                        onPrevious: viewModel.previousSection,
-                        onNext: viewModel.nextSection
-                    )
-                    .padding(.top, 24)
+                        if viewModel.hasNextSection {
+                            SectionNavigationView(
+                                title: "Segmen Selanjutnya",
+                                symbol: "forward.end.fill",
+                                action: viewModel.nextSection
+                            )
+                        } else {
+                            SectionNavigationView(title: "Selesaikan Materi", symbol: "checkmark") {
+                                confirmsMaterialCompletion = true
+                            }
+                        }
+
+                        if viewModel.hasPreviousSection {
+                            SectionNavigationView(
+                                title: "Segmen Sebelumnya",
+                                symbol: "backward.end.fill",
+                                action: viewModel.previousSection
+                            )
+                        }
+                    }
+                    .padding(.top, 16)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -134,6 +140,12 @@ struct SectionView: View {
         } message: {
             Text(selectionError ?? "")
         }
+        .alert("Selesaikan materi?", isPresented: $confirmsMaterialCompletion) {
+            Button("Batal", role: .cancel) {}
+            Button("Selesaikan Materi", action: onFinish)
+        } message: {
+            Text("Kamu yakin ingin mengakhiri sesi belajar materi “\(viewModel.materialTitle)”?")
+        }
     }
 
     @ViewBuilder
@@ -152,8 +164,8 @@ struct SectionView: View {
         }
     }
 
-    private func sentences(in block: SectionReadingBlock, spacing: CGFloat = 16) -> some View {
-        VStack(alignment: .leading, spacing: spacing) {
+    private func sentences(in block: SectionReadingBlock) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(block.sentences) { sentence in
                 SectionSentenceView(sentence: sentence) {
                     openAssistant(sentenceID: sentence.id)
@@ -178,7 +190,13 @@ struct SectionView: View {
 
 #Preview {
     NavigationStack {
-        SectionView(materialTitle: "", sections: SectionViewModel.sampleSections)
+        SectionView(
+            viewModel: SectionViewModel(
+                materialTitle: "Persamaan Linear Satu Variabel",
+                sections: SectionViewModel.sampleSections
+            ),
+            onFinish: {}
+        )
     }
 }
 

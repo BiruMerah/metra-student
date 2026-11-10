@@ -105,7 +105,8 @@ final class AppCoordinator {
                     sections: sections,
                     initialSectionIndex: initialIndex,
                     initialSpeechStyle: speechStyle
-                )
+                ),
+                onFinish: popToRoot
             )
         }
     }

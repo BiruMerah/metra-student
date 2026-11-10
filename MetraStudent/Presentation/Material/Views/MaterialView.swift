@@ -9,7 +9,7 @@ import SwiftUI
 
 struct MaterialView: View {
     @Bindable var viewModel: MaterialViewModel
-    @State private var confirmsDocumentDeletion = false
+    @State private var confirmsMaterialDeletion = false
     
     var body: some View {
         List {
@@ -41,26 +41,36 @@ struct MaterialView: View {
             } footer: {
                 Text("Pilih segmen untuk melihat detailnya.")
             }
+
+            if viewModel.isSaved {
+                Section {
+                    Button {
+                        confirmsMaterialDeletion = true
+                    } label: {
+                        Label("Hapus Materi", systemImage: "trash")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.roundedRectangle(radius: 16))
+                    .tint(Color(red: 0.74, green: 0.12, blue: 0.16))
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Detail Materi")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(role: .destructive) {
-                    confirmsDocumentDeletion = true
-                } label: {
-                    Label("Hapus Dokumen", systemImage: "trash")
-                }
-            }
-        }
         .onAppear {
             viewModel.checkSavedStatus()
         }
-        .alert("Hapus Dokumen?", isPresented: $confirmsDocumentDeletion) {
+        .alert("Hapus Materi?", isPresented: $confirmsMaterialDeletion) {
             Button("Batal", role: .cancel) {}
-            Button("Hapus Dokumen", role: .destructive) {
+            Button("Hapus Materi", role: .destructive) {
                 viewModel.removeSavedMaterial()
             }
         } message: {
@@ -80,7 +90,6 @@ struct MaterialView: View {
 }
 
 #Preview {
-    let coordinator = AppCoordinator.makePreview()
     let sampleMaterial = MathMaterialModel(
         title: "Persamaan Linear Satu Variabel",
         category: "Aljabar",
@@ -88,6 +97,7 @@ struct MaterialView: View {
         overview: MaterialOverview.sample.summaryText,
         sections: MathSectionModel.sampleSections
     )
+    let coordinator = AppCoordinator.makePreview(savedMaterials: [sampleMaterial])
     return NavigationStack(path: Bindable(coordinator).channelPath) {
         MaterialView(
             viewModel: MaterialViewModel(
