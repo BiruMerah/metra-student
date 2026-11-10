@@ -18,13 +18,31 @@ struct HomeView: View {
     @Bindable var documentViewModel: DocumentViewModel
     
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var searchText = ""
     @State private var isShowingPDFPicker = false
     @State private var isShowingPhotoPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
     
     private var isConverting: Bool {
         documentViewModel.progress != nil
+    }
+    
+    private var trimmedSearchText: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private var isSearching: Bool {
+        !trimmedSearchText.isEmpty
+    }
+    
+    private var matchingDocuments: [MathMaterialModel] {
+        let query = trimmedSearchText
+        guard !query.isEmpty else { return documentViewModel.savedMaterials }
+        return documentViewModel.savedMaterials.filter { material in
+            material.title.localizedStandardContains(query)
+                || material.category.localizedStandardContains(query)
+                || (material.overview?.localizedStandardContains(query) ?? false)
+        }
     }
     
     private var isShowingErrorAlert: Binding<Bool> {
@@ -53,6 +71,7 @@ struct HomeView: View {
     var body: some View {
         List {
             if channelViewModel.channels.isEmpty {
+                // MARK: - Not joining any channel state
                 Section {
                     VStack(spacing: 10) {
                         if channelViewModel.isInitialSyncing {
@@ -65,10 +84,23 @@ struct HomeView: View {
                                     in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 )
                         } else {
-                            joinChannelButton
+                            JoinChannelButton(
+                                isDisabled: channelViewModel.isInitialSyncing || isConverting,
+                                action: {
+                                    channelViewModel.isShowingJoinSheet = true
+                                }
+                            )
                         }
                         
-                        addDocumentButton
+                        AddDocumentButton(
+                            isDisabled: !documentViewModel.canImport || isConverting,
+                            onSelectPDF: {
+                                isShowingPDFPicker = true
+                            },
+                            onSelectPhoto: {
+                                isShowingPhotoPicker = true
+                            }
+                        )
                     }
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                     .listRowBackground(Color.clear)
@@ -78,6 +110,7 @@ struct HomeView: View {
                 .opacity(isConverting ? 0.45 : 1.0)
                 .accessibilityHidden(isConverting)
             } else {
+                // MARK: - Already join a channel state
                 Section {
                     DisplayProfileRow(
                         userName: $channelViewModel.userName,
@@ -107,16 +140,25 @@ struct HomeView: View {
                 .accessibilityHidden(isConverting)
                 
                 Section {
-                    addDocumentButton
-                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
+                    AddDocumentButton(
+                        isDisabled: !documentViewModel.canImport || isConverting,
+                        onSelectPDF: {
+                            isShowingPDFPicker = true
+                        },
+                        onSelectPhoto: {
+                            isShowingPhotoPicker = true
+                        }
+                    )
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
                 .disabled(isConverting)
                 .opacity(isConverting ? 0.45 : 1.0)
                 .accessibilityHidden(isConverting)
             }
             
+            // MARK: - Document section
             ImportStatusSection(
                 unavailableReason: documentViewModel.importUnavailableReason,
                 progress: documentViewModel.progress,
@@ -126,24 +168,38 @@ struct HomeView: View {
             )
             
             Section {
-                if documentViewModel.savedMaterials.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "doc.text")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
-                        Text("Belum Ada Materi")
-                            .font(.headline)
-                        Text("Materi yang dibagikan guru di channel atau dokumen yang Anda tambahkan akan otomatis tersimpan dan muncul di sini.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+                if !documentViewModel.savedMaterials.isEmpty || isSearching {
+                    SearchField(text: $searchText)
+                }
+                
+                if matchingDocuments.isEmpty {
+                    if isSearching {
+                        ContentUnavailableView(
+                            "Dokumen tidak ditemukan",
+                            systemImage: "magnifyingglass",
+                            description: Text("Tidak ada dokumen yang cocok dengan “\(trimmedSearchText)”.")
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    } else {
+                        VStack(spacing: 8) {
+                            Image(systemName: "doc.text")
+                                .font(.largeTitle)
+                                .foregroundStyle(.secondary)
+                                .accessibilityHidden(true)
+                            Text("Belum Ada Materi")
+                                .font(.headline)
+                            Text("Materi yang dibagikan guru di channel atau dokumen yang Anda tambahkan akan otomatis tersimpan dan muncul di sini.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .accessibilityElement(children: .combine)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .accessibilityElement(children: .combine)
                 } else {
-                    ForEach(documentViewModel.savedMaterials) { material in
+                    ForEach(matchingDocuments) { material in
                         DocumentRow(
                             material: material,
                             isSelected: nil,
@@ -170,17 +226,13 @@ struct HomeView: View {
                     Text("Daftar Dokumen")
                     Spacer()
                     if !documentViewModel.savedMaterials.isEmpty {
-                        Text("\(documentViewModel.savedMaterials.count) Dokumen")
+                        Text(documentCountText)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                     }
                 }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(
-                    documentViewModel.savedMaterials.isEmpty
-                        ? "Daftar Dokumen, belum ada dokumen"
-                        : "Daftar Dokumen, \(documentViewModel.savedMaterials.count) dokumen tersimpan"
-                )
+                .accessibilityLabel(documentHeaderAccessibilityLabel)
                 .accessibilityAddTraits(.isHeader)
             }
             .disabled(isConverting)
@@ -189,12 +241,18 @@ struct HomeView: View {
         }
         .listStyle(.insetGrouped)
         .listSectionSpacing(12)
+        .navigationTitle("Metra")
+        .task(id: searchText) {
+            guard isSearching else { return }
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled else { return }
+            announceSearchResult()
+        }
         .refreshable {
             guard !isConverting else { return }
             await channelViewModel.reloadAllChannels()
             documentViewModel.reload()
         }
-        .navigationTitle("Metra")
         .sheet(isPresented: $channelViewModel.isShowingJoinSheet) {
             JoinChannelSheet(
                 isPresented: $channelViewModel.isShowingJoinSheet,
@@ -261,6 +319,30 @@ struct HomeView: View {
         }
     }
     
+    // MARK: - Search Helpers
+    private var documentCountText: String {
+        let total = documentViewModel.savedMaterials.count
+        guard isSearching else { return "\(total) Dokumen" }
+        return "\(matchingDocuments.count) dari \(total) Dokumen"
+    }
+    
+    private var documentHeaderAccessibilityLabel: String {
+        let total = documentViewModel.savedMaterials.count
+        guard total > 0 else { return "Daftar Dokumen, belum ada dokumen" }
+        guard isSearching else {
+            return "Daftar Dokumen, \(total) dokumen tersimpan"
+        }
+        return "Daftar Dokumen, \(matchingDocuments.count) hasil pencarian dari \(total) dokumen"
+    }
+    
+    private func announceSearchResult() {
+        let count = matchingDocuments.count
+        let message = count == 0
+            ? "Tidak ada dokumen yang cocok"
+            : "\(count) dokumen ditemukan"
+        AccessibilityNotification.Announcement(message).post()
+    }
+    
     // MARK: - Audio & Accessibility Feedback on Completion
     private func playConversionCompletionSound(message: String) {
         AudioServicesPlaySystemSound(1007)
@@ -270,94 +352,24 @@ struct HomeView: View {
         #endif
         AccessibilityNotification.Announcement("Konversi selesai. \(message)").post()
     }
-    
-    // MARK: - Gabung Channel Button
-    private var joinChannelButton: some View {
-        let isLargeText = dynamicTypeSize.isAccessibilitySize
-        return Button {
-            channelViewModel.isShowingJoinSheet = true
-        } label: {
-            HStack(spacing: 12) {
-                if !isLargeText {
-                    IconTile("person.2.badge.plus", tint: .accentColor)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Gabung Channel")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    Text("Masukkan kode undangan dari guru")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer(minLength: 8)
-                
-                Image(systemName: "plus.circle.fill")
-                    .font(.title3)
-                    .foregroundStyle(Color.accentColor)
-                    .accessibilityHidden(true)
-            }
-            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-                Color(.secondarySystemGroupedBackground),
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.accentColor.opacity(0.22), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(channelViewModel.isInitialSyncing || isConverting)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Gabung Channel Kelas")
-        .accessibilityValue("Masukkan kode undangan dari guru")
-        .accessibilityHint("Ketuk dua kali untuk membuka formulir kode channel")
-        .accessibilityAddTraits(.isButton)
-    }
-    
-    // MARK: - Tambah Dokumen Button
-    private var addDocumentButton: some View {
-        Menu {
-            Button {
-                isShowingPDFPicker = true
-            } label: {
-                Label("Pilih Berkas PDF", systemImage: "doc")
-            }
-            
-            Button {
-                isShowingPhotoPicker = true
-            } label: {
-                Label("Pilih Foto dari Galeri", systemImage: "photo")
-            }
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "doc.badge.plus")
-                    .font(.title3.weight(.semibold))
-                Text("Tambah Dokumen")
-                    .font(.headline)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .padding(.horizontal, 16)
-            .background(
-                Color.accentColor,
-                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-            )
-            .foregroundStyle(.white)
-        }
-        .disabled(!documentViewModel.canImport || isConverting)
-        .accessibilityLabel("Tambah Dokumen")
-        .accessibilityHint("Pilih foto atau berkas PDF untuk dikonversi menjadi materi matematika bersuara")
-    }
 }
 
 // MARK: - Preview
 #Preview {
-    let coordinator = AppCoordinator.makePreview()
+    let coordinator = AppCoordinator.makePreview(
+        savedMaterials: [
+            MathMaterialModel(
+                title: "Bab 1 - Persamaan Linear Satu Variabel",
+                category: "Aljabar",
+                content: "Persamaan linear satu variabel."
+            ),
+            MathMaterialModel(
+                title: "Bab 2 - Teorema Pythagoras",
+                category: "Geometri",
+                content: "Segitiga siku-siku dan sisi miring."
+            )
+        ]
+    )
     return NavigationStack {
         coordinator.buildHome()
             .navigationDestination(for: AppRoutes.self) { route in
