@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct AssistantHintCard: View {
+    private let instruction = "Ketuk dua kali pada kalimat yang ingin kamu ringkas atau pahami."
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "info.circle")
@@ -16,9 +18,9 @@ struct AssistantHintCard: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Petunjuk Metra Assistant")
+                IndonesianSpeech.text("Petunjuk Asisten Metra")
                     .font(.subheadline.weight(.semibold))
-                Text("Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan meminta ringkasan atau penjelasan.")
+                IndonesianSpeech.text(instruction)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -31,7 +33,7 @@ struct AssistantHintCard: View {
             in: RoundedRectangle(cornerRadius: 12)
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Petunjuk Metra Assistant. Ketuk dua kali pada kalimat mana pun untuk membuka Metra Assistant dan meminta ringkasan atau penjelasan.")
+        .accessibilityLabel(IndonesianSpeech.text("Petunjuk Asisten Metra. \(instruction)"))
     }
 }
 

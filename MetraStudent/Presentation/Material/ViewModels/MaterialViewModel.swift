@@ -58,7 +58,7 @@ final class MaterialViewModel {
             isSaved = status.isSaved
             hasDuplicateTitle = status.hasDuplicateTitle
         } catch {
-            self.errorMessage = error.localizedDescription
+            errorMessage = "Status penyimpanan materi belum bisa diperiksa. Coba buka ulang materi."
         }
     }
     
@@ -71,7 +71,7 @@ final class MaterialViewModel {
             notificationManager?.announceAccessibility("Materi berhasil disimpan ke pustaka")
             
         } catch {
-            self.errorMessage = error.localizedDescription
+            errorMessage = "Materi belum bisa disimpan. Coba lagi."
         }
     }
     
@@ -86,7 +86,7 @@ final class MaterialViewModel {
             notificationManager?.announceAccessibility("Dokumen dihapus.")
             coordinator?.navigateBack()
         } catch {
-            self.errorMessage = error.localizedDescription
+            errorMessage = "Materi belum bisa dihapus. Coba lagi."
         }
     }
 

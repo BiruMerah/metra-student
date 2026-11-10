@@ -48,7 +48,7 @@ final class NotificationManager: NSObject, NotificationProtocol, UNUserNotificat
     }
 
     func announceAccessibility(_ message: String) {
-        AccessibilityNotification.Announcement(message).post()
+        IndonesianSpeech.announce(message)
     }
 
     func notifyNewMaterials(_ materials: [MathMaterialModel], classroomID: String, classroomName: String) {
@@ -66,7 +66,7 @@ final class NotificationManager: NSObject, NotificationProtocol, UNUserNotificat
             let settings = await notificationCenter.notificationSettings()
 
             if UIApplication.shared.applicationState == .active {
-                AccessibilityNotification.Announcement(message).post()
+                announceAccessibility(message)
                 Task { await playDoubleHaptic() }
             }
 

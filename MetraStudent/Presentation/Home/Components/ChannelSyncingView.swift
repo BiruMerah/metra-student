@@ -12,10 +12,11 @@ struct ChannelSyncingView: View {
         VStack(spacing: 12) {
             ProgressView()
                 .controlSize(.regular)
-            Text("Menyinkronkan data channel dari iCloud...")
+                .accessibilityHidden(true)
+            IndonesianSpeech.text("Menyinkronkan kelas dengan iCloud…")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.primary)
-            Text("Memeriksa status akun dan memuat daftar channel kelas Anda.")
+            IndonesianSpeech.text("Memeriksa akun dan memuat daftar kelasmu.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

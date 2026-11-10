@@ -11,6 +11,18 @@ import CloudKit
 @MainActor
 final class CloudKitManager {
     static let shared = CloudKitManager()
+
+    enum JoinError: LocalizedError {
+        case notFound(String)
+        case unreadable
+
+        var errorDescription: String? {
+            switch self {
+            case .notFound(let code): "Kelas dengan kode \(code) tidak ditemukan. Periksa kode undangan dari guru."
+            case .unreadable: "Informasi kelas belum bisa dibaca. Minta guru memeriksa kelas tersebut."
+            }
+        }
+    }
     
     let container = CKContainer(identifier: "iCloud.id.birumerah.metra")
     
@@ -89,7 +101,7 @@ final class CloudKitManager {
         let names = UserDefaults.standard.dictionary(forKey: savedChannelNamesKey) as? [String: String] ?? [:]
         return codes.map { code in
             let upper = code.uppercased()
-            let name = names[upper] ?? "Channel \(upper)"
+            let name = names[upper] ?? "Kelas \(upper)"
             return ChannelTarget(code: upper, name: name)
         }
     }
@@ -191,11 +203,7 @@ final class CloudKitManager {
         let cleanCode = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         
         guard let publicRecord = try await fetchChannelRecord(byCode: cleanCode) else {
-            throw NSError(
-                domain: "CloudKitManager",
-                code: 404,
-                userInfo: [NSLocalizedDescriptionKey: "Channel dengan kode '\(cleanCode)' tidak ditemukan. Pastikan kode benar."]
-            )
+            throw JoinError.notFound(cleanCode)
         }
         
         let currentUserID = try? await fetchCurrentUserRecordID()
@@ -216,11 +224,7 @@ final class CloudKitManager {
         }
         
         guard let channel = ClassroomChannelModel(record: publicRecord, isOwner: isOwner) else {
-            throw NSError(
-                domain: "CloudKitManager",
-                code: 500,
-                userInfo: [NSLocalizedDescriptionKey: "Data channel tidak dapat dibaca."]
-            )
+            throw JoinError.unreadable
         }
         
         saveChannelInfoLocally(code: channel.code, name: channel.name)
@@ -443,6 +447,6 @@ struct ChannelTarget: Identifiable, Hashable, Sendable {
     let name: String
     
     var displayName: String {
-        name.isEmpty ? "Channel \(code)" : name
+        name.isEmpty ? "Kelas \(code)" : name
     }
 }

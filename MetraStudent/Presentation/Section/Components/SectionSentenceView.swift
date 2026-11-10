@@ -12,7 +12,7 @@ struct SectionSentenceView: View {
     let onDoubleTap: () -> Void
 
     var body: some View {
-        Text(sentence.text)
+        IndonesianSpeech.text(sentence.text)
             .font(.body)
             .lineSpacing(4)
             .fixedSize(horizontal: false, vertical: true)
@@ -20,7 +20,7 @@ struct SectionSentenceView: View {
             .contentShape(Rectangle())
             .onTapGesture(count: 2) { onDoubleTap() }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(sentence.text)
+            .accessibilityLabel(IndonesianSpeech.text(sentence.text))
             .accessibilityAction { onDoubleTap() }
             .accessibilityIdentifier("topic-sentence-\(sentence.id)")
     }

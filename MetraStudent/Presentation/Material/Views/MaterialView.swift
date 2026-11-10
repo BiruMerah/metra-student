@@ -14,7 +14,7 @@ struct MaterialView: View {
     var body: some View {
         List {
             Section {
-                Text(viewModel.material.title)
+                IndonesianSpeech.text(viewModel.material.title)
                     .font(.title.weight(.bold))
                     .accessibilityAddTraits(.isHeader)
                     .textSelection(.enabled)
@@ -22,8 +22,10 @@ struct MaterialView: View {
                     .listRowBackground(Color.clear)
             }
             
-            Section("Overview") {
+            Section {
                 MaterialOverviewView(overview: viewModel.overview)
+            } header: {
+                IndonesianSpeech.text("Ringkasan Materi")
             }
             
             Section {
@@ -37,9 +39,9 @@ struct MaterialView: View {
                     )
                 }
             } header: {
-                Text("Segmen")
+                IndonesianSpeech.text("Segmen")
             } footer: {
-                Text("Pilih segmen untuk melihat detailnya.")
+                IndonesianSpeech.text("Pilih segmen untuk melihat detailnya.")
             }
 
             if viewModel.isSaved {
@@ -47,7 +49,7 @@ struct MaterialView: View {
                     Button {
                         confirmsMaterialDeletion = true
                     } label: {
-                        Label("Hapus Materi", systemImage: "trash")
+                        Label(indonesian: "Hapus Materi", systemImage: "trash")
                             .font(.headline)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity, minHeight: 44)
@@ -62,29 +64,29 @@ struct MaterialView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Detail Materi")
+        .navigationTitle(IndonesianSpeech.text("Detail Materi"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .onAppear {
             viewModel.checkSavedStatus()
         }
-        .alert("Hapus Materi?", isPresented: $confirmsMaterialDeletion) {
-            Button("Batal", role: .cancel) {}
-            Button("Hapus Materi", role: .destructive) {
+        .alert(IndonesianSpeech.text("Hapus Materi?"), isPresented: $confirmsMaterialDeletion) {
+            Button(indonesian: "Batal", role: .cancel) {}
+            Button(indonesian: "Hapus Materi", role: .destructive) {
                 viewModel.removeSavedMaterial()
             }
         } message: {
-            Text("Materi “\(viewModel.material.title)” akan dihapus dari Dokumen Tersimpan.")
+            IndonesianSpeech.text("Materi “\(viewModel.material.title)” akan dihapus dari Dokumen Tersimpan.")
         }
-        .alert("Terjadi Kesalahan", isPresented: Binding(
+        .alert(IndonesianSpeech.text("Terjadi Kesalahan"), isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.errorMessage = nil } }
         )) {
-            Button("OK", role: .cancel) {
+            Button(indonesian: "Tutup", role: .cancel) {
                 viewModel.errorMessage = nil
             }
         } message: {
-            Text(viewModel.errorMessage ?? "")
+            IndonesianSpeech.text(viewModel.errorMessage ?? "")
         }
     }
 }

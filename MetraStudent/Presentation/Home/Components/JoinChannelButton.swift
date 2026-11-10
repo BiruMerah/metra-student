@@ -22,10 +22,10 @@ struct JoinChannelButton: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Gabung Channel")
+                    IndonesianSpeech.text("Gabung Kelas")
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Text("Masukkan kode undangan dari guru")
+                    IndonesianSpeech.text("Masukkan kode undangan dari guru")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -52,9 +52,9 @@ struct JoinChannelButton: View {
         .buttonStyle(.plain)
         .disabled(isDisabled)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Gabung Channel Kelas")
-        .accessibilityValue("Masukkan kode undangan dari guru")
-        .accessibilityHint("Ketuk dua kali untuk membuka formulir kode channel")
+        .accessibilityLabel(IndonesianSpeech.text("Gabung kelas"))
+        .accessibilityValue(IndonesianSpeech.text("Masukkan kode undangan dari guru"))
+        .accessibilityHint(IndonesianSpeech.text("Buka formulir untuk memasukkan kode undangan kelas."))
         .accessibilityAddTraits(.isButton)
     }
 }

@@ -11,25 +11,30 @@ struct AddDocumentButton: View {
     var isDisabled: Bool = false
     let onSelectPDF: () -> Void
     let onSelectPhoto: () -> Void
+    var onTakePhoto: (() -> Void)?
     
     var body: some View {
         Menu {
+            if let onTakePhoto {
+                Button(indonesian: "Ambil Foto dengan Kamera", systemImage: "camera", action: onTakePhoto)
+            }
+
             Button {
                 onSelectPDF()
             } label: {
-                Label("Pilih Berkas PDF", systemImage: "doc")
+                Label(indonesian: "Pilih Berkas PDF", systemImage: "doc", spokenAs: "Pilih berkas pe de ef")
             }
             
             Button {
                 onSelectPhoto()
             } label: {
-                Label("Pilih Foto dari Galeri", systemImage: "photo")
+                Label(indonesian: "Pilih Foto dari Galeri", systemImage: "photo")
             }
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "doc.badge.plus")
                     .font(.title3.weight(.semibold))
-                Text("Tambah Dokumen")
+                IndonesianSpeech.text("Tambah Dokumen")
                     .font(.headline)
             }
             .frame(maxWidth: .infinity)
@@ -42,14 +47,14 @@ struct AddDocumentButton: View {
             .foregroundStyle(.white)
         }
         .disabled(isDisabled)
-        .accessibilityLabel("Tambah Dokumen")
-        .accessibilityHint("Pilih foto atau berkas PDF untuk dikonversi menjadi materi matematika bersuara")
+        .accessibilityLabel(IndonesianSpeech.text("Tambah Dokumen"))
+        .accessibilityHint(IndonesianSpeech.text("Buka pilihan sumber dokumen untuk dikonversi menjadi materi matematika bersuara"))
     }
 }
 
 #Preview {
     VStack(spacing: 16) {
-        AddDocumentButton(onSelectPDF: {}, onSelectPhoto: {})
+        AddDocumentButton(onSelectPDF: {}, onSelectPhoto: {}, onTakePhoto: {})
         AddDocumentButton(isDisabled: true, onSelectPDF: {}, onSelectPhoto: {})
     }
     .padding()

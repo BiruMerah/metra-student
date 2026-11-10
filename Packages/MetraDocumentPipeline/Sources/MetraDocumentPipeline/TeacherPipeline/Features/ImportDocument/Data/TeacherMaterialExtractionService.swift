@@ -18,6 +18,7 @@ final class TeacherMaterialExtractionService: MaterialPreparationProtocol {
         try await inspector.inspect(pages, retry: retry, onAssessment: onAssessment, onProgress: onProgress)
     }
     var modelStatus: String { engine.diagramModelStatus }
+    var sourceChunks: [ReadyChunk] { engine.lastReadyDocument?.chunks ?? [] }
 
     func cancel() { engine.cancel() }
 
@@ -42,11 +43,11 @@ final class TeacherMaterialExtractionService: MaterialPreparationProtocol {
         guard assessments.contains(where: { $0.status == .ready }) else {
             throw TeacherConversionRecovery(assessments: assessments, partialResult: nil)
         }
-        onProgress("Menyiapkan bacaan ClearSpeak, SimpleSpeak, dan SpeakEasy…")
+        onProgress("Menyiapkan gaya bacaan matematika…")
         let reviewIndices = Set(pages.enumerated().filter { uncertainPageIDs.contains($0.element.id) }.map(\.offset))
         var material = try await portableMaterial(from: extracted, firstBookPage: firstBookPage,
             bookPageLabels: bookPageLabels, reviewPageIndices: reviewIndices)
-        onProgress("Menyusun informasi materi untuk orientasi siswa…")
+        onProgress("Menyusun ringkasan materi…")
         let overview = try await overviewGenerator.generate(for: material)
         try Task.checkCancellation()
         material.overview = overview.text

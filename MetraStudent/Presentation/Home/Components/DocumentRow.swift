@@ -16,9 +16,9 @@ struct DocumentRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var metadata: String {
-        let date = material.createdAt.formatted(.dateTime.day().month(.abbreviated).year().locale(Locale(identifier: "id_ID")))
+        let date = material.createdAt.formatted(.dateTime.day().month(.wide).year().locale(IndonesianSpeech.locale))
         let sectionCount = material.sections.count
-        return sectionCount > 0 ? "\(date) · \(sectionCount) segmen" : date
+        return sectionCount > 0 ? "\(date), \(sectionCount) segmen" : date
     }
 
     var body: some View {
@@ -26,14 +26,14 @@ struct DocumentRow: View {
             rowButton
                 .listRowBackground(TintedRowBackground(tint: isSelected ? .accentColor : .clear))
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
-                .accessibilityHint(isSelected ? "Batalkan pilihan dokumen ini" : "Pilih dokumen ini")
+                .accessibilityHint(IndonesianSpeech.text(isSelected ? "Batalkan pilihan dokumen ini" : "Pilih dokumen ini"))
         } else {
             rowButton
-                .accessibilityHint("Buka detail dokumen")
+                .accessibilityHint(IndonesianSpeech.text("Buka detail dokumen"))
                 .contextMenu {
-                    Button("Hapus Dokumen", systemImage: "trash", role: .destructive, action: onDelete)
+                    Button(indonesian: "Hapus Dokumen", systemImage: "trash", role: .destructive, action: onDelete)
                 }
-                .accessibilityAction(named: Text("Hapus Dokumen"), onDelete)
+                .accessibilityAction(named: IndonesianSpeech.text("Hapus Dokumen"), onDelete)
         }
     }
 
@@ -53,10 +53,10 @@ struct DocumentRow: View {
                     IconTile("doc.text.fill")
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(material.title)
+                    IndonesianSpeech.text(material.title)
                         .font(.headline)
                         .lineLimit(isLargeText ? nil : 2)
-                    Text(metadata)
+                    IndonesianSpeech.text(metadata)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -74,8 +74,9 @@ struct DocumentRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text(material.title))
-        .accessibilityValue(Text(metadata))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(IndonesianSpeech.text(material.title))
+        .accessibilityValue(IndonesianSpeech.text(metadata))
     }
 }
 

@@ -13,7 +13,7 @@ final class DocumentViewModel {
     private(set) var savedMaterials: [MathMaterialModel] = []
     private(set) var progress: String?
     private(set) var isCancelling = false
-    private(set) var successMessage: String?
+    private(set) var completedImport: MathMaterialModel?
     var errorMessage: String?
 
     var importUnavailableReason: String? {
@@ -22,7 +22,7 @@ final class DocumentViewModel {
         return nil
     }
 
-    var canImport: Bool { importUnavailableReason == nil && progress == nil }
+    var canImport: Bool { importUnavailableReason == nil && progress == nil && completedImport == nil }
 
     init(
         mathMaterialRepository: MathMaterialProtocol,
@@ -40,12 +40,12 @@ final class DocumentViewModel {
         do {
             savedMaterials = try mathMaterialRepository.fetchSavedMaterials()
         } catch {
-            errorMessage = "Daftar dokumen belum dapat dimuat. Coba buka kembali tab Dokumen."
+            errorMessage = "Daftar dokumen belum bisa dimuat. Coba buka ulang halaman utama."
         }
     }
 
     func importDocument(from url: URL) {
-        startImport(progress: "Membuka PDF…") { onProgress in
+        startImport(progress: "Membuka berkas PDF…") { onProgress in
             try await DocumentConverter.convert(url, onProgress: onProgress)
         }
     }
@@ -61,11 +61,21 @@ final class DocumentViewModel {
                 throw PhotoImportError.unreadable
             }
             try Task.checkCancellation()
-            let date = Date.now.formatted(
-                .dateTime.day().month(.abbreviated).year().hour().minute().locale(Locale(identifier: "id_ID"))
-            )
-            return try await DocumentConverter.convertPhoto(data, title: "Foto \(date)", onProgress: onProgress)
+            return try await DocumentConverter.convertPhoto(data, title: Self.photoTitle, onProgress: onProgress)
         }
+    }
+
+    func importCameraPhoto(_ data: Data) {
+        startImport(progress: "Menyiapkan foto kamera…") { onProgress in
+            try await DocumentConverter.convertPhoto(data, title: Self.photoTitle, fromCamera: true, onProgress: onProgress)
+        }
+    }
+
+    private static var photoTitle: String {
+        let date = Date.now.formatted(
+            .dateTime.day().month(.abbreviated).year().hour().minute().locale(Locale(identifier: "id_ID"))
+        )
+        return "Foto \(date)"
     }
 
     private func startImport(
@@ -73,10 +83,8 @@ final class DocumentViewModel {
         convert: @escaping @MainActor (@escaping @MainActor (String) -> Void) async throws -> MathMaterialModel
     ) {
         guard canImport else { return }
-        successMessage = nil
         errorMessage = nil
         progress = initialProgress
-        notificationManager?.announceAccessibility(initialProgress)
         importTask = Task { [weak self] in
             guard let self else { return }
             defer {
@@ -114,7 +122,7 @@ final class DocumentViewModel {
             savedMaterials.removeAll { $0.id == material.id }
             savedMaterials.append(material)
             savedMaterials.sort { $0.createdAt > $1.createdAt }
-            successMessage = "“\(material.title)” sudah tersimpan."
+            completedImport = material
             notificationManager?.announceAccessibility("Dokumen berhasil disimpan.")
         }
     }
@@ -136,7 +144,9 @@ final class DocumentViewModel {
             return false
         }
         savedMaterials.removeAll { ids.contains($0.id) }
-        successMessage = nil
+        if let completedImport, ids.contains(completedImport.id) {
+            self.completedImport = nil
+        }
         notificationManager?.announceAccessibility(count == 1 ? "Dokumen dihapus." : "\(count) dokumen dihapus.")
         return true
     }
@@ -154,11 +164,11 @@ final class DocumentViewModel {
     }
 
     func open(_ material: MathMaterialModel) {
-        successMessage = nil
+        dismissImportSuccess()
         coordinator?.navigate(to: .material(material))
     }
 
-    func clearSuccessMessage() {
-        successMessage = nil
+    func dismissImportSuccess() {
+        completedImport = nil
     }
 }

@@ -78,17 +78,17 @@ struct AIAssistantView: View {
         ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    Text("Metra Assistant")
+                    IndonesianSpeech.text("Metra Assistant", spokenAs: "Asisten Metra")
                         .font(.largeTitle.bold())
                         .padding(.top, 30)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityFocused($focused, equals: .heading)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Kalimat terpilih")
+                        IndonesianSpeech.text("Kalimat terpilih")
                             .font(.headline)
                             .foregroundStyle(.blue)
-                        Text(viewModel.selection.sentence)
+                        IndonesianSpeech.text(viewModel.selection.sentence)
                             .font(.title3)
                             .lineSpacing(5)
                     }
@@ -100,7 +100,7 @@ struct AIAssistantView: View {
                     if showsReadyStatus {
                         VStack(spacing: 0) {
                             Spacer(minLength: 0)
-                            Label(viewModel.status, systemImage: "mic")
+                            Label(indonesian: viewModel.status, systemImage: "mic")
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
@@ -123,7 +123,7 @@ struct AIAssistantView: View {
                         statusRow("Memproses pertanyaan…", showsProgress: true)
                             .accessibilityFocused($focused, equals: .processing)
                             .id(Focus.processing)
-                        Button("Batalkan Pertanyaan", role: .cancel) {
+                        Button(indonesian: "Batalkan Pertanyaan", role: .cancel) {
                             viewModel.cancel()
                             focused = .record
                         }
@@ -164,7 +164,7 @@ struct AIAssistantView: View {
     private var footer: some View {
         VStack(spacing: 12) {
             Button(action: viewModel.ask) {
-                Label(isRecording ? "Hentikan Bertanya" : "Tanya Metra AI",
+                Label(indonesian: isRecording ? "Hentikan Bertanya" : "Tanya Asisten Metra",
                       systemImage: isRecording ? "stop.fill" : "mic.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 44)
@@ -173,14 +173,14 @@ struct AIAssistantView: View {
             .buttonBorderShape(.roundedRectangle(radius: 16))
             .tint(isRecording ? .red : .blue)
             .disabled(!viewModel.canAsk)
-            .accessibilityHint(isRecording
+            .accessibilityHint(IndonesianSpeech.text(isRecording
                 ? "Menghentikan rekaman dan memproses pertanyaan."
-                : "Mulai merekam pertanyaan dalam bahasa Indonesia. Rekaman maksimal 60 detik.")
+                : "Mulai merekam pertanyaan. Rekaman paling lama enam puluh detik."))
             .accessibilityIdentifier("assistant-record")
             .accessibilityFocused($focused, equals: .record)
 
             Button(action: close) {
-                Text("Kembali ke Topik")
+                IndonesianSpeech.text("Kembali ke Topik")
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
@@ -200,7 +200,7 @@ struct AIAssistantView: View {
     private var availabilityNotice: some View {
         if let unavailable = viewModel.availabilityMessage {
             notice(unavailable, symbol: "exclamationmark.circle")
-            Button("Periksa Ketersediaan Lagi") { viewModel.refreshAvailability() }
+            Button(indonesian: "Periksa Ketersediaan Lagi") { viewModel.refreshAvailability() }
                 .buttonStyle(.bordered)
         }
     }
@@ -212,7 +212,7 @@ struct AIAssistantView: View {
                 .accessibilityFocused($focused, equals: .error)
             #if os(iOS)
             if !viewModel.permissionsGranted {
-                Button("Buka Pengaturan Aplikasi") {
+                Button(indonesian: "Buka Pengaturan Aplikasi") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
                     }
@@ -231,7 +231,7 @@ struct AIAssistantView: View {
                     .foregroundStyle(.blue)
                     .accessibilityHidden(true)
             }
-            Text(text).font(.headline)
+            IndonesianSpeech.text(text).font(.headline)
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("assistant-status")
@@ -239,8 +239,8 @@ struct AIAssistantView: View {
 
     private func result(_ title: String, text: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.headline)
-            Text(text)
+            IndonesianSpeech.text(title).font(.headline)
+            IndonesianSpeech.text(text)
                 .font(.title3)
                 .lineSpacing(5)
                 .textSelection(.enabled)
@@ -254,7 +254,7 @@ struct AIAssistantView: View {
     }
 
     private func notice(_ text: String, symbol: String) -> some View {
-        Label(text, systemImage: symbol)
+        Label(indonesian: text, systemImage: symbol)
             .font(.subheadline)
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)

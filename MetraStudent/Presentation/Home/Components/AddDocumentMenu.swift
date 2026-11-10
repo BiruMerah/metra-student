@@ -14,13 +14,13 @@ struct AddDocumentMenu: View {
 
     var body: some View {
         Menu {
-            Button("Pilih dari Galeri", systemImage: "photo", action: onPickPhoto)
-            Button("Pilih PDF", systemImage: "doc", action: onPickPDF)
+            Button(indonesian: "Pilih dari Galeri", systemImage: "photo", action: onPickPhoto)
+            Button(indonesian: "Pilih PDF", systemImage: "doc", action: onPickPDF)
         } label: {
-            Label("Tambah Dokumen", systemImage: "plus")
+            Label(indonesian: "Tambah Dokumen", systemImage: "plus")
         }
         .disabled(!isEnabled)
-        .accessibilityHint("Pilih foto dari galeri atau berkas PDF")
+        .accessibilityHint(IndonesianSpeech.text("Pilih foto dari galeri atau berkas PDF"))
     }
 }
 

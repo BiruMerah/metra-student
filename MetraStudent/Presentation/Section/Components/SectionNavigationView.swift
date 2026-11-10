@@ -14,7 +14,7 @@ struct SectionNavigationView: View {
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: symbol)
+            Label(indonesian: title, systemImage: symbol)
                 .font(.subheadline.weight(.semibold))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -22,7 +22,7 @@ struct SectionNavigationView: View {
         }
         .buttonStyle(.bordered)
         .buttonBorderShape(.capsule)
-        .accessibilityLabel(title)
+        .accessibilityLabel(IndonesianSpeech.text(title))
     }
 }
 

@@ -86,13 +86,13 @@ private final class OnDeviceIndonesianGenerator: AssistantGeneratingProtocol {
         switch model.availability {
         case .available: return nil
         case .unavailable(.deviceNotEligible):
-            return "Foundation Models tidak tersedia di perangkat ini. Gunakan perangkat yang mendukung Apple Intelligence."
+            return "Asisten Metra membutuhkan perangkat yang mendukung Apple Intelligence."
         case .unavailable(.appleIntelligenceNotEnabled):
             return "Aktifkan Apple Intelligence di Pengaturan perangkat, lalu periksa lagi."
         case .unavailable(.modelNotReady):
             return "Model Apple Intelligence belum siap. Tunggu unduhan model selesai, lalu periksa lagi."
         case .unavailable:
-            return "Foundation Models belum tersedia. Coba periksa lagi nanti."
+            return "Asisten Metra belum tersedia. Coba periksa lagi nanti."
         }
     }
 

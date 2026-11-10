@@ -56,6 +56,6 @@ struct MetraStudentApp: App {
         WindowGroup {
             ContentView(coordinator: coordinator)
         }
-        .environment(\.locale, Locale(identifier: "id-ID"))
+        .environment(\.locale, IndonesianSpeech.locale)
     }
 }

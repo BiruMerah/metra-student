@@ -15,7 +15,7 @@ struct StatusBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             IconTile(systemImage, tint: tint)
-            Text(message)
+            IndonesianSpeech.text(message)
                 .font(.subheadline)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
