@@ -2,10 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSBonjourServices</key>
+	<key>CFBundleLocalizations</key>
 	<array>
-		<string>_classroom-poc._tcp</string>
-		<string>_classroom-poc._udp</string>
+		<string>id</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Kamera digunakan untuk memandu pengambilan foto halaman materi dan mengonversinya menjadi materi belajar.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Mikrofon digunakan untuk merekam pertanyaan tentang materi yang kamu pilih.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Ucapan diubah menjadi teks untuk Asisten Metra. Layanan pengenalan suara Apple dapat memproses rekaman jika perangkat belum mendukung pengenalan suara secara langsung.</string>
 </dict>
 </plist>

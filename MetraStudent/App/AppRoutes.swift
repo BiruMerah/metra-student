@@ -8,5 +8,6 @@
 import Foundation
 
 enum AppRoutes: Hashable {
-    case materialDetail(MathMaterialModel)
+    case material(MathMaterialModel)
+    case section(materialTitle: String, sections: [MathSectionModel], initialIndex: Int, speechStyle: SpeechStyle = .clearSpeak)
 }

@@ -10,35 +10,59 @@ import SwiftData
 
 @main
 struct MetraStudentApp: App {
+    @AppStorage("hasCompletedStudentOnboarding") private var hasCompletedOnboarding = false
     @State private var coordinator: AppCoordinator
     private let modelContainer: ModelContainer
     
     init() {
         // MARK: - Data Layer setup
+        let container: ModelContainer
+        let storageIsPersistent: Bool
         do {
-            let config = ModelConfiguration(schema: DatabaseSchema.schema, isStoredInMemoryOnly: false)
-            modelContainer = try ModelContainer(for: DatabaseSchema.schema, configurations: config)
+            let config = ModelConfiguration(
+                schema: DatabaseSchema.schema,
+                isStoredInMemoryOnly: false,
+                cloudKitDatabase: .none // Prevent conflict with cloudKit entitlement
+            )
+            container = try ModelContainer(for: DatabaseSchema.schema, configurations: config)
+            storageIsPersistent = true
         } catch {
-            print("SwiftData migration error: \(error). Falling back to in-memory store.")
-            let fallbackConfig = ModelConfiguration(schema: DatabaseSchema.schema, isStoredInMemoryOnly: true)
-            modelContainer = try! ModelContainer(for: DatabaseSchema.schema, configurations: fallbackConfig)
+            print("SwiftData store error: \(error). Falling back to in-memory store.")
+            do {
+                let fallbackConfig = ModelConfiguration(
+                    schema: DatabaseSchema.schema,
+                    isStoredInMemoryOnly: true,
+                    cloudKitDatabase: .none
+                )
+                container = try ModelContainer(for: DatabaseSchema.schema, configurations: fallbackConfig)
+                storageIsPersistent = false
+            } catch {
+                fatalError("Failed to initialize SwiftData ModelContainer: \(error)")
+            }
         }
+        self.modelContainer = container
         let mathMaterialRepository = MathMaterialRepository(modelContext: modelContainer.mainContext)
-        let networkManager = NetworkManager()
+        let notificationManager = NotificationManager()
         
         // MARK: - Presentation Layer setup
         let initialCoordinator = AppCoordinator(
-            networkManager: networkManager,
-            mathMaterialRepository: mathMaterialRepository
+            mathMaterialRepository: mathMaterialRepository,
+            notificationManager: notificationManager,
+            storageIsPersistent: storageIsPersistent
         )
         _coordinator = State(wrappedValue: initialCoordinator)
     }
     
     var body: some Scene {
         WindowGroup {
-            ContentView(coordinator: coordinator)
-                .modelContainer(modelContainer)
+            if hasCompletedOnboarding {
+                ContentView(coordinator: coordinator)
+            } else {
+                OnboardingView {
+                    hasCompletedOnboarding = true
+                }
+            }
         }
-        .environment(\.locale, Locale(identifier: "id-ID"))
+        .environment(\.locale, IndonesianSpeech.locale)
     }
 }

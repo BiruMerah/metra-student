@@ -1,0 +1,45 @@
+{
+  "source": "Metra/Resources; unchanged migration weights",
+  "release": {
+    "repository": "BiruMerah/poc-multipeer-teacher",
+    "tag": "teacher-engine-assets-v1"
+  },
+  "files": [
+    {
+      "path": "PP-DocLayout-L.onnx",
+      "releaseAsset": "PP-DocLayout-L.onnx",
+      "bytes": 129523577,
+      "sha256": "95730824e39491e1a56b40560c4288ca8ca96caea77ff16ebbfa289adb8c9b7a"
+    },
+    {
+      "path": "PaddleOCR-PP-OCRv5-mobile-rec.onnx",
+      "url": "https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/ed152b8b495f84de93cda5709d768548a9127622/inference.onnx",
+      "bytes": 16534782,
+      "sha256": "da72dc72ca4dc220df0dfde68c1dedc31c58d3e76a25871122e5056227d50092"
+    },
+    {
+      "path": "Pix2Text-MFD.onnx",
+      "url": "https://huggingface.co/breezedeus/pix2text-mfd/resolve/fc3797af79391c32ed0d56f8b5f437b5a49271be/mfd-v20240618.onnx",
+      "bytes": 44573224,
+      "sha256": "51a8854743b17ae654729af8db82a630c1ccfa06debf4856c8b28055f87d02c1"
+    },
+    {
+      "path": "UniMERNet/decoder_model.onnx",
+      "releaseAsset": "UniMERNet-decoder_model.onnx",
+      "bytes": 325975220,
+      "sha256": "1c8912bac33cf3abbb07097f954f2030b64ddcb0badef30062471b6f6789a233"
+    },
+    {
+      "path": "UniMERNet/decoder_with_past_model.onnx",
+      "releaseAsset": "UniMERNet-decoder_with_past_model.onnx",
+      "bytes": 325978820,
+      "sha256": "331c8a61eb2483f8cc610e0c17ab842b856a0c936be263048ca67ba7f378a359"
+    },
+    {
+      "path": "UniMERNet/encoder_model.onnx",
+      "releaseAsset": "UniMERNet-encoder_model.onnx",
+      "bytes": 105876820,
+      "sha256": "b1c03135fd8ffa264b3b4e477d6f2a1929b95ef531df03c1f62fd3068845d8ce"
+    }
+  ]
+}

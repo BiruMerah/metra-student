@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D9C000000000000000000001 /* MetraDocumentPipeline in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = D9C000000000000000000002 /* MetraDocumentPipeline */; };
 		5FF2AA0C30A35BF3007D0440 /* ExportOptions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5FF2AA0B30A35BF3007D0440 /* ExportOptions.plist */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +41,7 @@
 		5F15BAD33092417C00275EE7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				D9C000000000000000000001 /* MetraDocumentPipeline in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -79,6 +81,9 @@
 				5F15BAD83092417C00275EE7 /* MetraStudent */,
 			);
 			name = MetraStudent;
+			packageProductDependencies = (
+				D9C000000000000000000002 /* MetraDocumentPipeline */,
+			);
 			productName = MetraStudent;
 			productReference = 5F15BAD63092417C00275EE7 /* MetraStudent.app */;
 			productType = "com.apple.product-type.application";
@@ -108,6 +113,9 @@
 			);
 			mainGroup = 5F15BACD3092417C00275EE7;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D9C000000000000000000003 /* XCLocalSwiftPackageReference "Packages/MetraDocumentPipeline" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5F15BAD73092417C00275EE7 /* Products */;
 			projectDirPath = "";
@@ -257,17 +265,21 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = MetraStudent/MetraStudent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 96SXDK9ZFJ;
+				DEVELOPMENT_TEAM = SJ25JWH9X6;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MetraStudent/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Student;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra Student uses the local network so Students can discover and join a Teacher's classroom network room and receive study materials.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Metra untuk Siswa";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra menggunakan jaringan lokal agar siswa dapat menemukan kelas, bergabung dengan kelas, dan menerima materi dari guru.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -304,17 +316,21 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = MetraStudent/MetraStudent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 96SXDK9ZFJ;
+				DEVELOPMENT_TEAM = SJ25JWH9X6;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MetraStudent/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Student;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra Student uses the local network so Students can discover and join a Teacher's classroom network room and receive study materials.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Metra untuk Siswa";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra menggunakan jaringan lokal agar siswa dapat menemukan kelas, bergabung dengan kelas, dan menerima materi dari guru.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -366,6 +382,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D9C000000000000000000003 /* XCLocalSwiftPackageReference "Packages/MetraDocumentPipeline" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/MetraDocumentPipeline;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D9C000000000000000000002 /* MetraDocumentPipeline */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D9C000000000000000000003 /* XCLocalSwiftPackageReference "Packages/MetraDocumentPipeline" */;
+			productName = MetraDocumentPipeline;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5F15BACE3092417C00275EE7 /* Project object */;
 	validationLevel = 1;

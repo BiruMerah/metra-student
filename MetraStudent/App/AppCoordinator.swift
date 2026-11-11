@@ -8,106 +8,105 @@
 import Foundation
 import Observation
 import SwiftUI
+import SwiftData
 
 @Observable
 @MainActor
 final class AppCoordinator {
     // MARK: - Navigation State
-    var selectedTab: AppTab = .classroom
-    var classroomPath = NavigationPath()
-    var libraryPath = NavigationPath()
+    var channelPath = NavigationPath()
     
-    // MARK: - Dependencies
-    let networkManager: NetworkProtocol
+    // MARK: - Dependencies (Domain Protocols)
     let mathMaterialRepository: MathMaterialProtocol
+    let notificationManager: NotificationProtocol
+    private let storageIsPersistent: Bool
     
     // MARK: - ViewModels
     @ObservationIgnored
-    lazy var classroomViewModel: ClassroomViewModel = ClassroomViewModel(
-        networkManager: networkManager,
-        mathMaterialRepository: mathMaterialRepository,
-        coordinator: self
-    )
+    lazy var channelViewModel: ChannelViewModel = {
+        let vm = ChannelViewModel(
+            mathMaterialRepository: mathMaterialRepository,
+            notificationManager: notificationManager,
+            coordinator: self
+        )
+        vm.onMaterialsAutosaved = { [weak self] in
+            self?.documentViewModel.reload()
+        }
+        return vm
+    }()
     
     @ObservationIgnored
-    lazy var libraryViewModel = LibraryViewModel(
+    lazy var documentViewModel = DocumentViewModel(
         mathMaterialRepository: mathMaterialRepository,
+        storageIsPersistent: storageIsPersistent,
+        notificationManager: notificationManager,
         coordinator: self
     )
     
-    // MARK: - Initialization
-    init(networkManager: NetworkProtocol, mathMaterialRepository: MathMaterialProtocol) {
-        self.networkManager = networkManager
+    // MARK: - Main Initialization
+    init(
+        mathMaterialRepository: MathMaterialProtocol,
+        notificationManager: NotificationProtocol,
+        storageIsPersistent: Bool = true
+    ) {
         self.mathMaterialRepository = mathMaterialRepository
+        self.notificationManager = notificationManager
+        self.storageIsPersistent = storageIsPersistent
     }
-    
-    // MARK: - Tab Management
-    func selectTab(_ tab: AppTab) {
-        if selectedTab == tab {
-            popToRoot(in: tab)
-            
-        } else {
-            selectedTab = tab
-        }
+
+    static func makePreview(savedMaterials: [MathMaterialModel] = []) -> AppCoordinator {
+        AppCoordinator(
+            mathMaterialRepository: InMemoryMathMaterialRepository(materials: savedMaterials),
+            notificationManager: NotificationManager()
+        )
     }
     
     // MARK: - Stack Navigation
-    func navigate(to route: AppRoutes, in tab: AppTab? = nil) {
-        let targetTab = tab ?? selectedTab
-        switch targetTab {
-        case .classroom:
-            classroomPath.append(route)
-            
-        case .library:
-            libraryPath.append(route)
+    func navigate(to route: AppRoutes) {
+        channelPath.append(route)
+    }
+    
+    func navigateBack() {
+        if !channelPath.isEmpty {
+            channelPath.removeLast()
         }
     }
     
-    func navigateBack(in tab: AppTab? = nil) {
-        let targetTab = tab ?? selectedTab
-        switch targetTab {
-        case .classroom:
-            if !classroomPath.isEmpty {
-                classroomPath.removeLast()
-            }
-            
-        case .library:
-            if !libraryPath.isEmpty {
-                libraryPath.removeLast()
-            }
-        }
-    }
-    
-    func popToRoot(in tab: AppTab) {
-        switch tab {
-        case .classroom:
-            classroomPath.removeLast(classroomPath.count)
-            
-        case .library:
-            libraryPath.removeLast(libraryPath.count)
-        }
+    func popToRoot() {
+        channelPath.removeLast(channelPath.count)
     }
     
     // MARK: - View Builders
     @ViewBuilder
-    func buildClassroom() -> some View {
-        ClassroomView(viewModel: classroomViewModel)
-    }
-    
-    @ViewBuilder
-    func buildLibrary() -> some View {
-        LibraryView(viewModel: libraryViewModel)
+    func buildHome() -> some View {
+        HomeView(
+            channelViewModel: channelViewModel,
+            documentViewModel: documentViewModel
+        )
     }
     
     @ViewBuilder
     func buildDestination(for route: AppRoutes) -> some View {
         switch route {
-        case .materialDetail(let material):
-            MaterialDetailView(
-                viewModel: MaterialDetailViewModel(
+        case .material(let material):
+            MaterialView(
+                viewModel: MaterialViewModel(
                     material: material,
-                    mathMaterialRepository: mathMaterialRepository
+                    mathMaterialRepository: mathMaterialRepository,
+                    notificationManager: notificationManager,
+                    coordinator: self
                 )
+            )
+
+        case .section(let materialTitle, let sections, let initialIndex, let speechStyle):
+            SectionView(
+                viewModel: SectionViewModel(
+                    materialTitle: materialTitle,
+                    sections: sections,
+                    initialSectionIndex: initialIndex,
+                    initialSpeechStyle: speechStyle
+                ),
+                onFinish: popToRoot
             )
         }
     }
