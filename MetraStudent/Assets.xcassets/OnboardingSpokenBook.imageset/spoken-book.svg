@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="402px" height="305px" viewBox="0 0 402 305" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <title>book-illustration</title>
+    <g id="Ilustrasi-dekoratif-/-Buku-bersuara" stroke="none" fill="none" fill-rule="evenodd">
+        <path d="M-13.6608266,82.9622911 C9.36468529,52.5073152 62.6869232,47.4314859 105.10234,61.3900165 C153.577102,76.6175045 186.297566,124.837883 183.873828,176.865134 C180.238221,223.816555 140.246542,244.119872 90.5599112,250.464659 C44.5088876,254.271531 -10.0252194,237.775085 -22.1439099,200.975323 C-34.2626003,169.25139 -33.0507313,113.417267 -13.6608266,82.9622911 Z" id="Bidang-lembut-kiri" fill="#3266D4" opacity="0.12"></path>
+        <path d="M234.72093,56.2854415 C258.284421,24.4391215 312.852506,19.1314015 356.258936,33.7276315 C405.866286,49.6507915 439.351247,100.074131 436.87088,154.478261 C433.150328,203.574671 392.224265,224.805551 341.376732,231.440201 C294.249749,235.420991 238.441481,218.170901 226.039644,179.689931 C213.637806,146.516681 214.87799,88.1317615 234.72093,56.2854415 Z" id="Bidang-lembut-kanan" fill="#3266D4" opacity="0.17" transform="translate(327.5, 129) rotate(-16) translate(-327.5, -129)"></path>
+        <path d="M118.560794,148.640573 C143.307839,124.83313 200.616787,120.865222 246.203449,131.776967 C298.302492,143.680689 333.469346,181.375807 330.864394,222.046856 C326.956966,258.749997 283.975255,274.621626 230.573736,279.58151 C181.079646,282.55744 122.468222,269.661742 109.443461,240.894415 C96.4187006,216.094995 97.7211767,172.448016 118.560794,148.640573 Z" id="Bidang-lembut-tengah" fill="#3266D4" opacity="0.12" transform="translate(216, 203) rotate(12) translate(-216, -203)"></path>
+        <circle id="Lingkaran-luar" fill="#3266D4" opacity="0.12" cx="201" cy="144" r="96"></circle>
+        <circle id="Lingkaran-inti" fill="#3266D4" cx="201" cy="144" r="77"></circle>
+        <circle id="Sorotan-atas" fill="#3266D4" opacity="0.54" cx="107.5" cy="44.5" r="5.5"></circle>
+        <circle id="Sorotan-kiri" fill="#3266D4" opacity="0.34" cx="74" cy="160" r="4"></circle>
+        <circle id="Sorotan-kanan" fill="#3266D4" opacity="0.56" cx="311.5" cy="105.5" r="6.5"></circle>
+        <circle id="Sorotan-bawah" fill="#3266D4" opacity="0.38" cx="305.5" cy="233.5" r="3.5"></circle>
+        <path d="M155,133.323727 C169.028986,125.952413 183.695652,126.235925 199,134.174263 L199,175 C183.695652,167.628686 169.028986,166.77815 155,172.448391 L155,133.323727 Z" id="Buku-/-halaman-kiri" fill="#FFFFFF"></path>
+        <path d="M203,134.174263 C218.304348,126.235925 232.971014,125.952413 247,133.323727 L247,172.448391 C232.971014,166.77815 218.304348,167.628686 203,175 L203,134.174263 Z" id="Buku-/-halaman-kanan" fill="#FFFFFF" opacity="0.88"></path>
+        <rect id="Suara-/-kiri" fill="#FFFFFF" x="188" y="105" width="4" height="11" rx="2"></rect>
+        <rect id="Suara-/-tengah" fill="#FFFFFF" x="199" y="97" width="4" height="21" rx="2"></rect>
+        <rect id="Suara-/-kanan" fill="#FFFFFF" x="210" y="105" width="4" height="11" rx="2"></rect>
+        <rect id="Buku-/-garis-kiri-satu" fill="#3266D4" opacity="0.42" x="165" y="145" width="24" height="3" rx="1.5"></rect>
+        <rect id="Buku-/-garis-kiri-dua" fill="#3266D4" opacity="0.32" x="165" y="154" width="20" height="3" rx="1.5"></rect>
+        <rect id="Buku-/-garis-kanan-satu" fill="#3266D4" opacity="0.42" x="213" y="145" width="24" height="3" rx="1.5"></rect>
+        <rect id="Buku-/-garis-kanan-dua" fill="#3266D4" opacity="0.32" x="213" y="154" width="20" height="3" rx="1.5"></rect>
+    </g>
+</svg>
