@@ -15,7 +15,7 @@ struct MaterialOverviewView: View {
             if let summary = overview.summaryText,
                !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 IndonesianSpeech.text(summary)
-                    .font(.body)
+                    .font(AppTypography.readingBody)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
 
@@ -33,7 +33,7 @@ struct MaterialOverviewView: View {
 
     private func overviewLine(_ title: String, value: String) -> some View {
         IndonesianSpeech.text("\(title): \(value)")
-            .font(.body)
+            .font(AppTypography.body)
             .fixedSize(horizontal: false, vertical: true)
             .textSelection(.enabled)
             .accessibilityLabel(IndonesianSpeech.text("\(title), \(value)"))
@@ -46,6 +46,8 @@ struct MaterialOverviewView: View {
             MaterialOverviewView(overview: MaterialOverview.sample)
         } header: {
             IndonesianSpeech.text("Ringkasan Materi")
+                .font(AppTypography.headline)
+                .textCase(nil)
         }
     }
     .listStyle(.insetGrouped)

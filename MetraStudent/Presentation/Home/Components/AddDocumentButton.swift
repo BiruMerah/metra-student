@@ -31,20 +31,20 @@ struct AddDocumentButton: View {
                 Label(indonesian: "Pilih Foto dari Galeri", systemImage: "photo")
             }
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: AppSize.Spacing.actions) {
                 Image(systemName: "doc.badge.plus")
                     .font(.title3.weight(.semibold))
                 IndonesianSpeech.text("Tambah Dokumen")
-                    .font(.headline)
+                    .font(AppTypography.headline)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .padding(.horizontal, 16)
+            .padding(.vertical, AppSize.Spacing.small)
+            .padding(.horizontal, AppSize.Spacing.large)
+            .frame(maxWidth: .infinity, minHeight: AppSize.Height.largeButton)
             .background(
-                Color.accentColor,
-                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                AppColor.brandFill,
+                in: RoundedRectangle(cornerRadius: AppSize.Radius.largeButton, style: .circular)
             )
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColor.onBrand)
         }
         .disabled(isDisabled)
         .accessibilityLabel(IndonesianSpeech.text("Tambah Dokumen"))

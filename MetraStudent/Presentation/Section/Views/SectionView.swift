@@ -32,24 +32,25 @@ struct SectionView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     IndonesianSpeech.text(viewModel.section.title)
-                        .font(.title.weight(.bold))
+                        .font(AppTypography.contentTitle)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityFocused($readingFocus, equals: .title)
                         .id("topic-start")
 
                     IndonesianSpeech.text(viewModel.progress)
-                        .font(.subheadline)
+                        .font(AppTypography.supporting)
                         .foregroundStyle(.secondary)
-                        .padding(.top, 8)
+                        .padding(.top, AppSize.Spacing.small)
                         .accessibilityFocused($readingFocus, equals: .progress)
 
                     AssistantHintCard()
-                        .padding(.top, 16)
+                        .padding(.top, AppSize.Spacing.large)
 
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: AppSize.Spacing.medium) {
                         if viewModel.readingBlocks.isEmpty {
                             IndonesianSpeech.text("Konten topik ini belum tersedia.")
+                                .font(AppTypography.body)
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(viewModel.readingBlocks) { block in
@@ -57,10 +58,10 @@ struct SectionView: View {
                             }
                         }
                     }
-                    .padding(.top, 16)
+                    .padding(.top, AppSize.Spacing.large)
                     .accessibilityElement(children: .contain)
 
-                    VStack(spacing: 12) {
+                    VStack(spacing: AppSize.Spacing.medium) {
                         Divider().accessibilityHidden(true)
 
                         if viewModel.hasNextSection {
@@ -83,10 +84,10 @@ struct SectionView: View {
                             )
                         }
                     }
-                    .padding(.top, 16)
+                    .padding(.top, AppSize.Spacing.large)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppSize.Inset.page)
                 .padding(.top, 24)
                 .padding(.bottom, 32)
             }
@@ -100,7 +101,7 @@ struct SectionView: View {
                 readingFocus = .title
             }
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(AppColor.background.ignoresSafeArea())
         .navigationTitle(IndonesianSpeech.text("Detail Topik"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -155,18 +156,18 @@ struct SectionView: View {
         case .text, .analogy:
             sentences(in: block)
         case .spokenMath:
-            SectionHighlightCard(title: "Notasi Matematika", symbol: "function", tint: .indigo) {
+            SectionHighlightCard(title: "Notasi Matematika", symbol: "function", background: AppColor.brandSubtle) {
                 sentences(in: block)
             }
         case .visual:
-            SectionHighlightCard(title: "Visual Matematika", symbol: "chart.xyaxis.line", tint: .blue) {
+            SectionHighlightCard(title: "Visual Matematika", symbol: "chart.xyaxis.line") {
                 sentences(in: block)
             }
         }
     }
 
     private func sentences(in block: SectionReadingBlock) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: AppSize.Spacing.tight) {
             ForEach(block.sentences) { sentence in
                 SectionSentenceView(sentence: sentence) {
                     openAssistant(sentenceID: sentence.id)

@@ -14,7 +14,7 @@ struct IconTile: View {
 
     @ScaledMetric(relativeTo: .headline) private var size: CGFloat = 40
 
-    init(_ systemName: String, tint: Color = .accentColor) {
+    init(_ systemName: String, tint: Color = AppColor.brand) {
         self.systemName = systemName
         self.tint = tint
     }
@@ -32,7 +32,7 @@ struct IconTile: View {
 #Preview {
     HStack {
         IconTile("doc.text.fill")
-        IconTile("sparkles", tint: .purple)
-        IconTile("checkmark.circle.fill", tint: .green)
+        IconTile("sparkles")
+        IconTile("checkmark.circle.fill", tint: AppColor.success)
     }
 }

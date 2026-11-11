@@ -21,7 +21,7 @@ struct SearchField: View {
         #else
         HStack(spacing: 10) {
             TextField(placeholder, text: $text)
-                .font(.body)
+                .font(AppTypography.body)
                 .textFieldStyle(.plain)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
@@ -59,8 +59,8 @@ struct SearchField: View {
                 .accessibilityHidden(true)
             }
         }
-        .padding(.vertical, 4)
-        .frame(minHeight: 44)
+        .padding(.vertical, AppSize.Spacing.tight)
+        .frame(minHeight: AppSize.Height.searchField)
         #endif
     }
 }
@@ -120,7 +120,7 @@ private struct DocumentSearchInput: UIViewRepresentable {
         field.placeholder = placeholder
         field.isEnabled = isEnabled
         field.leftView?.frame.size = CGSize(width: iconInset, height: iconInset)
-        field.rightView?.frame.size = CGSize(width: iconInset, height: max(44, iconInset))
+        field.rightView?.frame.size = CGSize(width: iconInset, height: max(AppSize.Height.tapTarget, iconInset))
         field.rightViewMode = text.isEmpty ? .never : .always
         field.accessibilityCustomActions = text.isEmpty || !isEnabled ? nil : [
             UIAccessibilityCustomAction(name: "Hapus pencarian") { [weak field] _ in
@@ -134,7 +134,8 @@ private struct DocumentSearchInput: UIViewRepresentable {
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextField, context: Context) -> CGSize? {
         guard let width = proposal.width else { return nil }
-        return CGSize(width: width, height: max(44, uiView.intrinsicContentSize.height + 8))
+        let paddedHeight = uiView.intrinsicContentSize.height + 2 * AppSize.Spacing.tight
+        return CGSize(width: width, height: max(AppSize.Height.searchField, paddedHeight))
     }
 
     func makeCoordinator() -> Coordinator {

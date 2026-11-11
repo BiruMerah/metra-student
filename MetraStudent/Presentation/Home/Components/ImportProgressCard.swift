@@ -15,7 +15,7 @@ struct ImportProgressCard: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var tint: Color { isCancelling ? .gray : .accentColor }
+    private var tint: Color { isCancelling ? .gray : AppColor.brand }
     private var statusTitle: String { isCancelling ? "Membatalkan…" : "Mengonversi dokumen" }
 
     var body: some View {
@@ -25,10 +25,10 @@ struct ImportProgressCard: View {
                     .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion && !isCancelling)
                 VStack(alignment: .leading, spacing: 2) {
                     IndonesianSpeech.text(statusTitle)
-                        .font(.headline)
+                        .font(AppTypography.headline)
                         .contentTransition(.opacity)
                     IndonesianSpeech.text(progress)
-                        .font(.subheadline)
+                        .font(AppTypography.supporting)
                         .foregroundStyle(.secondary)
                         .contentTransition(.opacity)
                 }
@@ -55,7 +55,7 @@ struct ImportProgressCard: View {
                 Button(indonesian: "Batalkan", action: onCancel)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .tint(.red)
+                    .tint(AppColor.danger)
                     .disabled(isCancelling)
                     .accessibilityLabel(IndonesianSpeech.text("Batalkan penambahan dokumen"))
             }
