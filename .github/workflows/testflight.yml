@@ -1,0 +1,154 @@
+name: Deploy to TestFlight
+
+# When this runs:
+# 1. Whenever you push to 'master'
+# 2. Or whenever you click "Run workflow" manually on GitHub
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build and Upload to TestFlight
+    runs-on: xcode-27 # Rent a cloud Mac with Xcode 27
+
+    steps:
+      # Download your code
+      - name: Get code
+        uses: actions/checkout@v4
+
+      # Run your quick logic checks first (fails fast if code is broken)
+      - name: Run assistant checks
+        run: |
+          chmod +x Tests/run-assistant-checks.sh
+          ./Tests/run-assistant-checks.sh
+
+      # Remember the large AI models between runs so builds stay fast
+      - name: Cache AI models and MathCAT
+        id: cache-assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework
+            Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/**/*.onnx
+            Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/*.onnx
+          key: assets-${{ hashFiles('Packages/MetraDocumentPipeline/engine-assets.json') }}
+
+      # Download AI models & MathCAT if they aren't cached yet
+      - name: Download AI models and MathCAT
+        if: steps.cache-assets.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.TEACHER_REPO_TOKEN || github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, subprocess, urllib.request
+          from pathlib import Path
+
+          pkg = Path("Packages/MetraDocumentPipeline")
+          manifest = json.loads((pkg / "engine-assets.json").read_text())
+          repo = manifest["release"]["repository"]
+          tag = manifest["release"]["tag"]
+          res = pkg / "Sources/MetraDocumentPipeline/Resources"
+
+          for f in manifest["files"]:
+              dest = res / f["path"]
+              dest.parent.mkdir(parents=True, exist_ok=True)
+              if "url" in f:
+                  urllib.request.urlretrieve(f["url"], dest)
+              else:
+                  subprocess.run([
+                      "gh", "release", "download", tag,
+                      "--repo", repo, "--pattern", f["releaseAsset"],
+                      "--output", str(dest), "--clobber"
+                  ], check=True)
+              if dest.stat().st_size != f["bytes"] or hashlib.sha256(dest.read_bytes()).hexdigest() != f["sha256"]:
+                  raise SystemExit(f"Wrong file checksum for {f['path']}")
+          PY
+
+          gh release download teacher-engine-assets-v1 \
+            --repo BiruMerah/poc-multipeer-teacher \
+            --pattern "MathCAT.xcframework.zip" \
+            --output "$RUNNER_TEMP/MathCAT.xcframework.zip"
+          mkdir -p Packages/MetraDocumentPipeline/Binaries
+          unzip -q "$RUNNER_TEMP/MathCAT.xcframework.zip" -d Packages/MetraDocumentPipeline/Binaries
+
+          for slice in ios-arm64 ios-arm64-simulator; do
+            cat <<'EOF' > "Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework/${slice}/Headers/module.modulemap"
+          module MetraMathCAT {
+              header "metra_mathcat.h"
+              export *
+          }
+          EOF
+          done
+
+      # Temporarily install your .p12 signing certificate on the cloud Mac
+      - name: Install Apple certificates
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASS="$(uuidgen)"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+          security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"' | xargs)
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+
+      # 6. Save your App Store Connect .p8 key on the cloud Mac
+      - name: Prepare App Store Connect key
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          ASC_KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+          printf '%s\n' "$ASC_PRIVATE_KEY" > "$ASC_KEY_PATH"
+          chmod 600 "$ASC_KEY_PATH"
+
+      # Build & Archive the iOS app (auto-increases build number every run)
+      - name: Build app archive
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild archive \
+            -project MetraStudent.xcodeproj \
+            -scheme MetraStudent \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/MetraStudent.xcarchive" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      # Sign & upload directly to TestFlight
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/MetraStudent.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      # Delete temporary secret files when finished
+      - name: Clean up
+        if: always()
+        run: |
+          security delete-keychain "$KEYCHAIN_PATH" || true
+          rm -f "$RUNNER_TEMP/cert.p12" "$ASC_KEY_PATH"
