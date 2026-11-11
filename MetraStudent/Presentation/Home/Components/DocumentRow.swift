@@ -24,7 +24,7 @@ struct DocumentRow: View {
     var body: some View {
         if let isSelected {
             rowButton
-                .listRowBackground(TintedRowBackground(tint: isSelected ? .accentColor : .clear))
+                .listRowBackground(TintedRowBackground(tint: isSelected ? AppColor.brand : .clear))
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
                 .accessibilityHint(IndonesianSpeech.text(isSelected ? "Batalkan pilihan dokumen ini" : "Pilih dokumen ini"))
         } else {
@@ -40,11 +40,11 @@ struct DocumentRow: View {
     private var rowButton: some View {
         let isLargeText = dynamicTypeSize.isAccessibilitySize
         return Button(action: onTap) {
-            HStack(spacing: 12) {
+            HStack(spacing: AppSize.Spacing.medium) {
                 if let isSelected {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .font(.title2)
-                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                        .foregroundStyle(isSelected ? AppColor.brand : Color.secondary)
                         .contentTransition(.symbolEffect(.replace))
                         .transition(.move(edge: .leading).combined(with: .opacity))
                         .accessibilityHidden(true)
@@ -54,10 +54,10 @@ struct DocumentRow: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     IndonesianSpeech.text(material.title)
-                        .font(.headline)
+                        .font(AppTypography.headline)
                         .lineLimit(isLargeText ? nil : 2)
                     IndonesianSpeech.text(metadata)
-                        .font(.subheadline)
+                        .font(AppTypography.supporting)
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
@@ -69,8 +69,8 @@ struct DocumentRow: View {
                         .accessibilityHidden(true)
                 }
             }
-            .padding(.vertical, 4)
-            .frame(minHeight: 44)
+            .padding(.vertical, AppSize.Spacing.tight)
+            .frame(minHeight: AppSize.Height.documentRow)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

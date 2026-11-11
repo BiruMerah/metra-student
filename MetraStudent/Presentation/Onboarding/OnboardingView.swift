@@ -11,12 +11,6 @@ struct OnboardingView: View {
         case welcome, guide
     }
 
-    private let background = Color(red: 252 / 255, green: 251 / 255, blue: 248 / 255)
-    private let navy = Color(red: 20 / 255, green: 38 / 255, blue: 72 / 255)
-    private let blue = Color(red: 50 / 255, green: 102 / 255, blue: 212 / 255)
-    private let badgeFill = Color(red: 234 / 255, green: 240 / 255, blue: 1)
-    private let bodyColor = Color(white: 73 / 255)
-
     var body: some View {
         ScrollView {
             Group {
@@ -26,13 +20,13 @@ struct OnboardingView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.bottom, 16)
+            .padding(.bottom, AppSize.Spacing.large)
         }
         .id(step)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             footer
         }
-        .background(background.ignoresSafeArea())
+        .background(AppColor.background.ignoresSafeArea())
         .preferredColorScheme(.light)
         .task(id: step) {
             if step == .guide {
@@ -50,14 +44,14 @@ struct OnboardingView: View {
                     .frame(width: 33, height: 31)
                     .accessibilityHidden(true)
                 IndonesianSpeech.text("Metra Student")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(navy)
+                    .font(AppTypography.wordmark)
+                    .foregroundStyle(AppColor.heading)
             }
             .frame(minHeight: 40)
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppSize.Inset.page)
 
             heading("Belajar matematika,\ndengan caramu.", on: .welcome)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppSize.Inset.page)
                 .padding(.top, 20)
 
             Image(.onboardingSpokenBook)
@@ -90,15 +84,15 @@ struct OnboardingView: View {
             }
             .padding(.top, 26)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSize.Inset.sheet)
         .frame(maxWidth: 440)
         .padding(.top, 46)
     }
 
     private func heading(_ title: String, on step: Step) -> some View {
         IndonesianSpeech.text(title)
-            .font(.largeTitle.bold())
-            .foregroundStyle(navy)
+            .font(AppTypography.screenTitle)
+            .foregroundStyle(AppColor.heading)
             .multilineTextAlignment(.center)
             .accessibilityAddTraits(.isHeader)
             .accessibilityFocused($focusedHeading, equals: step)
@@ -106,10 +100,9 @@ struct OnboardingView: View {
 
     private func intro(_ description: String) -> some View {
         IndonesianSpeech.text(description)
-            .font(.body)
-            .foregroundStyle(bodyColor)
+            .font(AppTypography.readingBody)
+            .foregroundStyle(AppColor.secondaryText)
             .multilineTextAlignment(.center)
-            .lineSpacing(2)
     }
 
     private func featureRow(_ feature: Feature) -> some View {
@@ -117,21 +110,20 @@ struct OnboardingView: View {
             if !dynamicTypeSize.isAccessibilitySize {
                 Image(systemName: feature.symbol)
                     .font(.system(size: 24))
-                    .foregroundStyle(blue)
-                    .frame(width: 48, height: 48)
-                    .background(badgeFill, in: Circle())
+                    .foregroundStyle(AppColor.brand)
+                    .frame(width: AppSize.largeIconContainer, height: AppSize.largeIconContainer)
+                    .background(AppColor.brandSubtle, in: Circle())
                     .padding(.top, 10)
                     .accessibilityHidden(true)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: AppSize.Spacing.tight) {
                 IndonesianSpeech.text(feature.title)
-                    .font(.headline)
+                    .font(AppTypography.headline)
                     .foregroundStyle(.black)
                 IndonesianSpeech.text(feature.description)
-                    .font(.callout)
-                    .foregroundStyle(bodyColor)
-                    .lineSpacing(2)
+                    .font(AppTypography.callout.leading(.loose))
+                    .foregroundStyle(AppColor.secondaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -141,8 +133,8 @@ struct OnboardingView: View {
     private var footer: some View {
         VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 16 : 40) {
             IndonesianSpeech.text(step == .welcome ? "1 dari 2" : "2 dari 2")
-                .font(.subheadline)
-                .foregroundStyle(blue)
+                .font(AppTypography.supporting)
+                .foregroundStyle(AppColor.brand)
 
             Button {
                 switch step {
@@ -151,20 +143,23 @@ struct OnboardingView: View {
                 }
             } label: {
                 IndonesianSpeech.text("Lanjutkan")
-                    .font(.body)
-                    .foregroundStyle(.white)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity, minHeight: 50)
-                    .background(blue, in: Capsule())
+                    .font(AppTypography.headline)
+                    .foregroundStyle(AppColor.onBrand)
+                    .padding(.vertical, AppSize.Spacing.medium)
+                    .frame(maxWidth: .infinity, minHeight: AppSize.Height.largeButton)
+                    .background(
+                        AppColor.brandFill,
+                        in: RoundedRectangle(cornerRadius: AppSize.Radius.largeButton, style: .circular)
+                    )
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSize.Inset.sheet)
         .frame(maxWidth: 440)
         .frame(maxWidth: .infinity)
-        .padding(.top, 12)
-        .padding(.bottom, 4)
-        .background(background)
+        .padding(.top, AppSize.Spacing.medium)
+        .padding(.bottom, AppSize.Spacing.tight)
+        .background(AppColor.background)
     }
 
     private struct Feature {

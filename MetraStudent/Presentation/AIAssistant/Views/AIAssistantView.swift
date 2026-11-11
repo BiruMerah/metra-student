@@ -58,6 +58,7 @@ struct AIAssistantView: View {
         .sensoryFeedback(.start, trigger: isRecording) { _, recording in recording }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .presentationBackground(AppColor.background)
         .task { focused = .heading }
         .onChange(of: viewModel.errorMessage) { _, message in
             if message != nil { focused = .error }
@@ -79,29 +80,29 @@ struct AIAssistantView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     IndonesianSpeech.text("Metra Assistant", spokenAs: "Asisten Metra")
-                        .font(.largeTitle.bold())
+                        .font(AppTypography.screenTitle)
+                        .foregroundStyle(AppColor.heading)
                         .padding(.top, 30)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityFocused($focused, equals: .heading)
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: AppSize.Spacing.small) {
                         IndonesianSpeech.text("Kalimat terpilih")
-                            .font(.headline)
-                            .foregroundStyle(.blue)
+                            .font(AppTypography.headline)
+                            .foregroundStyle(AppColor.heading)
                         IndonesianSpeech.text(viewModel.selection.sentence)
-                            .font(.title3)
-                            .lineSpacing(5)
+                            .font(AppTypography.readingBody)
                     }
-                    .padding(20)
+                    .padding(AppSize.Inset.assistantCard)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 20))
+                    .background(AppColor.brandSubtle, in: RoundedRectangle(cornerRadius: AppSize.Radius.assistantCard))
                     .accessibilityElement(children: .combine)
 
                     if showsReadyStatus {
                         VStack(spacing: 0) {
                             Spacer(minLength: 0)
                             Label(indonesian: viewModel.status, systemImage: "mic")
-                                .font(.subheadline.weight(.medium))
+                                .font(AppTypography.supportingEmphasis)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                             Spacer(minLength: 0)
@@ -137,12 +138,15 @@ struct AIAssistantView: View {
                             .accessibilityFocused($focused, equals: .answer)
                             .accessibilityIdentifier("assistant-answer")
                             .id(Focus.answer)
-                            .padding(20)
+                            .padding(AppSize.Inset.assistantCard)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 20))
+                            .background(
+                                Color.primary.opacity(0.06),
+                                in: RoundedRectangle(cornerRadius: AppSize.Radius.assistantCard)
+                            )
                     }
                 }
-                .padding(24)
+                .padding(AppSize.Inset.sheet)
                 .frame(
                     maxWidth: 680,
                     minHeight: showsReadyStatus ? viewportHeight : nil,
@@ -162,16 +166,17 @@ struct AIAssistantView: View {
     }
 
     private var footer: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSize.Spacing.actions) {
             Button(action: viewModel.ask) {
                 Label(indonesian: isRecording ? "Hentikan Bertanya" : "Tanya Asisten Metra",
                       systemImage: isRecording ? "stop.fill" : "mic.fill")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .font(AppTypography.headline)
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.roundedRectangle(radius: 16))
-            .tint(isRecording ? .red : .blue)
+            .controlSize(.large)
+            .buttonBorderShape(.capsule)
+            .tint(isRecording ? AppColor.danger : AppColor.brandFill)
             .disabled(!viewModel.canAsk)
             .accessibilityHint(IndonesianSpeech.text(isRecording
                 ? "Menghentikan rekaman dan memproses pertanyaan."
@@ -181,25 +186,26 @@ struct AIAssistantView: View {
 
             Button(action: close) {
                 IndonesianSpeech.text("Kembali ke Topik")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .font(AppTypography.headline)
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .buttonBorderShape(.roundedRectangle(radius: 16))
+            .controlSize(.large)
+            .buttonBorderShape(.capsule)
             .accessibilityIdentifier("assistant-return-to-topic")
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
+        .padding(.horizontal, AppSize.Inset.sheet)
+        .padding(.vertical, AppSize.Spacing.actions)
         .frame(maxWidth: 680)
         .frame(maxWidth: .infinity)
-        .background(.bar)
+        .background(AppColor.background)
         .overlay(alignment: .top) { Divider().accessibilityHidden(true) }
     }
 
     @ViewBuilder
     private var availabilityNotice: some View {
         if let unavailable = viewModel.availabilityMessage {
-            notice(unavailable, symbol: "exclamationmark.circle")
+            notice(unavailable, symbol: "exclamationmark.circle", tint: AppColor.warning)
             Button(indonesian: "Periksa Ketersediaan Lagi") { viewModel.refreshAvailability() }
                 .buttonStyle(.bordered)
         }
@@ -208,7 +214,7 @@ struct AIAssistantView: View {
     @ViewBuilder
     private var errorNotice: some View {
         if let error = viewModel.errorMessage {
-            notice(error, symbol: "exclamationmark.bubble")
+            notice(error, symbol: "exclamationmark.bubble", tint: AppColor.danger)
                 .accessibilityFocused($focused, equals: .error)
             #if os(iOS)
             if !viewModel.permissionsGranted {
@@ -223,26 +229,27 @@ struct AIAssistantView: View {
     }
 
     private func statusRow(_ text: String, showsProgress: Bool) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppSize.Spacing.medium) {
             if showsProgress {
                 ProgressView().accessibilityHidden(true)
             } else {
                 Image(systemName: isRecording ? "waveform" : "bubble.left.and.bubble.right")
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(isRecording ? AppColor.danger : AppColor.brand)
                     .accessibilityHidden(true)
             }
-            IndonesianSpeech.text(text).font(.headline)
+            IndonesianSpeech.text(text)
+                .font(AppTypography.headline)
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("assistant-status")
     }
 
     private func result(_ title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            IndonesianSpeech.text(title).font(.headline)
+        VStack(alignment: .leading, spacing: AppSize.Spacing.small) {
+            IndonesianSpeech.text(title)
+                .font(AppTypography.headline)
             IndonesianSpeech.text(text)
-                .font(.title3)
-                .lineSpacing(5)
+                .font(AppTypography.readingBody)
                 .textSelection(.enabled)
         }
         .accessibilityElement(children: .combine)
@@ -253,12 +260,12 @@ struct AIAssistantView: View {
         dismiss()
     }
 
-    private func notice(_ text: String, symbol: String) -> some View {
+    private func notice(_ text: String, symbol: String, tint: Color) -> some View {
         Label(indonesian: text, systemImage: symbol)
-            .font(.subheadline)
-            .padding(16)
+            .font(AppTypography.supporting)
+            .padding(AppSize.Spacing.large)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
+            .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: AppSize.Radius.card))
             .accessibilityElement(children: .combine)
     }
 }

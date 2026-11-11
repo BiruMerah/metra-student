@@ -22,7 +22,7 @@ struct JoinChannelSheet: View {
                     TextField("Kode kelas (contoh: MTK10A)", text: $joinChannelCodeInput)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.characters)
-                        .font(.headline.monospaced())
+                        .font(AppTypography.accessCode)
                         .accessibilityLabel(IndonesianSpeech.text("Kode undangan kelas"))
                     
                     Button {
@@ -43,7 +43,7 @@ struct JoinChannelSheet: View {
                                     .accessibilityHidden(true)
                             }
                             IndonesianSpeech.text(isLoading ? "Sedang bergabung…" : "Gabung")
-                                .font(.headline)
+                                .font(AppTypography.headline)
                             Spacer()
                         }
                     }

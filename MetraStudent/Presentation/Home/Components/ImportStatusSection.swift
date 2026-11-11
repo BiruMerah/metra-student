@@ -22,7 +22,7 @@ struct ImportStatusSection: View {
     var body: some View {
         if let unavailableReason {
             Section {
-                StatusBanner(message: unavailableReason, systemImage: "exclamationmark.triangle.fill", tint: .orange)
+                StatusBanner(message: unavailableReason, systemImage: "exclamationmark.triangle.fill", tint: AppColor.warning)
             }
         } else if let progress {
             Section {
@@ -36,7 +36,7 @@ struct ImportStatusSection: View {
             }
         } else if let successMessage {
             Section {
-                StatusBanner(message: successMessage, systemImage: "checkmark.circle.fill", tint: .green)
+                StatusBanner(message: successMessage, systemImage: "checkmark.circle.fill", tint: AppColor.success)
             }
         }
     }

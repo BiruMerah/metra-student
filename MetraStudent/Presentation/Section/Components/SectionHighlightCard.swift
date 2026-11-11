@@ -10,34 +10,31 @@ import SwiftUI
 struct SectionHighlightCard<Content: View>: View {
     let title: String
     let symbol: String
-    let tint: Color
+    var background = Color(uiColor: .secondarySystemGroupedBackground)
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSize.Spacing.medium) {
+            HStack(spacing: AppSize.Spacing.small) {
                 Image(systemName: symbol)
-                    .foregroundStyle(tint)
+                    .foregroundStyle(AppColor.brand)
                     .accessibilityHidden(true)
                 IndonesianSpeech.text(title)
                     .foregroundStyle(.primary)
             }
-            .font(.subheadline.weight(.semibold))
+            .font(AppTypography.headline)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(IndonesianSpeech.text(title))
             .accessibilityAddTraits(.isHeader)
             
             content()
         }
-        .padding(16)
+        .padding(AppSize.Inset.readingCard)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Color(uiColor: .secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 12)
-        )
+        .background(background, in: RoundedRectangle(cornerRadius: AppSize.Radius.callout))
         .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(tint.opacity(0.4), lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppSize.Radius.callout)
+                .strokeBorder(AppColor.brand.opacity(0.4), lineWidth: 1)
                 .accessibilityHidden(true)
         }
         .accessibilityElement(children: .contain)
@@ -48,10 +45,10 @@ struct SectionHighlightCard<Content: View>: View {
     SectionHighlightCard(
         title: "Notasi Matematika",
         symbol: "function",
-        tint: .indigo
+        background: AppColor.brandSubtle
     ) {
         IndonesianSpeech.text("dua dikali eks sama dengan sepuluh")
-            .font(.body)
+            .font(AppTypography.readingBody)
     }
     .padding()
 }

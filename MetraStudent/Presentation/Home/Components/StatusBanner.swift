@@ -16,7 +16,7 @@ struct StatusBanner: View {
         HStack(spacing: 12) {
             IconTile(systemImage, tint: tint)
             IndonesianSpeech.text(message)
-                .font(.subheadline)
+                .font(AppTypography.supporting)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.vertical, 4)
@@ -27,8 +27,8 @@ struct StatusBanner: View {
 
 #Preview {
     List {
-        StatusBanner(message: "“Foto 8 Nov” sudah tersimpan.", systemImage: "checkmark.circle.fill", tint: .green)
-        StatusBanner(message: "Fitur AI belum tersedia di perangkat ini.", systemImage: "exclamationmark.triangle.fill", tint: .orange)
+        StatusBanner(message: "“Foto 8 Nov” sudah tersimpan.", systemImage: "checkmark.circle.fill", tint: AppColor.success)
+        StatusBanner(message: "Fitur AI belum tersedia di perangkat ini.", systemImage: "exclamationmark.triangle.fill", tint: AppColor.warning)
     }
     .listStyle(.insetGrouped)
 }
