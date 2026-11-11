@@ -10,6 +10,7 @@ import SwiftData
 
 @main
 struct MetraStudentApp: App {
+    @AppStorage("hasCompletedStudentOnboarding") private var hasCompletedOnboarding = false
     @State private var coordinator: AppCoordinator
     private let modelContainer: ModelContainer
     
@@ -54,7 +55,13 @@ struct MetraStudentApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView(coordinator: coordinator)
+            if hasCompletedOnboarding {
+                ContentView(coordinator: coordinator)
+            } else {
+                OnboardingView {
+                    hasCompletedOnboarding = true
+                }
+            }
         }
         .environment(\.locale, IndonesianSpeech.locale)
     }
