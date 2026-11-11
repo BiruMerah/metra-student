@@ -18,70 +18,17 @@ jobs:
       # Download your code
       - name: Get code
         uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Verify bundled Core ML models and MathCAT
+        run: /bin/sh Tools/check-bundled-assets.sh
 
       # Run your quick logic checks first (fails fast if code is broken)
       - name: Run assistant checks
         run: |
           chmod +x Tests/run-assistant-checks.sh
           ./Tests/run-assistant-checks.sh
-
-      # Remember the large AI models between runs so builds stay fast
-      - name: Cache AI models and MathCAT
-        id: cache-assets
-        uses: actions/cache@v4
-        with:
-          path: |
-            Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework
-            Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/**/*.onnx
-            Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/*.onnx
-          key: assets-${{ hashFiles('Packages/MetraDocumentPipeline/engine-assets.json') }}
-
-      # Download AI models & MathCAT if they aren't cached yet
-      - name: Download AI models and MathCAT
-        if: steps.cache-assets.outputs.cache-hit != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.TEACHER_REPO_TOKEN || github.token }}
-        run: |
-          python3 - <<'PY'
-          import hashlib, json, subprocess, urllib.request
-          from pathlib import Path
-
-          pkg = Path("Packages/MetraDocumentPipeline")
-          manifest = json.loads((pkg / "engine-assets.json").read_text())
-          repo = manifest["release"]["repository"]
-          tag = manifest["release"]["tag"]
-          res = pkg / "Sources/MetraDocumentPipeline/Resources"
-
-          for f in manifest["files"]:
-              dest = res / f["path"]
-              dest.parent.mkdir(parents=True, exist_ok=True)
-              if "url" in f:
-                  urllib.request.urlretrieve(f["url"], dest)
-              else:
-                  subprocess.run([
-                      "gh", "release", "download", tag,
-                      "--repo", repo, "--pattern", f["releaseAsset"],
-                      "--output", str(dest), "--clobber"
-                  ], check=True)
-              if dest.stat().st_size != f["bytes"] or hashlib.sha256(dest.read_bytes()).hexdigest() != f["sha256"]:
-                  raise SystemExit(f"Wrong file checksum for {f['path']}")
-          PY
-
-          gh release download teacher-engine-assets-v1 \
-            --repo BiruMerah/poc-multipeer-teacher \
-            --pattern "MathCAT.xcframework.zip" \
-            --output "$RUNNER_TEMP/MathCAT.xcframework.zip"
-          mkdir -p Packages/MetraDocumentPipeline/Binaries
-          unzip -q "$RUNNER_TEMP/MathCAT.xcframework.zip" -d Packages/MetraDocumentPipeline/Binaries
-
-          for slice in ios-arm64 ios-arm64-simulator; do
-            cat <<'EOF' > "Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework/${slice}/Headers/module.modulemap"
-          module MetraMathCAT {
-              header "metra_mathcat.h"
-              export *
-          }
-          EOF
-          done
 
       # Temporarily install your .p12 signing certificate on the cloud Mac
       - name: Install Apple certificates
@@ -130,6 +77,9 @@ jobs:
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Verify App Store bundle contents
+        run: /bin/sh Tools/check-app-bundle.sh "$RUNNER_TEMP/MetraStudent.xcarchive/Products/Applications/MetraStudent.app"
 
       # Sign & upload directly to TestFlight
       - name: Upload to TestFlight

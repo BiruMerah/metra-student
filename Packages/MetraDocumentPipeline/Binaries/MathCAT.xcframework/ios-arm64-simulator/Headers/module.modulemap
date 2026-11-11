@@ -1,0 +1,4 @@
+module MetraMathCAT {
+    header "metra_mathcat.h"
+    export *
+}

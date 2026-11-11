@@ -3,7 +3,7 @@ import Foundation
 import CryptoKit
 import ImageIO
 import UIKit
-import OnnxRuntimeBindings
+import CoreML
 
 struct UniMERNetManifest: Codable, Sendable {
     struct ModelFile: Codable, Sendable { let sha256: String; let bytes: Int }
@@ -52,14 +52,13 @@ enum FormulaRecognitionError: LocalizedError {
 }
 
 actor UniMERNetRuntime {
-    private var environment: ORTEnv?
-    private var encoder: ORTSession?
-    private var decoder: ORTSession?
-    private var cachedDecoder: ORTSession?
+    private var encoder: CoreMLInference?
+    private var decoder: CoreMLInference?
+    private var cachedDecoder: CoreMLInference?
     private var tokenizer: UniMERTokenDecoder?
     private var manifest: UniMERNetManifest?
 
-    func unload() { cachedDecoder = nil; decoder = nil; encoder = nil; environment = nil; tokenizer = nil; manifest = nil }
+    func unload() { cachedDecoder = nil; decoder = nil; encoder = nil; tokenizer = nil; manifest = nil }
 
     func recognize(cropURL: URL, formulaID: String, artifacts: URL) throws -> FormulaRecognition {
         try Task.checkCancellation()
@@ -71,17 +70,17 @@ actor UniMERNetRuntime {
         try FileManager.default.createDirectory(at: artifacts, withIntermediateDirectories: true)
         let preprocessStart = ProcessInfo.processInfo.systemUptime
         let prepared = try Self.prepare(cropURL, preview: artifacts.appendingPathComponent("model-input.png"))
-        let input = try Self.floatTensor(prepared.values, shape: [1,1,192,672])
+        let input = try CoreMLInference.tensor(prepared.values, shape: [1,1,192,672])
         let preprocessMS = (ProcessInfo.processInfo.systemUptime - preprocessStart) * 1000
         let encoderStart = ProcessInfo.processInfo.systemUptime
-        let encoderOutputs = try encoder.run(withInputs: ["pixel_values": input], outputNames: ["encoder_hidden_states"], runOptions: nil)
+        let encoderOutputs = try encoder.predict(["pixel_values": input], outputs: ["encoder_hidden_states"])
         guard let hidden = encoderOutputs["encoder_hidden_states"] else { throw FormulaRecognitionError.failed("Encoder output kosong") }
         let encoderMS = (ProcessInfo.processInfo.systemUptime - encoderStart) * 1000
         let decodeStart = ProcessInfo.processInfo.systemUptime
         let names = Set(["logits"] + (0..<manifest.layers).flatMap { ["present_key_\($0)", "present_value_\($0)"] })
         var token = manifest.bosTokenID
         var tokens: [Int] = []
-        var cache: [ORTValue] = []
+        var cache: [MLMultiArray] = []
         var eos = false
         var stop = "max_new_tokens"
         var stepTimes: [Double] = []
@@ -89,7 +88,7 @@ actor UniMERNetRuntime {
             try Task.checkCancellation()
             if ProcessInfo.processInfo.systemUptime - decodeStart > 30 { stop = "deadline_exceeded"; break }
             let stepStart = ProcessInfo.processInfo.systemUptime
-            let tokenValue = try Self.intTensor([Int64(token)], shape: [1,1])
+            let tokenValue = try CoreMLInference.token(token)
             var inputs = ["input_ids": tokenValue, "encoder_hidden_states": hidden]
             if step > 0 {
                 for layer in 0..<manifest.layers {
@@ -98,14 +97,12 @@ actor UniMERNetRuntime {
                 }
             }
             let session = step == 0 ? decoder : cachedDecoder
-            let outputs = try session.run(withInputs: inputs, outputNames: names, runOptions: nil)
+            let outputs = try session.predict(inputs, outputs: names)
             guard let logits = outputs["logits"] else { throw FormulaRecognitionError.failed("Decoder logits kosong") }
-            let info = try logits.tensorTypeAndShapeInfo()
-            let shape = info.shape.map(\.intValue)
-            guard info.elementType == .float, shape.count == 3, shape[0] == 1, shape[1] == 1, shape[2] > 3 else { throw FormulaRecognitionError.failed("Shape logits tidak didukung: \(shape)") }
-            let data = try logits.tensorData() as Data
-            token = try data.withUnsafeBytes { bytes in
-                let floats = bytes.bindMemory(to: Float.self)
+            let shape = CoreMLInference.shape(logits)
+            guard logits.dataType == .float32, shape.count == 3, shape[0] == 1, shape[1] == 1, shape[2] > 3 else { throw FormulaRecognitionError.failed("Shape logits tidak didukung: \(shape)") }
+            token = try {
+                let floats = try CoreMLInference.floats(logits)
                 guard floats.count == shape[2] else { throw FormulaRecognitionError.failed("Ukuran logits berbeda dari shape") }
                 var best = 0
                 for i in floats.indices {
@@ -113,11 +110,11 @@ actor UniMERNetRuntime {
                     if floats[i] > floats[best] { best = i }
                 }
                 return best
-            }
+            }()
             tokens.append(token)
             stepTimes.append((ProcessInfo.processInfo.systemUptime - stepStart) * 1000)
             if token == manifest.eosTokenID { eos = true; stop = "eos"; break }
-            cache = try (0..<manifest.layers).flatMap { layer -> [ORTValue] in
+            cache = try (0..<manifest.layers).flatMap { layer -> [MLMultiArray] in
                 guard let key = outputs["present_key_\(layer)"], let value = outputs["present_value_\(layer)"] else { throw FormulaRecognitionError.failed("KV cache tidak lengkap") }
                 return [key,value]
             }
@@ -136,17 +133,23 @@ actor UniMERNetRuntime {
         guard let root = Bundle.module.resourceURL?.appendingPathComponent("UniMERNet") else { throw FormulaRecognitionError.failed("Folder bundle tidak tersedia") }
         let config = try JSONDecoder().decode(UniMERNetManifest.self, from: Data(contentsOf: root.appendingPathComponent("unimernet-manifest.json")))
         guard config.modelID == "wanderkid/unimernet_tiny", config.precision == "FP32", config.layers == 8 else { throw FormulaRecognitionError.failed("Manifest bukan checkpoint tiny FP32 yang dipin") }
-        for name in ["encoder_model.onnx","decoder_model.onnx","decoder_with_past_model.onnx"] {
-            guard let record = config.files[name], try Self.hash(root.appendingPathComponent(name)) == record.sha256 else { throw FormulaRecognitionError.failed("Hash tidak sesuai: \(name)") }
+        guard let encoderSource = config.files["encoder_model.onnx"],
+              let decoderSource = config.files["decoder_model.onnx"],
+              let cachedSource = config.files["decoder_with_past_model.onnx"] else {
+            throw FormulaRecognitionError.failed("Identitas sumber model tidak lengkap")
         }
         guard try Self.hash(root.appendingPathComponent("tokenizer.json")) == config.tokenizerSHA256 else { throw FormulaRecognitionError.failed("Hash tokenizer tidak sesuai") }
         let loadedTokenizer = try UniMERTokenDecoder(url:root.appendingPathComponent("tokenizer.json"))
-        let env = try ORTEnv(loggingLevel: .warning)
-        let options = try ORTSessionOptions(); try options.setIntraOpNumThreads(2); try options.setGraphOptimizationLevel(.all)
-        let enc = try ORTSession(env: env, modelPath: root.appendingPathComponent("encoder_model.onnx").path, sessionOptions: options)
-        let dec = try ORTSession(env: env, modelPath: root.appendingPathComponent("decoder_model.onnx").path, sessionOptions: options)
-        let cached = try ORTSession(env: env, modelPath: root.appendingPathComponent("decoder_with_past_model.onnx").path, sessionOptions: options)
-        environment = env; encoder = enc; decoder = dec; cachedDecoder = cached; tokenizer = loadedTokenizer; manifest = config
+        let names = Set(["logits"] + (0..<config.layers).flatMap { ["present_key_\($0)", "present_value_\($0)"] })
+        let inputs: Set<String> = ["input_ids", "encoder_hidden_states"]
+        let enc = try CoreMLInference(name: "UniMERNet-Encoder", sourceSHA256: encoderSource.sha256,
+            inputs: ["pixel_values"], outputs: ["encoder_hidden_states"])
+        let dec = try CoreMLInference(name: "UniMERNet-Decoder", sourceSHA256: decoderSource.sha256,
+            inputs: inputs, outputs: names, function: "first_token")
+        let cached = try CoreMLInference(name: "UniMERNet-Decoder", sourceSHA256: cachedSource.sha256,
+            inputs: inputs.union((0..<config.layers).flatMap { ["past_key_\($0)", "past_value_\($0)"] }),
+            outputs: names, function: "cached_token")
+        encoder = enc; decoder = dec; cachedDecoder = cached; tokenizer = loadedTokenizer; manifest = config
     }
 
     private static func hash(_ url: URL) throws -> String {
@@ -155,15 +158,6 @@ actor UniMERNetRuntime {
         while let bytes = try handle.read(upToCount: 1024 * 1024), !bytes.isEmpty { hash.update(data: bytes) }
         return hash.finalize().map { String(format:"%02x",$0) }.joined()
     }
-    private static func floatTensor(_ values: [Float], shape: [Int]) throws -> ORTValue {
-        let data = values.withUnsafeBytes { NSMutableData(bytes:$0.baseAddress!,length:$0.count) }
-        return try ORTValue(tensorData:data,elementType:.float,shape:shape.map { NSNumber(value:$0) })
-    }
-    private static func intTensor(_ values: [Int64], shape: [Int]) throws -> ORTValue {
-        let data = values.withUnsafeBytes { NSMutableData(bytes:$0.baseAddress!,length:$0.count) }
-        return try ORTValue(tensorData:data,elementType:.int64,shape:shape.map { NSNumber(value:$0) })
-    }
-
     private static func prepare(_ url: URL, preview: URL) throws -> (values:[Float],metadata:FormulaPreprocessing) {
         guard let source = CGImageSourceCreateWithURL(url as CFURL,nil), let image = CGImageSourceCreateImageAtIndex(source,0,nil) else { throw FormulaRecognitionError.failed("Crop tidak terbaca") }
         func rgba(_ image: CGImage, width:Int, height:Int, rect:CGRect) throws -> [UInt8] {

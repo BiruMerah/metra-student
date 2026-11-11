@@ -1,0 +1,4 @@
+# Install Git LFS once; clone/pull then hydrates these assets automatically.
+**/*.mlpackage/**/model.mlmodel filter=lfs diff=lfs merge=lfs -text
+**/*.mlpackage/**/weights/*.bin filter=lfs diff=lfs merge=lfs -text
+**/*.xcframework/**/*.a filter=lfs diff=lfs merge=lfs -text
