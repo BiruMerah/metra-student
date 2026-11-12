@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D9C000000000000000000001 /* MetraDocumentPipeline in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = D9C000000000000000000002 /* MetraDocumentPipeline */; };
 		5FF2AA0C30A35BF3007D0440 /* ExportOptions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5FF2AA0B30A35BF3007D0440 /* ExportOptions.plist */; };
+		D9C000000000000000000001 /* MetraDocumentPipeline in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = D9C000000000000000000002 /* MetraDocumentPipeline */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -140,15 +140,19 @@
 		D9C000000000000000000004 /* Verify bundled models */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = ();
-			inputFileListPaths = ("$(SRCROOT)/Tools/bundled-assets.xcfilelist",);
-			inputPaths = ("$(SRCROOT)/Tools/check-bundled-assets.sh", "$(SRCROOT)/Tools/bundled-assets.sha256",);
+			inputFileListPaths = (
+				"$(SRCROOT)/Tools/bundled-assets.xcfilelist",
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/check-bundled-assets.sh",
+				"$(SRCROOT)/Tools/bundled-assets.sha256",
+			);
 			name = "Verify bundled models";
-			outputPaths = ();
-			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"${SRCROOT}/Tools/check-bundled-assets.sh\"\n";
+			shellScript = (
+				"/bin/sh \"${SRCROOT}/Tools/check-bundled-assets.sh\"",
+				"",
+			);
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -286,7 +290,7 @@
 				CODE_SIGN_ENTITLEMENTS = MetraStudent/MetraStudent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SJ25JWH9X6;
+				DEVELOPMENT_TEAM = 96SXDK9ZFJ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -337,7 +341,7 @@
 				CODE_SIGN_ENTITLEMENTS = MetraStudent/MetraStudent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SJ25JWH9X6;
+				DEVELOPMENT_TEAM = 96SXDK9ZFJ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
