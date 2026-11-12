@@ -15,12 +15,13 @@ struct SectionNavigationView: View {
     var body: some View {
         Button(action: action) {
             Label(indonesian: title, systemImage: symbol)
-                .font(.subheadline.weight(.semibold))
+                .font(AppTypography.supportingEmphasis)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .padding(.horizontal, 8)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, AppSize.Spacing.small)
         }
         .buttonStyle(.bordered)
+        .controlSize(.large)
         .buttonBorderShape(.capsule)
         .accessibilityLabel(IndonesianSpeech.text(title))
     }

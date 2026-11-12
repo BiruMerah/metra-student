@@ -17,14 +17,14 @@ struct MaterialSectionRow: View {
             HStack(spacing: 12) {
                 Image(systemName: "doc.text.fill")
                     .font(.title2)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(AppColor.brand)
                     .frame(width: 52, height: 52)
-                    .background(.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppColor.brandSubtle, in: RoundedRectangle(cornerRadius: 12))
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 6) {
                     IndonesianSpeech.text(section.title)
-                        .font(.body.weight(.semibold))
+                        .font(AppTypography.headline)
                         .foregroundStyle(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

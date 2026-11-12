@@ -16,19 +16,19 @@ struct ChannelRow: View {
             HStack(alignment: .center, spacing: 12) {
                 Image(systemName: "folder.fill.badge.person.crop")
                     .font(.title2)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(AppColor.brand)
                     .frame(width: 40, height: 40)
-                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(AppColor.brandSubtle, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .accessibilityHidden(true)
                 
                 VStack(alignment: .leading, spacing: 3) {
                     IndonesianSpeech.text(channel.name)
-                        .font(.headline)
+                        .font(AppTypography.headline)
                         .foregroundStyle(.primary)
                         .lineLimit(2)
                     
                     IndonesianSpeech.text("Guru: \(channel.createdBy)")
-                        .font(.subheadline)
+                        .font(AppTypography.supporting)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -44,11 +44,11 @@ struct ChannelRow: View {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
                         IndonesianSpeech.text("Keluar")
                     }
-                    .font(.subheadline.weight(.semibold))
+                    .font(AppTypography.supportingEmphasis)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color.red.opacity(0.12), in: Capsule())
-                    .foregroundStyle(.red)
+                    .background(AppColor.danger.opacity(0.12), in: Capsule())
+                    .foregroundStyle(AppColor.danger)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(IndonesianSpeech.text("Keluar dari kelas \(channel.name)"))

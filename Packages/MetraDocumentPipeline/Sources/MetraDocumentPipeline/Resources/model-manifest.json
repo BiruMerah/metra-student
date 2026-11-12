@@ -1048,5 +1048,13 @@
     "bundle": "id.cavell.TeacherPeerPOC",
     "report": "METRA APP/Verification/MIGRATION-REPORT.md",
     "scope": "Original component evidence belongs to source Metra unless explicitly marked teacher_migration_evidence. Migration runtime tested separately; no generalized accuracy claim."
+  },
+  "student_runtime": {
+    "runtime": "Core ML",
+    "compute_units": "CPU_ONLY",
+    "precision": "FP32; no quantization",
+    "assets": "Packages/MetraDocumentPipeline/engine-assets.json",
+    "source_provenance": "ModelTools/source-models.json",
+    "note": "Original export and device evidence below describe the pre-migration ONNX baseline, not Core ML device validation."
   }
 }

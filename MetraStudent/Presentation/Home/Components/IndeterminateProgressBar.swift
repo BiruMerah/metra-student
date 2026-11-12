@@ -9,7 +9,7 @@ import SwiftUI
 
 /// Indeterminate linear bar; shows a static segment when not animating (e.g. Reduce Motion).
 struct IndeterminateProgressBar: View {
-    var tint: Color = .accentColor
+    var tint: Color = AppColor.brand
     var isAnimating: Bool = true
     private let cycle: TimeInterval = 1.4
 
@@ -32,7 +32,7 @@ struct IndeterminateProgressBar: View {
                     .clipShape(Capsule())
             }
         }
-        .frame(height: 4)
+        .frame(height: AppSize.Height.progressTrack)
         .accessibilityHidden(true)
     }
 }

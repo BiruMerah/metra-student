@@ -15,7 +15,7 @@ struct MaterialView: View {
         List {
             Section {
                 IndonesianSpeech.text(viewModel.material.title)
-                    .font(.title.weight(.bold))
+                    .font(AppTypography.contentTitle)
                     .accessibilityAddTraits(.isHeader)
                     .textSelection(.enabled)
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
@@ -26,6 +26,8 @@ struct MaterialView: View {
                 MaterialOverviewView(overview: viewModel.overview)
             } header: {
                 IndonesianSpeech.text("Ringkasan Materi")
+                    .font(AppTypography.headline)
+                    .textCase(nil)
             }
             
             Section {
@@ -40,8 +42,11 @@ struct MaterialView: View {
                 }
             } header: {
                 IndonesianSpeech.text("Segmen")
+                    .font(AppTypography.headline)
+                    .textCase(nil)
             } footer: {
                 IndonesianSpeech.text("Pilih segmen untuk melihat detailnya.")
+                    .font(AppTypography.supporting)
             }
 
             if viewModel.isSaved {
@@ -50,13 +55,13 @@ struct MaterialView: View {
                         confirmsMaterialDeletion = true
                     } label: {
                         Label(indonesian: "Hapus Materi", systemImage: "trash")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .font(AppTypography.headline)
+                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.roundedRectangle(radius: 16))
-                    .tint(Color(red: 0.74, green: 0.12, blue: 0.16))
+                    .controlSize(.large)
+                    .buttonBorderShape(.capsule)
+                    .tint(AppColor.danger)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -64,6 +69,9 @@ struct MaterialView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .contentMargins(.horizontal, AppSize.Inset.page, for: .scrollContent)
+        .scrollContentBackground(.hidden)
+        .background(AppColor.background.ignoresSafeArea())
         .navigationTitle(IndonesianSpeech.text("Detail Materi"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)

@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D9C000000000000000000001 /* MetraDocumentPipeline in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = D9C000000000000000000002 /* MetraDocumentPipeline */; };
 		5FF2AA0C30A35BF3007D0440 /* ExportOptions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5FF2AA0B30A35BF3007D0440 /* ExportOptions.plist */; };
+		D9C000000000000000000001 /* MetraDocumentPipeline in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = D9C000000000000000000002 /* MetraDocumentPipeline */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -71,6 +71,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5F15BAE13092417D00275EE7 /* Build configuration list for PBXNativeTarget "MetraStudent" */;
 			buildPhases = (
+				D9C000000000000000000004 /* Verify bundled models */,
 				5F15BAD23092417C00275EE7 /* Sources */,
 				5F15BAD33092417C00275EE7 /* Frameworks */,
 				5F15BAD43092417C00275EE7 /* Resources */,
@@ -134,6 +135,26 @@
 			);
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D9C000000000000000000004 /* Verify bundled models */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			inputFileListPaths = (
+				"$(SRCROOT)/Tools/bundled-assets.xcfilelist",
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/check-bundled-assets.sh",
+				"$(SRCROOT)/Tools/bundled-assets.sha256",
+			);
+			name = "Verify bundled models";
+			shellPath = /bin/sh;
+			shellScript = (
+				"/bin/sh \"${SRCROOT}/Tools/check-bundled-assets.sh\"",
+				"",
+			);
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5F15BAD23092417C00275EE7 /* Sources */ = {
@@ -269,7 +290,7 @@
 				CODE_SIGN_ENTITLEMENTS = MetraStudent/MetraStudent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SJ25JWH9X6;
+				DEVELOPMENT_TEAM = 96SXDK9ZFJ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -300,13 +321,14 @@
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Debug;
@@ -320,7 +342,7 @@
 				CODE_SIGN_ENTITLEMENTS = MetraStudent/MetraStudent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SJ25JWH9X6;
+				DEVELOPMENT_TEAM = 96SXDK9ZFJ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -351,13 +373,14 @@
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Release;

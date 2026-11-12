@@ -22,12 +22,12 @@ struct DisplayProfileRow: View {
             HStack(spacing: 12) {
                 Image(systemName: "person.crop.circle.fill")
                     .font(.title)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(AppColor.brand)
                     .accessibilityHidden(true)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     TextField("Contoh: Budi", text: $userName)
-                        .font(.headline)
+                        .font(AppTypography.headline)
                         .focused($isNameFieldFocused)
                         .autocorrectionDisabled()
                         .submitLabel(.done)
@@ -42,10 +42,10 @@ struct DisplayProfileRow: View {
                                 .controlSize(.mini)
                         } else {
                             Image(systemName: isSignedInToiCloud ? "checkmark.icloud.fill" : "exclamationmark.icloud.fill")
-                                .foregroundStyle(isSignedInToiCloud ? .green : .red)
+                                .foregroundStyle(isSignedInToiCloud ? AppColor.success : AppColor.danger)
                         }
                         IndonesianSpeech.text(accountStatusMessage)
-                            .font(.caption)
+                            .font(AppTypography.caption)
                             .foregroundStyle(.secondary)
                     }
                     .accessibilityElement(children: .combine)

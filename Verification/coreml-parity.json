@@ -1,0 +1,1298 @@
+{
+  "passed": true,
+  "backend": "Core ML CPU_ONLY FP32 vs ONNX Runtime CPUExecutionProvider",
+  "scope": "Numerical and token parity, not a claim of model accuracy or iPhone latency.",
+  "tools": {
+    "coremltools": "9.0",
+    "onnxruntime": "1.23.2",
+    "numpy": "1.26.4",
+    "Pillow": "13.0.0"
+  },
+  "fixture_sha256": {
+    "formula-0001.png": "2332337a1a20074401118025760d9ddbd9e2598eff7b04134c65ff4b743665f5",
+    "formula-0005.png": "9aea7755eee2115dc4ee07000d7a2d3871959efcfbb7a749909fcf474e1c935c",
+    "formula-0014.png": "72d3a6ba14055ab450c298829ab3ef2a203f48143a7eac2a3a5cad5503c7853b",
+    "page.png": "e5865496bd02d96729a9f4886d60c7ffefa70cd66dca73076e2a246b446e78fc"
+  },
+  "generations": [
+    {
+      "fixture": "formula-0001.png",
+      "tokens_equal": true,
+      "eos_reached": true,
+      "token_ids": [
+        41,
+        310,
+        243,
+        33,
+        243,
+        43,
+        331,
+        243,
+        51,
+        243,
+        39,
+        243,
+        47,
+        243,
+        36,
+        243,
+        38,
+        243,
+        38,
+        243,
+        38,
+        2
+      ]
+    },
+    {
+      "fixture": "formula-0005.png",
+      "tokens_equal": true,
+      "eos_reached": true,
+      "token_ids": [
+        113,
+        243,
+        40,
+        763,
+        243,
+        33,
+        627,
+        243,
+        51,
+        243,
+        46,
+        243,
+        115,
+        2
+      ]
+    },
+    {
+      "fixture": "formula-0014.png",
+      "tokens_equal": true,
+      "eos_reached": true,
+      "token_ids": [
+        82,
+        23,
+        243,
+        40,
+        763,
+        243,
+        82,
+        23,
+        243,
+        33,
+        243,
+        82,
+        23,
+        627,
+        243,
+        82,
+        23,
+        243,
+        51,
+        243,
+        82,
+        23,
+        243,
+        46,
+        2
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "name": "paddle-width-320",
+      "shape": [
+        1,
+        40,
+        18385
+      ],
+      "maximum_absolute_error": 2.8431415557861328e-05,
+      "rmse": 9.075183677915104e-08,
+      "argmax_equal": true
+    },
+    {
+      "name": "paddle-width-321",
+      "shape": [
+        1,
+        40,
+        18385
+      ],
+      "maximum_absolute_error": 1.7762184143066406e-05,
+      "rmse": 6.502989677436587e-08,
+      "argmax_equal": true
+    },
+    {
+      "name": "paddle-width-768",
+      "shape": [
+        1,
+        96,
+        18385
+      ],
+      "maximum_absolute_error": 2.5570392608642578e-05,
+      "rmse": 8.180945600975881e-08,
+      "argmax_equal": true
+    },
+    {
+      "name": "paddle-width-3200",
+      "shape": [
+        1,
+        400,
+        18385
+      ],
+      "maximum_absolute_error": 2.6166439056396484e-05,
+      "rmse": 9.147796568324027e-08,
+      "argmax_equal": true
+    },
+    {
+      "name": "mfd-height-32",
+      "shape": [
+        1,
+        6,
+        504
+      ],
+      "maximum_absolute_error": 0.0026092529296875,
+      "rmse": 9.004218448492675e-05,
+      "score_maximum_absolute_error": 1.0306757758371532e-07
+    },
+    {
+      "name": "mfd-height-768",
+      "shape": [
+        1,
+        6,
+        12096
+      ],
+      "maximum_absolute_error": 0.00537109375,
+      "rmse": 9.199702776346004e-05,
+      "score_maximum_absolute_error": 7.18235969543457e-06
+    },
+    {
+      "name": "mfd-height-1024",
+      "shape": [
+        1,
+        6,
+        16128
+      ],
+      "maximum_absolute_error": 0.0042572021484375,
+      "rmse": 6.916383098494804e-05,
+      "score_maximum_absolute_error": 1.1742115020751953e-05
+    },
+    {
+      "name": "mfd-height-1536",
+      "shape": [
+        1,
+        6,
+        24192
+      ],
+      "maximum_absolute_error": 0.00360107421875,
+      "rmse": 7.357260052384324e-05,
+      "score_maximum_absolute_error": 4.0531158447265625e-06
+    },
+    {
+      "name": "layout-1.0-fetch_name_0",
+      "shape": [
+        300,
+        6
+      ],
+      "maximum_absolute_error": 0.00140380859375,
+      "rmse": 6.0259435844504476e-05
+    },
+    {
+      "name": "layout-1.0-fetch_name_1",
+      "shape": [
+        1
+      ],
+      "maximum_absolute_error": 0.0,
+      "rmse": 0.0
+    },
+    {
+      "name": "layout-0.625-fetch_name_0",
+      "shape": [
+        300,
+        6
+      ],
+      "maximum_absolute_error": 0.00225830078125,
+      "rmse": 9.58684453889574e-05
+    },
+    {
+      "name": "layout-0.625-fetch_name_1",
+      "shape": [
+        1
+      ],
+      "maximum_absolute_error": 0.0,
+      "rmse": 0.0
+    },
+    {
+      "name": "formula-0001-encoder",
+      "shape": [
+        1,
+        126,
+        512
+      ],
+      "maximum_absolute_error": 1.1920928955078125e-05,
+      "rmse": 1.8009709961650224e-06
+    },
+    {
+      "name": "formula-0001-logits-0",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.002716064453125e-05,
+      "rmse": 5.278017184618344e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-1",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.8596649169921875e-05,
+      "rmse": 3.1941300295947264e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-2",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.002716064453125e-05,
+      "rmse": 1.0148003800660907e-05,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-3",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.002716064453125e-05,
+      "rmse": 2.4531888010179e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-4",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.4781951904296875e-05,
+      "rmse": 5.984498118780498e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-5",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.6927719116210938e-05,
+      "rmse": 4.58650390345021e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-6",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.9073486328125e-05,
+      "rmse": 5.6788407080354225e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-7",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.9073486328125e-05,
+      "rmse": 1.1204986288111933e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-8",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.9550323486328125e-05,
+      "rmse": 1.9058439617914468e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-9",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.9073486328125e-05,
+      "rmse": 7.0274164386140925e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-10",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.193450927734375e-05,
+      "rmse": 1.3103618942842116e-05,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-11",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.71661376953125e-05,
+      "rmse": 3.334263893644459e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-12",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.4437904357910156e-05,
+      "rmse": 1.1825953584402316e-05,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-13",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.33514404296875e-05,
+      "rmse": 1.6135449070877145e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-14",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.09808349609375e-05,
+      "rmse": 3.952650103763627e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-15",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.6689300537109375e-05,
+      "rmse": 2.108055372722623e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-16",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.86102294921875e-05,
+      "rmse": 7.013112777142852e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-17",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.4781951904296875e-05,
+      "rmse": 1.6736507255080595e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-18",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.002716064453125e-05,
+      "rmse": 3.6762242993348963e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-19",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.002716064453125e-05,
+      "rmse": 2.8183451153209806e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-20",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.09808349609375e-05,
+      "rmse": 6.353275961008674e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0001-logits-21",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.430511474609375e-05,
+      "rmse": 5.955757573675412e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-encoder",
+      "shape": [
+        1,
+        126,
+        512
+      ],
+      "maximum_absolute_error": 1.2636184692382812e-05,
+      "rmse": 1.7674548278353873e-06
+    },
+    {
+      "name": "formula-0005-logits-0",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.002716064453125e-05,
+      "rmse": 1.5871669689933372e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-1",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.430511474609375e-05,
+      "rmse": 2.425287225444087e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-2",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.621246337890625e-05,
+      "rmse": 1.6726834990021102e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-3",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.7642974853515625e-05,
+      "rmse": 2.8195352287708522e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-4",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.33514404296875e-05,
+      "rmse": 1.6451279762911726e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-5",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.71661376953125e-05,
+      "rmse": 1.9865745475407736e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-6",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.09808349609375e-05,
+      "rmse": 2.6228391206322285e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-7",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.5735626220703125e-05,
+      "rmse": 6.214871519957262e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-8",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.09808349609375e-05,
+      "rmse": 1.0045643540792022e-05,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-9",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.52587890625e-05,
+      "rmse": 2.3682349359218783e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-10",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.002716064453125e-05,
+      "rmse": 5.485000390260938e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-11",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.33514404296875e-05,
+      "rmse": 2.454288568019276e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-12",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.9073486328125e-05,
+      "rmse": 3.4166050950362212e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0005-logits-13",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.384185791015625e-05,
+      "rmse": 2.8629420074561693e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-encoder",
+      "shape": [
+        1,
+        126,
+        512
+      ],
+      "maximum_absolute_error": 1.2874603271484375e-05,
+      "rmse": 1.7926408139485091e-06
+    },
+    {
+      "name": "formula-0014-logits-0",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.1457672119140625e-05,
+      "rmse": 4.2382123001916485e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-1",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.47955322265625e-05,
+      "rmse": 8.370533742203217e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-2",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.6689300537109375e-05,
+      "rmse": 1.5225039637103497e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-3",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.5139579772949219e-05,
+      "rmse": 1.2754998729472226e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-4",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.615285873413086e-05,
+      "rmse": 1.8521107281692554e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-5",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.3828277587890625e-05,
+      "rmse": 2.625428525390246e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-6",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.288818359375e-05,
+      "rmse": 2.844372166767149e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-7",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.9073486328125e-05,
+      "rmse": 6.829406511531284e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-8",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.1444091796875e-05,
+      "rmse": 1.5711371932695585e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-9",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.4543533325195312e-05,
+      "rmse": 1.2290060055091226e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-10",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.5020370483398438e-05,
+      "rmse": 1.912835910081702e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-11",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.4781951904296875e-05,
+      "rmse": 5.539039651533878e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-12",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.71661376953125e-05,
+      "rmse": 2.637978424951844e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-13",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.0967254638671875e-05,
+      "rmse": 1.4991697422085237e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-14",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.5153160095214844e-05,
+      "rmse": 3.5980200058520645e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-15",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.811981201171875e-05,
+      "rmse": 1.949491896710306e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-16",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.9073486328125e-05,
+      "rmse": 5.317110405052761e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-17",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.52587890625e-05,
+      "rmse": 1.4792561118696836e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-18",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.8835067749023438e-05,
+      "rmse": 1.2442032030400767e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-19",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.811981201171875e-05,
+      "rmse": 7.941326635495306e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-20",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.811981201171875e-05,
+      "rmse": 7.2257306570143655e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-21",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.71661376953125e-05,
+      "rmse": 5.280856749910501e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-22",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.384185791015625e-05,
+      "rmse": 2.366170452246106e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-23",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.52587890625e-05,
+      "rmse": 1.2596491534192488e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "formula-0014-logits-24",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 1.5616416931152344e-05,
+      "rmse": 3.362903842382566e-06,
+      "argmax_equal": true
+    },
+    {
+      "name": "unimer-cache-127-logits",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 2.193450927734375e-05,
+      "rmse": 2.1678851237621297e-06
+    },
+    {
+      "name": "unimer-cache-127-present_key_0",
+      "shape": [
+        1,
+        16,
+        128,
+        16
+      ],
+      "maximum_absolute_error": 1.430511474609375e-06,
+      "rmse": 2.4491485595899143e-08
+    },
+    {
+      "name": "unimer-cache-127-present_value_0",
+      "shape": [
+        1,
+        16,
+        128,
+        32
+      ],
+      "maximum_absolute_error": 1.2516975402832031e-06,
+      "rmse": 1.514874142019748e-08
+    },
+    {
+      "name": "unimer-cache-127-present_key_1",
+      "shape": [
+        1,
+        16,
+        128,
+        16
+      ],
+      "maximum_absolute_error": 2.6226043701171875e-06,
+      "rmse": 3.4023005263898744e-08
+    },
+    {
+      "name": "unimer-cache-127-present_value_1",
+      "shape": [
+        1,
+        16,
+        128,
+        32
+      ],
+      "maximum_absolute_error": 1.2367963790893555e-06,
+      "rmse": 2.426192491352921e-08
+    },
+    {
+      "name": "unimer-cache-127-present_key_2",
+      "shape": [
+        1,
+        16,
+        128,
+        16
+      ],
+      "maximum_absolute_error": 3.0994415283203125e-06,
+      "rmse": 6.61664234654584e-08
+    },
+    {
+      "name": "unimer-cache-127-present_value_2",
+      "shape": [
+        1,
+        16,
+        128,
+        32
+      ],
+      "maximum_absolute_error": 1.9669532775878906e-06,
+      "rmse": 3.099515196028897e-08
+    },
+    {
+      "name": "unimer-cache-127-present_key_3",
+      "shape": [
+        1,
+        16,
+        128,
+        16
+      ],
+      "maximum_absolute_error": 4.291534423828125e-06,
+      "rmse": 9.791152376947547e-08
+    },
+    {
+      "name": "unimer-cache-127-present_value_3",
+      "shape": [
+        1,
+        16,
+        128,
+        32
+      ],
+      "maximum_absolute_error": 1.6689300537109375e-06,
+      "rmse": 3.863663954603744e-08
+    },
+    {
+      "name": "unimer-cache-127-present_key_4",
+      "shape": [
+        1,
+        16,
+        128,
+        16
+      ],
+      "maximum_absolute_error": 5.245208740234375e-06,
+      "rmse": 1.4203001299119697e-07
+    },
+    {
+      "name": "unimer-cache-127-present_value_4",
+      "shape": [
+        1,
+        16,
+        128,
+        32
+      ],
+      "maximum_absolute_error": 2.473592758178711e-06,
+      "rmse": 6.611657562656543e-08
+    },
+    {
+      "name": "unimer-cache-127-present_key_5",
+      "shape": [
+        1,
+        16,
+        128,
+        16
+      ],
+      "maximum_absolute_error": 5.4836273193359375e-06,
+      "rmse": 1.509782292800168e-07
+    },
+    {
+      "name": "unimer-cache-127-present_value_5",
+      "shape": [
+        1,
+        16,
+        128,
+        32
+      ],
+      "maximum_absolute_error": 3.874301910400391e-06,
+      "rmse": 1.0176142127889821e-07
+    },
+    {
+      "name": "unimer-cache-127-present_key_6",
+      "shape": [
+        1,
+        16,
+        128,
+        16
+      ],
+      "maximum_absolute_error": 6.556510925292969e-06,
+      "rmse": 1.5333541378441835e-07
+    },
+    {
+      "name": "unimer-cache-127-present_value_6",
+      "shape": [
+        1,
+        16,
+        128,
+        32
+      ],
+      "maximum_absolute_error": 5.27501106262207e-06,
+      "rmse": 1.2095262612845252e-07
+    },
+    {
+      "name": "unimer-cache-127-present_key_7",
+      "shape": [
+        1,
+        16,
+        128,
+        16
+      ],
+      "maximum_absolute_error": 6.198883056640625e-06,
+      "rmse": 1.8219286112435145e-07
+    },
+    {
+      "name": "unimer-cache-127-present_value_7",
+      "shape": [
+        1,
+        16,
+        128,
+        32
+      ],
+      "maximum_absolute_error": 5.245208740234375e-06,
+      "rmse": 1.6624475899508408e-07
+    },
+    {
+      "name": "unimer-cache-511-logits",
+      "shape": [
+        1,
+        1,
+        50000
+      ],
+      "maximum_absolute_error": 3.337860107421875e-05,
+      "rmse": 1.1694291868734483e-05
+    },
+    {
+      "name": "unimer-cache-511-present_key_0",
+      "shape": [
+        1,
+        16,
+        512,
+        16
+      ],
+      "maximum_absolute_error": 1.1920928955078125e-06,
+      "rmse": 1.0776689264573417e-08
+    },
+    {
+      "name": "unimer-cache-511-present_value_0",
+      "shape": [
+        1,
+        16,
+        512,
+        32
+      ],
+      "maximum_absolute_error": 1.6689300537109375e-06,
+      "rmse": 8.046162229722074e-09
+    },
+    {
+      "name": "unimer-cache-511-present_key_1",
+      "shape": [
+        1,
+        16,
+        512,
+        16
+      ],
+      "maximum_absolute_error": 2.384185791015625e-06,
+      "rmse": 2.0114155845601803e-08
+    },
+    {
+      "name": "unimer-cache-511-present_value_1",
+      "shape": [
+        1,
+        16,
+        512,
+        32
+      ],
+      "maximum_absolute_error": 1.6689300537109375e-06,
+      "rmse": 1.1952260719772353e-08
+    },
+    {
+      "name": "unimer-cache-511-present_key_2",
+      "shape": [
+        1,
+        16,
+        512,
+        16
+      ],
+      "maximum_absolute_error": 3.337860107421875e-06,
+      "rmse": 4.011093438150919e-08
+    },
+    {
+      "name": "unimer-cache-511-present_value_2",
+      "shape": [
+        1,
+        16,
+        512,
+        32
+      ],
+      "maximum_absolute_error": 2.1457672119140625e-06,
+      "rmse": 2.0560336399608735e-08
+    },
+    {
+      "name": "unimer-cache-511-present_key_3",
+      "shape": [
+        1,
+        16,
+        512,
+        16
+      ],
+      "maximum_absolute_error": 7.152557373046875e-06,
+      "rmse": 8.331890031078555e-08
+    },
+    {
+      "name": "unimer-cache-511-present_value_3",
+      "shape": [
+        1,
+        16,
+        512,
+        32
+      ],
+      "maximum_absolute_error": 1.5497207641601562e-06,
+      "rmse": 2.1173858394989393e-08
+    },
+    {
+      "name": "unimer-cache-511-present_key_4",
+      "shape": [
+        1,
+        16,
+        512,
+        16
+      ],
+      "maximum_absolute_error": 6.67572021484375e-06,
+      "rmse": 8.506520186851884e-08
+    },
+    {
+      "name": "unimer-cache-511-present_value_4",
+      "shape": [
+        1,
+        16,
+        512,
+        32
+      ],
+      "maximum_absolute_error": 2.1457672119140625e-06,
+      "rmse": 3.072228833732753e-08
+    },
+    {
+      "name": "unimer-cache-511-present_key_5",
+      "shape": [
+        1,
+        16,
+        512,
+        16
+      ],
+      "maximum_absolute_error": 9.059906005859375e-06,
+      "rmse": 1.071031321088642e-07
+    },
+    {
+      "name": "unimer-cache-511-present_value_5",
+      "shape": [
+        1,
+        16,
+        512,
+        32
+      ],
+      "maximum_absolute_error": 3.993511199951172e-06,
+      "rmse": 4.2903840764341554e-08
+    },
+    {
+      "name": "unimer-cache-511-present_key_6",
+      "shape": [
+        1,
+        16,
+        512,
+        16
+      ],
+      "maximum_absolute_error": 5.602836608886719e-06,
+      "rmse": 7.90594827168532e-08
+    },
+    {
+      "name": "unimer-cache-511-present_value_6",
+      "shape": [
+        1,
+        16,
+        512,
+        32
+      ],
+      "maximum_absolute_error": 4.291534423828125e-06,
+      "rmse": 5.958616693971214e-08
+    },
+    {
+      "name": "unimer-cache-511-present_key_7",
+      "shape": [
+        1,
+        16,
+        512,
+        16
+      ],
+      "maximum_absolute_error": 6.67572021484375e-06,
+      "rmse": 9.739424555535366e-08
+    },
+    {
+      "name": "unimer-cache-511-present_value_7",
+      "shape": [
+        1,
+        16,
+        512,
+        32
+      ],
+      "maximum_absolute_error": 5.513429641723633e-06,
+      "rmse": 7.708656984070625e-08
+    }
+  ]
+}

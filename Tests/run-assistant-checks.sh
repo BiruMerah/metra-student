@@ -12,7 +12,7 @@ xcrun swiftc -parse-as-library -swift-version 5 -default-isolation MainActor \
   MetraStudent/Domain/Protocols/AIAssistant/AssistantGeneratingProtocol.swift \
   MetraStudent/Domain/Protocols/AIAssistant/AssistantVoiceCapturingProtocol.swift \
   MetraStudent/Domain/Helpers/TopicSentenceChunker.swift \
-  MetraStudent/Presentation/Document/ViewModels/SectionViewModel.swift \
+  MetraStudent/Presentation/Section/ViewModels/SectionViewModel.swift \
   MetraStudent/Data/AISources/FoundationModel.swift \
   MetraStudent/Data/AISources/MetraSpeechCapture.swift \
   MetraStudent/Presentation/AIAssistant/ViewModels/AIAssistantViewModel.swift \

@@ -13,10 +13,9 @@ struct SectionSentenceView: View {
 
     var body: some View {
         IndonesianSpeech.text(sentence.text)
-            .font(.body)
-            .lineSpacing(4)
+            .font(AppTypography.readingBody)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: AppSize.Height.tapTarget, alignment: .leading)
             .contentShape(Rectangle())
             .onTapGesture(count: 2) { onDoubleTap() }
             .accessibilityElement(children: .ignore)

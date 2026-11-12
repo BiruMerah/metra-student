@@ -102,10 +102,10 @@ struct HomeView: View {
             if channelViewModel.channels.isEmpty {
                 // MARK: - Not joining any channel state
                 Section {
-                    VStack(spacing: 10) {
+                    VStack(spacing: AppSize.Spacing.actions) {
                         if channelViewModel.isInitialSyncing {
                             ChannelSyncingView()
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSize.Spacing.large)
                                 .padding(.vertical, 14)
                                 .frame(maxWidth: .infinity)
                                 .background(
@@ -123,7 +123,12 @@ struct HomeView: View {
                         
                         addDocumentButton
                     }
-                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                    .listRowInsets(EdgeInsets(
+                        top: AppSize.Spacing.tight,
+                        leading: 0,
+                        bottom: AppSize.Spacing.tight,
+                        trailing: 0
+                    ))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                 }
@@ -191,31 +196,34 @@ struct HomeView: View {
                         ContentUnavailableView {
                             Label {
                                 IndonesianSpeech.text("Dokumen tidak ditemukan")
+                                    .font(AppTypography.headline)
                             } icon: {
                                 Image(systemName: "magnifyingglass")
                                     .accessibilityHidden(true)
                             }
                         } description: {
                             IndonesianSpeech.text("Tidak ada dokumen yang cocok dengan “\(trimmedSearchText)”.")
+                                .font(AppTypography.supporting)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, AppSize.Spacing.small)
                         .accessibilityElement(children: .combine)
                     } else {
-                        VStack(spacing: 8) {
+                        VStack(spacing: AppSize.Spacing.small) {
                             Image(systemName: "doc.text")
                                 .font(.largeTitle)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColor.brand)
                                 .accessibilityHidden(true)
                             IndonesianSpeech.text("Belum Ada Materi")
-                                .font(.headline)
+                                .font(AppTypography.headline)
+                                .foregroundStyle(AppColor.heading)
                             IndonesianSpeech.text("Materi dari guru dan dokumen yang kamu tambahkan akan muncul di sini.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(AppTypography.supporting)
+                                .foregroundStyle(AppColor.secondaryText)
                                 .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .padding(.vertical, AppSize.Spacing.large)
                         .accessibilityElement(children: .combine)
                     }
                 } else {
@@ -244,13 +252,16 @@ struct HomeView: View {
             } header: {
                 HStack {
                     IndonesianSpeech.text("Daftar Dokumen")
+                        .font(AppTypography.supportingEmphasis)
+                        .foregroundStyle(AppColor.heading)
                     Spacer()
                     if !documentViewModel.savedMaterials.isEmpty {
                         IndonesianSpeech.text(documentCountText)
-                            .font(.caption.weight(.medium))
+                            .font(AppTypography.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
+                .textCase(nil)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(IndonesianSpeech.text(documentHeaderAccessibilityLabel))
                 .accessibilityAddTraits(.isHeader)
@@ -260,7 +271,10 @@ struct HomeView: View {
             .accessibilityHidden(isConverting)
         }
         .listStyle(.insetGrouped)
-        .listSectionSpacing(12)
+        .listSectionSpacing(AppSize.Spacing.medium)
+        .contentMargins(.horizontal, AppSize.Inset.page, for: .scrollContent)
+        .scrollContentBackground(.hidden)
+        .background(AppColor.background.ignoresSafeArea())
     }
 
     var body: some View {

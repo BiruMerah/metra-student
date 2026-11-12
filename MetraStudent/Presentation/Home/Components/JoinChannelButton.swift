@@ -16,37 +16,37 @@ struct JoinChannelButton: View {
     var body: some View {
         let isLargeText = dynamicTypeSize.isAccessibilitySize
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: AppSize.Spacing.medium) {
                 if !isLargeText {
-                    IconTile("person.2.badge.plus", tint: .accentColor)
+                    IconTile("person.2.badge.plus")
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     IndonesianSpeech.text("Gabung Kelas")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                        .font(AppTypography.headline)
+                        .foregroundStyle(AppColor.heading)
                     IndonesianSpeech.text("Masukkan kode undangan dari guru")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.supporting)
+                        .foregroundStyle(AppColor.secondaryText)
                 }
                 
-                Spacer(minLength: 8)
+                Spacer(minLength: AppSize.Spacing.small)
                 
                 Image(systemName: "plus.circle.fill")
                     .font(.title3)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(AppColor.brand)
                     .accessibilityHidden(true)
             }
-            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, AppSize.Spacing.large)
+            .padding(.vertical, AppSize.Spacing.medium)
+            .frame(maxWidth: .infinity, minHeight: AppSize.Height.largeButton, alignment: .leading)
             .background(
-                Color(.secondarySystemGroupedBackground),
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                AppColor.brandSubtle,
+                in: RoundedRectangle(cornerRadius: AppSize.Radius.largeButton, style: .circular)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.accentColor.opacity(0.22), lineWidth: 1)
+                RoundedRectangle(cornerRadius: AppSize.Radius.largeButton, style: .circular)
+                    .strokeBorder(AppColor.brand.opacity(0.22), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

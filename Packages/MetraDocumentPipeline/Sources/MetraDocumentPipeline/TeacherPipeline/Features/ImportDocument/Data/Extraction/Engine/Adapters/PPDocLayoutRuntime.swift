@@ -1,9 +1,8 @@
 #if os(iOS)
 import Foundation
-import CryptoKit
+import CoreML
 import ImageIO
 import UIKit
-import OnnxRuntimeBindings
 
 struct LayoutModelMetadata: Codable, Sendable {
     let modelID: String
@@ -25,7 +24,7 @@ struct LayoutResult: Codable, Sendable {
     let model: LayoutModelMetadata
     let runtime: String
     let backend: String
-    let intraOpThreads: Int
+    let intraOpThreads: Int?
     let modelWasWarm: Bool
     let pageSize: [Int]
     let rawBoxes: [[Double]]
@@ -41,13 +40,12 @@ enum LayoutRuntimeError: LocalizedError {
     }
 }
 
-// One session / inference lane. No network calls, CoreML fallback or host service.
+// One native Core ML model / inference lane; all weights are bundled.
 actor PPDocLayoutRuntime {
-    private var environment: ORTEnv?
-    private var session: ORTSession?
+    private var session: CoreMLInference?
     private var metadata: LayoutModelMetadata?
 
-    func unload() { session = nil; environment = nil; metadata = nil }
+    func unload() { session = nil; metadata = nil }
 
     func detect(imageURL: URL, pageID: String, pageRoot: URL, enqueuedAt: Double) throws -> LayoutResult {
         try Task.checkCancellation()
@@ -55,23 +53,13 @@ actor PPDocLayoutRuntime {
         let warm = session != nil
         let loadStart = ProcessInfo.processInfo.systemUptime
         if session == nil {
-            guard let modelURL = Bundle.module.url(forResource: "PP-DocLayout-L", withExtension: "onnx"),
-                  let configURL = Bundle.module.url(forResource: "PP-DocLayout-L.config", withExtension: "json") else {
-                throw LayoutRuntimeError.invalid("PP-DocLayout-L ONNX/config tidak ada di bundle aplikasi.")
+            guard let configURL = Bundle.module.url(forResource: "PP-DocLayout-L.config", withExtension: "json") else {
+                throw LayoutRuntimeError.invalid("Konfigurasi PP-DocLayout-L tidak ada di bundle aplikasi.")
             }
             let config = try JSONDecoder().decode(LayoutModelMetadata.self, from: Data(contentsOf: configURL))
-            let actualHash = try Self.fileHash(modelURL)
-            guard actualHash == config.exportSHA256 else { throw LayoutRuntimeError.invalid("SHA-256 PP-DocLayout-L tidak sesuai manifest.") }
-            let env = try ORTEnv(loggingLevel: .warning)
-            let options = try ORTSessionOptions()
-            try options.setIntraOpNumThreads(2)
-            try options.setGraphOptimizationLevel(.all)
-            let loaded = try ORTSession(env: env, modelPath: modelURL.path, sessionOptions: options)
-            guard Set(try loaded.inputNames()) == Set(config.inputNames),
-                  Set(try loaded.outputNames()) == Set([config.boxesOutputName, config.countOutputName]) else {
-                throw LayoutRuntimeError.invalid("Nama tensor ekspor PP-DocLayout-L berbeda dari manifest.")
-            }
-            environment = env; session = loaded; metadata = config
+            session = try CoreMLInference(name: "PP-DocLayout-L", sourceSHA256: config.exportSHA256,
+                inputs: Set(config.inputNames), outputs: [config.boxesOutputName, config.countOutputName])
+            metadata = config
         }
         guard let session, let metadata else { throw LayoutRuntimeError.invalid("Session layout tidak siap.") }
         let loadMS = warm ? 0 : (ProcessInfo.processInfo.systemUptime - loadStart) * 1000
@@ -81,27 +69,22 @@ actor PPDocLayoutRuntime {
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { throw LayoutRuntimeError.invalid("Layout tidak dapat membaca PNG halaman.") }
         let pixels = try Self.rgbTensor(image)
         let inputs = [
-            "image": try Self.tensor(pixels, shape: [1, 3, 640, 640]),
-            "im_shape": try Self.tensor([640, 640], shape: [1, 2]),
-            "scale_factor": try Self.tensor([640 / Float(image.height), 640 / Float(image.width)], shape: [1, 2])
+            "image": try CoreMLInference.tensor(pixels, shape: [1, 3, 640, 640]),
+            "im_shape": try CoreMLInference.tensor([640, 640], shape: [1, 2]),
+            "scale_factor": try CoreMLInference.tensor([640 / Float(image.height), 640 / Float(image.width)], shape: [1, 2])
         ]
         let preprocessMS = (ProcessInfo.processInfo.systemUptime - preprocessStart) * 1000
         try Task.checkCancellation()
         let inferenceStart = ProcessInfo.processInfo.systemUptime
-        let outputs = try session.run(withInputs: inputs, outputNames: Set([metadata.boxesOutputName, metadata.countOutputName]), runOptions: nil)
+        let outputs = try session.predict(inputs, outputs: [metadata.boxesOutputName, metadata.countOutputName])
         let inferenceMS = (ProcessInfo.processInfo.systemUptime - inferenceStart) * 1000
         let postStart = ProcessInfo.processInfo.systemUptime
         guard let boxes = outputs[metadata.boxesOutputName], let count = outputs[metadata.countOutputName] else { throw LayoutRuntimeError.invalid("Output layout kosong.") }
-        let shapeInfo = try boxes.tensorTypeAndShapeInfo()
-        let shape = shapeInfo.shape.map(\.intValue)
-        guard shapeInfo.elementType == .float, shape.count == 2, shape[1] == 6 else { throw LayoutRuntimeError.invalid("Shape output layout bukan [N,6] float32: \(shape).") }
-        let countData = try count.tensorData() as Data
-        let countInfo = try count.tensorTypeAndShapeInfo()
-        guard countInfo.elementType == .int32, countData.count == MemoryLayout<Int32>.size else { throw LayoutRuntimeError.invalid("Shape bbox_num bukan satu int32.") }
-        let reportedCount = countData.withUnsafeBytes { Int($0.loadUnaligned(as: Int32.self)) }
+        let shape = CoreMLInference.shape(boxes)
+        guard boxes.dataType == .float32, shape.count == 2, shape[1] == 6 else { throw LayoutRuntimeError.invalid("Shape output layout bukan [N,6] float32: \(shape).") }
+        let reportedCount = try CoreMLInference.integer(count)
         guard reportedCount == shape[0] else { throw LayoutRuntimeError.invalid("bbox_num tidak sama dengan jumlah baris deteksi.") }
-        let data = try boxes.tensorData() as Data
-        let floats = data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+        let floats = try CoreMLInference.floats(boxes)
         guard floats.count == shape[0] * 6 else { throw LayoutRuntimeError.invalid("Panjang tensor layout tidak sesuai shape.") }
         let rows = stride(from: 0, to: floats.count, by: 6).map { offset in Array(floats[offset..<(offset + 6)]).map(Double.init) }
         guard rows.joined().allSatisfy(\.isFinite) else { throw LayoutRuntimeError.invalid("Output layout mengandung nilai non-finite.") }
@@ -118,22 +101,10 @@ actor PPDocLayoutRuntime {
         }
         try Self.overlay(image, regions: regions).write(to: pageRoot.appendingPathComponent("layout-overlay.png"), options: .atomic)
         let artifactMS = (ProcessInfo.processInfo.systemUptime - artifactStart) * 1000
-        let result = LayoutResult(model: metadata, runtime: "ONNX Runtime 1.24.2", backend: "CPUExecutionProvider", intraOpThreads: 2, modelWasWarm: warm, pageSize: [image.width, image.height], rawBoxes: rows, outputShape: shape, regions: regions, metrics: ["queue_wait_ms": max(0, enqueued - enqueuedAt) * 1000, "model_load_ms": loadMS, "preprocess_ms": preprocessMS, "inference_ms": inferenceMS, "postprocess_ms": postMS, "artifact_write_ms": artifactMS, "total_ms": (ProcessInfo.processInfo.systemUptime - enqueued) * 1000])
+        let result = LayoutResult(model: metadata, runtime: CoreMLInference.runtime, backend: CoreMLInference.backend, intraOpThreads: nil, modelWasWarm: warm, pageSize: [image.width, image.height], rawBoxes: rows, outputShape: shape, regions: regions, metrics: ["queue_wait_ms": max(0, enqueued - enqueuedAt) * 1000, "model_load_ms": loadMS, "preprocess_ms": preprocessMS, "inference_ms": inferenceMS, "postprocess_ms": postMS, "artifact_write_ms": artifactMS, "total_ms": (ProcessInfo.processInfo.systemUptime - enqueued) * 1000])
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(result).write(to: pageRoot.appendingPathComponent("layout.raw.json"), options: .atomic)
         return result
-    }
-
-    private static func tensor(_ values: [Float], shape: [Int]) throws -> ORTValue {
-        let data = values.withUnsafeBytes { NSMutableData(bytes: $0.baseAddress!, length: $0.count) }
-        return try ORTValue(tensorData: data, elementType: .float, shape: shape.map { NSNumber(value: $0) })
-    }
-
-    private static func fileHash(_ url: URL) throws -> String {
-        let handle = try FileHandle(forReadingFrom: url); defer { try? handle.close() }
-        var hash = SHA256()
-        while let data = try handle.read(upToCount: 1024 * 1024), !data.isEmpty { hash.update(data: data) }
-        return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     private static func rgbTensor(_ image: CGImage) throws -> [Float] {
