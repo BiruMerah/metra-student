@@ -3,7 +3,7 @@ import Foundation
 import CryptoKit
 import ImageIO
 import UIKit
-import OnnxRuntimeBindings
+import CoreML
 
 struct PaddleOCRModel: Codable, Sendable {
     let modelID:String
@@ -41,15 +41,14 @@ struct PaddleOCRRecognition: Codable, Sendable {
     let geometryScope:String
 }
 
-/// Pinned text-line recognizer, batch 1 on the existing native ORT CPU backend.
+/// Pinned text-line recognizer, batch 1 on native Core ML with flexible line width.
 /// It consumes a real image crop; no OCR string or expected answer is a model input.
 actor PaddleOCRRuntime {
-    private var environment:ORTEnv?
-    private var session:ORTSession?
+    private var session:CoreMLInference?
     private var model:PaddleOCRModel?
     private var dictionary:[String] = []
 
-    func unload() { session=nil;environment=nil;model=nil;dictionary=[] }
+    func unload() { session=nil;model=nil;dictionary=[] }
 
     func recognize(cropURL:URL,id:String,artifacts:URL) throws -> PaddleOCRRecognition {
         try Task.checkCancellation()
@@ -60,19 +59,17 @@ actor PaddleOCRRuntime {
         let preprocessStart=ProcessInfo.processInfo.systemUptime
         guard let source=CGImageSourceCreateWithURL(cropURL as CFURL,nil),let image=CGImageSourceCreateImageAtIndex(source,0,nil) else { throw PaddleOCRError.invalid("Cannot decode line crop") }
         let prepared=try Self.prepare(image,model:model)
-        let tensorData=prepared.values.withUnsafeBytes { NSMutableData(bytes:$0.baseAddress!,length:$0.count) }
-        let input=try ORTValue(tensorData:tensorData,elementType:.float,shape:[1,3,model.height,prepared.width].map { NSNumber(value:$0) })
+        let input=try CoreMLInference.tensor(prepared.values,shape:[1,3,model.height,prepared.width])
         let preprocessMS=(ProcessInfo.processInfo.systemUptime-preprocessStart)*1000
         try Task.checkCancellation()
         let inferenceStart=ProcessInfo.processInfo.systemUptime
-        let outputs=try session.run(withInputs:[model.inputName:input],outputNames:[model.outputName],runOptions:nil)
+        let outputs=try session.predict([model.inputName:input],outputs:[model.outputName])
         let inferenceMS=(ProcessInfo.processInfo.systemUptime-inferenceStart)*1000,postStart=ProcessInfo.processInfo.systemUptime
         guard let output=outputs[model.outputName] else { throw PaddleOCRError.invalid("Output missing") }
-        let info=try output.tensorTypeAndShapeInfo(),shape=info.shape.map(\.intValue)
-        guard info.elementType == .float,shape.count==3,shape[0]==1,shape[1]>0,shape[2]==dictionary.count else { throw PaddleOCRError.invalid("Expected [1,T,\(dictionary.count)] float32, got \(shape)") }
-        let data=try output.tensorData() as Data
-        let trace:([Int],[Float])=try data.withUnsafeBytes { raw in
-            let values=raw.bindMemory(to:Float.self)
+        let shape=CoreMLInference.shape(output)
+        guard output.dataType == .float32,shape.count==3,shape[0]==1,shape[1]>0,shape[2]==dictionary.count else { throw PaddleOCRError.invalid("Expected [1,T,\(dictionary.count)] float32, got \(shape)") }
+        let trace:([Int],[Float])=try {
+            let values=try CoreMLInference.floats(output)
             guard values.count==shape[1]*shape[2] else { throw PaddleOCRError.invalid("Output byte count mismatch") }
             var indices:[Int]=[],scores:[Float]=[]
             for t in 0..<shape[1] {
@@ -86,9 +83,9 @@ actor PaddleOCRRuntime {
                 indices.append(best);scores.append(values[offset+best])
             }
             return (indices,scores)
-        }
+        }()
         let decoded=try PaddleOCRCTC.decode(indices:trace.0,scores:trace.1,dictionary:dictionary,blankID:model.blankID)
-        let result=PaddleOCRRecognition(id:id,model:model,runtime:"ONNX Runtime 1.24.2",backend:"CPUExecutionProvider",modelWasWarm:warm,
+        let result=PaddleOCRRecognition(id:id,model:model,runtime:CoreMLInference.runtime,backend:CoreMLInference.backend,modelWasWarm:warm,
             sourceSize:[image.width,image.height],resizedSize:[prepared.resizedWidth,model.height],inputShape:[1,3,model.height,prepared.width],outputShape:shape,
             argmaxIndices:trace.0,argmaxProbabilities:trace.1,decoded:decoded,
             metrics:["model_load_ms":loadMS,"preprocess_ms":preprocessMS,"inference_ms":inferenceMS,"postprocess_ms":(ProcessInfo.processInfo.systemUptime-postStart)*1000,"total_ms":(ProcessInfo.processInfo.systemUptime-totalStart)*1000],
@@ -101,21 +98,17 @@ actor PaddleOCRRuntime {
 
     private func load() throws {
         let base="PaddleOCR-PP-OCRv5-mobile-rec"
-        guard let modelURL=Bundle.module.url(forResource:base,withExtension:"onnx"),let configURL=Bundle.module.url(forResource:base+".config",withExtension:"json") else { throw PaddleOCRError.invalid("Bundled model/config missing") }
+        guard let configURL=Bundle.module.url(forResource:base+".config",withExtension:"json") else { throw PaddleOCRError.invalid("Bundled config missing") }
         let config=try JSONDecoder().decode(PaddleOCRModel.self,from:Data(contentsOf:configURL))
         guard config.modelID=="PaddlePaddle/PP-OCRv5_mobile_rec_onnx",config.height==48,config.blankID==0,
               config.sha256=="da72dc72ca4dc220df0dfde68c1dedc31c58d3e76a25871122e5056227d50092",
-              try Self.hash(modelURL)==config.sha256,let resource=Bundle.module.resourceURL else { throw PaddleOCRError.invalid("Pinned model identity/hash mismatch") }
+              let resource=Bundle.module.resourceURL else { throw PaddleOCRError.invalid("Pinned model identity/hash mismatch") }
         let dictURL=resource.appendingPathComponent(config.dictionaryFile)
         guard try Self.hash(dictURL)==config.dictionarySHA256 else { throw PaddleOCRError.invalid("Dictionary hash mismatch") }
         let chars=try JSONDecoder().decode([String].self,from:Data(contentsOf:dictURL))
         guard chars.count==config.dictionaryClasses,chars.first=="",["∠","°","²","³"].allSatisfy(chars.contains) else { throw PaddleOCRError.invalid("CTC dictionary mismatch") }
-        let env=try ORTEnv(loggingLevel:.warning),options=try ORTSessionOptions()
-        guard (1...8).contains(config.intraOpThreads) else { throw PaddleOCRError.invalid("Invalid CPU thread count") }
-        try options.setIntraOpNumThreads(Int32(config.intraOpThreads));try options.setGraphOptimizationLevel(.all)
-        let loaded=try ORTSession(env:env,modelPath:modelURL.path,sessionOptions:options)
-        guard try loaded.inputNames()==[config.inputName],try loaded.outputNames()==[config.outputName] else { throw PaddleOCRError.invalid("Tensor names mismatch") }
-        environment=env;session=loaded;dictionary=chars;model=config
+        session=try CoreMLInference(name:base,sourceSHA256:config.sha256,inputs:[config.inputName],outputs:[config.outputName])
+        dictionary=chars;model=config
     }
 
     private static func hash(_ url:URL) throws -> String {

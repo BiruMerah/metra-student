@@ -1,0 +1,6 @@
+# Maintainer-only export/parity environment; never used by the app or Xcode build.
+coremltools==9.0
+onnx==1.17.0
+onnxruntime==1.23.2
+numpy==1.26.4
+Pillow==13.0.0

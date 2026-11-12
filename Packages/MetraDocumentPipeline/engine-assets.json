@@ -1,45 +1,174 @@
 {
-  "source": "Metra/Resources; unchanged migration weights",
-  "release": {
-    "repository": "BiruMerah/poc-multipeer-teacher",
-    "tag": "teacher-engine-assets-v1"
-  },
+  "schema": "metra-student-bundled-assets-v2",
+  "distribution": "Git LFS; hydrated by git clone/pull after one-time git lfs install",
+  "runtime": "Core ML",
+  "precision": "FP32; no quantization",
+  "decoder": "Multifunction first_token/cached_token with lossless shared weights",
   "files": [
     {
-      "path": "PP-DocLayout-L.onnx",
-      "releaseAsset": "PP-DocLayout-L.onnx",
-      "bytes": 129523577,
-      "sha256": "95730824e39491e1a56b40560c4288ca8ca96caea77ff16ebbfa289adb8c9b7a"
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/PP-DocLayout-L.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "bytes": 2542899,
+      "sha256": "e7badc83227fca87cfd951521d682932bc1740722639c484298f1c58cf78f2b5"
     },
     {
-      "path": "PaddleOCR-PP-OCRv5-mobile-rec.onnx",
-      "url": "https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/ed152b8b495f84de93cda5709d768548a9127622/inference.onnx",
-      "bytes": 16534782,
-      "sha256": "da72dc72ca4dc220df0dfde68c1dedc31c58d3e76a25871122e5056227d50092"
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/PP-DocLayout-L.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "bytes": 137154332,
+      "sha256": "34b10775f325efa1f6bbd6b8a0dd36527962af446ce47122af7f1f6a056d7ed8"
     },
     {
-      "path": "Pix2Text-MFD.onnx",
-      "url": "https://huggingface.co/breezedeus/pix2text-mfd/resolve/fc3797af79391c32ed0d56f8b5f437b5a49271be/mfd-v20240618.onnx",
-      "bytes": 44573224,
-      "sha256": "51a8854743b17ae654729af8db82a630c1ccfa06debf4856c8b28055f87d02c1"
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/PP-DocLayout-L.mlpackage/Manifest.json",
+      "bytes": 617,
+      "sha256": "658ea852f9d3d7f570705f9f4cc36e70f9600e070def9928be5b659d721a1ee9"
     },
     {
-      "path": "UniMERNet/decoder_model.onnx",
-      "releaseAsset": "UniMERNet-decoder_model.onnx",
-      "bytes": 325975220,
-      "sha256": "1c8912bac33cf3abbb07097f954f2030b64ddcb0badef30062471b6f6789a233"
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/PaddleOCR-PP-OCRv5-mobile-rec.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "bytes": 106784,
+      "sha256": "791feea12eb89132b1c166986807e99ff41f404fcb8e263e603ebfec2afc50d9"
     },
     {
-      "path": "UniMERNet/decoder_with_past_model.onnx",
-      "releaseAsset": "UniMERNet-decoder_with_past_model.onnx",
-      "bytes": 325978820,
-      "sha256": "331c8a61eb2483f8cc610e0c17ab842b856a0c936be263048ca67ba7f378a359"
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/PaddleOCR-PP-OCRv5-mobile-rec.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "bytes": 16449440,
+      "sha256": "316af27d89c80cd6ba65d1fc563fda50f1a82239e98fe0d70ee08befe47103dc"
     },
     {
-      "path": "UniMERNet/encoder_model.onnx",
-      "releaseAsset": "UniMERNet-encoder_model.onnx",
-      "bytes": 105876820,
-      "sha256": "b1c03135fd8ffa264b3b4e477d6f2a1929b95ef531df03c1f62fd3068845d8ce"
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/PaddleOCR-PP-OCRv5-mobile-rec.mlpackage/Manifest.json",
+      "bytes": 617,
+      "sha256": "5bfeb152f1d0323f45a53c324c19066d3abbcab455d0f23cdddde4f365d617be"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/Pix2Text-MFD.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "bytes": 123899,
+      "sha256": "d5d4dfaab3c7fae037e10e28107d8259cff6091e13a22dbca2874d6b8fba32cc"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/Pix2Text-MFD.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "bytes": 44514304,
+      "sha256": "3b9ef884d0887d930fd5c14a703c171364c5140792976f2584e4ae9236aff71f"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/Pix2Text-MFD.mlpackage/Manifest.json",
+      "bytes": 617,
+      "sha256": "5db2cdda33773fbba9eb99332af70c35927f1f2e2f1d8b2f87aa7024c1212335"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet-Decoder.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "bytes": 380799,
+      "sha256": "067ab0bed910c552fb61ad9072ccdcd5c1f82d9fb97fe1c9fbad89187f69f447"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet-Decoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "bytes": 325692992,
+      "sha256": "d90d62748fe584d5ccffd5487919380fbd9b78b5766b4221f1cc09e5e473adab"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet-Decoder.mlpackage/Manifest.json",
+      "bytes": 617,
+      "sha256": "7ac774cf04198a221888ba3350509f2516f7fc0e5203ec7554737e960679880a"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet-Encoder.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "bytes": 473436,
+      "sha256": "8d62835ffebd17d5d3bb1a93eafa64e0b7e636550f25e579418c74288e93319d"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet-Encoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "bytes": 104359424,
+      "sha256": "30edc28d0e99b7f706430bdea338f20d077ca6fd28be941c91beca752abbae65"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet-Encoder.mlpackage/Manifest.json",
+      "bytes": 617,
+      "sha256": "26d3fb8ca7591b0d35d9f1b1df8cc6b458eda6298f3a209fa1600e292169cb4a"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/MathVisualRepresentationClassifier.mlmodel",
+      "bytes": 19251,
+      "sha256": "f5a6837fc1649b99172f621b9873f15de139f83e17c6a4ef74b811756adbb062"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework/Info.plist",
+      "bytes": 1245,
+      "sha256": "725f5f4b2a293fc6c07089060fc8929d21d5565ae0fb55cf10e509914b4bd6fb"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework/ios-arm64/Headers/metra_mathcat.h",
+      "bytes": 656,
+      "sha256": "a8add6c7c8d024e65551d88be952bab651297da677a235e5c3b71d21ee7bac23"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework/ios-arm64/Headers/module.modulemap",
+      "bytes": 66,
+      "sha256": "dcbafe7635a6f23234eaae193693348a54485f2bb62ac8f314270fe698ebe314"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework/ios-arm64/libmetra_mathcat.a",
+      "bytes": 43481000,
+      "sha256": "6b1370aadb3da09a2cb701352b550f0c6ba1fe46253d1aaf81bbb671c4f29882"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework/ios-arm64-simulator/Headers/metra_mathcat.h",
+      "bytes": 656,
+      "sha256": "a8add6c7c8d024e65551d88be952bab651297da677a235e5c3b71d21ee7bac23"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework/ios-arm64-simulator/Headers/module.modulemap",
+      "bytes": 66,
+      "sha256": "dcbafe7635a6f23234eaae193693348a54485f2bb62ac8f314270fe698ebe314"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Binaries/MathCAT.xcframework/ios-arm64-simulator/libmetra_mathcat.a",
+      "bytes": 43470224,
+      "sha256": "36fd6fcebda9e82d1ae78bacfb10a69b580386cbf561330f799b78c8856de5bc"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/PP-DocLayout-L.config.json",
+      "bytes": 2134,
+      "sha256": "5a7d54f4aeef5cb95f37dfa0fc0be494af96196731e01cdfc933a7565cdf51cb"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/Pix2Text-MFD.config.json",
+      "bytes": 1412,
+      "sha256": "24df2223feeba771ab34e6b58ade87c29e097c20914b57db29ef68308b90ec94"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/PaddleOCR-PP-OCRv5-mobile-rec.config.json",
+      "bytes": 1640,
+      "sha256": "ddb66094937b6f5634a9a80dd359ff2fd5d48ae1abdd4b8c6d8393235ad60733"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/PaddleOCR-PP-OCRv5-mobile-rec.characters.json",
+      "bytes": 110789,
+      "sha256": "14ccb8e120e701464bd3084acf3b398ffee767e515477ad27d3c80fd5996c180"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet/README.md",
+      "bytes": 1057,
+      "sha256": "6eb0517fee84a0769e7415cf598080b900b196d6e182aa6496b8bdbd5801bf24"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet/config.json",
+      "bytes": 4915,
+      "sha256": "f85c55bd4ec5f73f1a59bc0cf133e9d9622941ad9dbc6c78504c75d80b46f267"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet/preprocessor_config.json",
+      "bytes": 617,
+      "sha256": "d06c4b87fd6aa74b8b2cdbc4361227d8073ce37e8cfe9e6442802d0bee64da03"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet/tokenizer.json",
+      "bytes": 2140013,
+      "sha256": "02c318d9cfa95bf323371762b8f838a82709530274d36dba6eca880f0add6cc4"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet/tokenizer_config.json",
+      "bytes": 4491,
+      "sha256": "fd4d94f8b9dbb7deeb3a3ef084ca0e16c43d45774a180730b7e9cfd6359a074b"
+    },
+    {
+      "path": "Packages/MetraDocumentPipeline/Sources/MetraDocumentPipeline/Resources/UniMERNet/unimernet-manifest.json",
+      "bytes": 14038,
+      "sha256": "662d171966488aa96a7fafaa009446fe667e59374319b19b795aac6d75f8089b"
     }
   ]
 }

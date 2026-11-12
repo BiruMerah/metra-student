@@ -71,6 +71,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5F15BAE13092417D00275EE7 /* Build configuration list for PBXNativeTarget "MetraStudent" */;
 			buildPhases = (
+				D9C000000000000000000004 /* Verify bundled models */,
 				5F15BAD23092417C00275EE7 /* Sources */,
 				5F15BAD33092417C00275EE7 /* Frameworks */,
 				5F15BAD43092417C00275EE7 /* Resources */,
@@ -134,6 +135,22 @@
 			);
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D9C000000000000000000004 /* Verify bundled models */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputFileListPaths = ("$(SRCROOT)/Tools/bundled-assets.xcfilelist",);
+			inputPaths = ("$(SRCROOT)/Tools/check-bundled-assets.sh", "$(SRCROOT)/Tools/bundled-assets.sha256",);
+			name = "Verify bundled models";
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"${SRCROOT}/Tools/check-bundled-assets.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5F15BAD23092417C00275EE7 /* Sources */ = {

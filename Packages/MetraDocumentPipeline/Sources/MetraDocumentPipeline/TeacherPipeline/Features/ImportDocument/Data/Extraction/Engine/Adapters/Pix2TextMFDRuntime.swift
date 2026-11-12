@@ -1,9 +1,8 @@
 #if os(iOS)
 import Foundation
-import CryptoKit
+import CoreML
 import ImageIO
 import UIKit
-import OnnxRuntimeBindings
 
 struct MFDModelMetadata: Codable, Sendable {
     let modelID: String
@@ -44,11 +43,10 @@ struct MFDResult: Codable, Sendable {
 /// A separate detector lane. It outputs crop proposals, never LaTeX or speech.
 actor Pix2TextMFDRuntime {
     static let proposalVersion = "pix2text_mfd_image_proposal_v1"
-    private var environment: ORTEnv?
-    private var session: ORTSession?
+    private var session: CoreMLInference?
     private var metadata: MFDModelMetadata?
 
-    func unload() { session = nil; environment = nil; metadata = nil }
+    func unload() { session = nil; metadata = nil }
 
     func detect(imageURL: URL, pageID: String, pageRoot: URL, enqueuedAt: Double) throws -> MFDResult {
         try Task.checkCancellation()
@@ -56,29 +54,13 @@ actor Pix2TextMFDRuntime {
         let warm = session != nil
         let loadStart = ProcessInfo.processInfo.systemUptime
         if session == nil {
-            guard let model = Bundle.module.url(forResource: "Pix2Text-MFD", withExtension: "onnx"),
-                  let config = Bundle.module.url(forResource: "Pix2Text-MFD.config", withExtension: "json") else {
-                throw LayoutRuntimeError.invalid("Pix2Text-MFD ONNX/config tidak tersedia; jalur DocLayout tetap dapat dilanjutkan.")
+            guard let config = Bundle.module.url(forResource: "Pix2Text-MFD.config", withExtension: "json") else {
+                throw LayoutRuntimeError.invalid("Konfigurasi Pix2Text-MFD tidak tersedia; jalur DocLayout tetap dapat dilanjutkan.")
             }
             let meta = try JSONDecoder().decode(MFDModelMetadata.self, from: Data(contentsOf: config))
-            let handle = try FileHandle(forReadingFrom: model)
-            defer { try? handle.close() }
-            var hash = SHA256(), byteCount = 0
-            while let bytes = try handle.read(upToCount: 1024 * 1024), !bytes.isEmpty {
-                try Task.checkCancellation(); hash.update(data: bytes); byteCount += bytes.count
-            }
-            guard byteCount == meta.bytes, hash.finalize().map({ String(format: "%02x", $0) }).joined() == meta.sha256 else {
-                throw LayoutRuntimeError.invalid("SHA-256/ukuran Pix2Text-MFD tidak sesuai manifest.")
-            }
-            let env = try ORTEnv(loggingLevel: .warning)
-            let options = try ORTSessionOptions()
-            try options.setIntraOpNumThreads(2)
-            try options.setGraphOptimizationLevel(.all)
-            let loaded = try ORTSession(env: env, modelPath: model.path, sessionOptions: options)
-            guard try loaded.inputNames() == [meta.inputName], try loaded.outputNames() == [meta.outputName] else {
-                throw LayoutRuntimeError.invalid("Nama tensor Pix2Text-MFD tidak sesuai manifest.")
-            }
-            environment = env; session = loaded; metadata = meta
+            session = try CoreMLInference(name: "Pix2Text-MFD", sourceSHA256: meta.sha256,
+                inputs: [meta.inputName], outputs: [meta.outputName])
+            metadata = meta
         }
         guard let session, let meta = metadata else { throw LayoutRuntimeError.invalid("Session MFD tidak siap.") }
         let loadMS = warm ? 0 : (ProcessInfo.processInfo.systemUptime - loadStart) * 1000
@@ -86,22 +68,20 @@ actor Pix2TextMFDRuntime {
         guard let source = CGImageSourceCreateWithURL(imageURL as CFURL, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { throw LayoutRuntimeError.invalid("MFD tidak dapat membaca halaman.") }
         let input = try Self.preprocess(image, metadata: meta)
-        let data = input.pixels.withUnsafeBytes { NSMutableData(bytes: $0.baseAddress!, length: $0.count) }
-        let tensor = try ORTValue(tensorData: data, elementType: .float, shape: input.shape.map { NSNumber(value: $0) })
+        let tensor = try CoreMLInference.tensor(input.pixels, shape: input.shape)
         let preprocessMS = (ProcessInfo.processInfo.systemUptime - preprocessStart) * 1000
         try Task.checkCancellation()
         let inferenceStart = ProcessInfo.processInfo.systemUptime
-        let outputs = try session.run(withInputs: [meta.inputName: tensor], outputNames: [meta.outputName], runOptions: nil)
+        let outputs = try session.predict([meta.inputName: tensor], outputs: [meta.outputName])
         let inferenceMS = (ProcessInfo.processInfo.systemUptime - inferenceStart) * 1000
         let postStart = ProcessInfo.processInfo.systemUptime
         guard let output = outputs[meta.outputName] else { throw LayoutRuntimeError.invalid("Output MFD kosong.") }
-        let info = try output.tensorTypeAndShapeInfo(), shape = infoShape(output)
-        guard info.elementType == .float, shape.count == 3, shape[0] == 1,
+        let shape = CoreMLInference.shape(output)
+        guard output.dataType == .float32, shape.count == 3, shape[0] == 1,
               shape[1] == 4 + meta.labels.count, shape[2] > 0 else {
             throw LayoutRuntimeError.invalid("Shape MFD bukan [1,6,N]: \(shape).")
         }
-        let bytes = try output.tensorData() as Data
-        let floats = bytes.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+        let floats = try CoreMLInference.floats(output)
         let count = shape[2], channels = shape[1]
         guard floats.count == count * channels else { throw LayoutRuntimeError.invalid("Ukuran tensor MFD salah.") }
         let rows = (0..<count).map { i in (0..<channels).map { Double(floats[$0 * count + i]) } }
@@ -141,7 +121,7 @@ actor Pix2TextMFDRuntime {
             kept[index].cropArtifact = "pages/\(pageID)/crops/\(kept[index].id).png"
         }
         try Self.overlay(image, regions: kept).write(to: pageRoot.appendingPathComponent("mfd-overlay.png"), options: .atomic)
-        let result = MFDResult(model: meta, runtime: "ONNX Runtime 1.24.2", backend: "CPUExecutionProvider; 2 intra-op threads",
+        let result = MFDResult(model: meta, runtime: CoreMLInference.runtime, backend: CoreMLInference.backend,
             modelWasWarm: warm, pageSize: [image.width,image.height], inputShape: input.shape, outputShape: shape,
             scale: input.scale, padding: [input.left,input.top], rawPredictions: rows, regions: kept,
             metrics: ["queue_wait_ms": max(0,start-enqueuedAt)*1000, "model_load_ms": loadMS, "preprocess_ms": preprocessMS,
@@ -152,8 +132,6 @@ actor Pix2TextMFDRuntime {
         try encoder.encode(result).write(to: pageRoot.appendingPathComponent("mfd.raw.json"), options: .atomic)
         return result
     }
-
-    private func infoShape(_ output: ORTValue) -> [Int] { (try? output.tensorTypeAndShapeInfo().shape.map(\.intValue)) ?? [] }
 
     private struct Input {
         let pixels: [Float]
