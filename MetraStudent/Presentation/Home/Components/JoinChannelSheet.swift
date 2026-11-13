@@ -13,13 +13,27 @@ struct JoinChannelSheet: View {
     let isLoading: Bool
     let onJoin: (String) async -> Bool
     
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+    @AccessibilityFocusState(for: .voiceOver) private var isTitleFocused: Bool
     @State private var joinChannelCodeInput: String = ""
+
+    private var isCodeIncomplete: Bool {
+        joinChannelCodeInput.trimmingCharacters(in: .whitespacesAndNewlines).count < 6
+    }
+
+    private var joinButtonAccessibilityHint: String {
+        !isLoading && isCodeIncomplete ? "Kode yang dimasukkan belum 6 karakter" : ""
+    }
     
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            sheetHeader
+                .accessibilityElement(children: .contain)
+                .accessibilitySortPriority(1)
+
             Form {
                 Section {
-                    TextField("Kode kelas (contoh: MTK10A)", text: $joinChannelCodeInput)
+                    TextField("Masukkan enam karakter kode undangan dari Guru", text: $joinChannelCodeInput)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.characters)
                         .font(AppTypography.accessCode)
@@ -47,32 +61,75 @@ struct JoinChannelSheet: View {
                             Spacer()
                         }
                     }
-                    .disabled(joinChannelCodeInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
+                    .disabled(isCodeIncomplete || isLoading)
+                    .accessibilityHint(IndonesianSpeech.text(joinButtonAccessibilityHint))
                 } header: {
                     IndonesianSpeech.text("Kode undangan kelas")
-                } footer: {
-                    IndonesianSpeech.text("Masukkan enam karakter kode undangan dari guru.")
                 }
             }
-            .navigationTitle(IndonesianSpeech.text("Gabung Kelas"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(indonesian: "Batal") {
-                        isPresented = false
-                    }
-                }
-            }
-            .alert(IndonesianSpeech.text("Belum bisa bergabung"), isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button(indonesian: "Tutup", role: .cancel) { errorMessage = nil }
-            } message: {
-                IndonesianSpeech.text(errorMessage ?? "")
-            }
+            .contentMargins(.top, 0, for: .scrollContent)
         }
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .alert(IndonesianSpeech.text("Belum bisa bergabung"), isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button(indonesian: "Tutup", role: .cancel) { errorMessage = nil }
+        } message: {
+            IndonesianSpeech.text(errorMessage ?? "")
+        }
+        .accessibilityDefaultFocus($isTitleFocused, true)
+        .accessibilityAction(.escape) { isPresented = false }
         .presentationDetents([.medium])
+        .sensoryFeedbackOnAppear()
+        .task {
+            guard voiceOver else { return }
+            // Wait for the sheet presentation transition before falling back to explicit focus.
+            do { try await Task.sleep(for: .milliseconds(350)) }
+            catch { return }
+            guard !isTitleFocused else { return }
+            isTitleFocused = true
+        }
+    }
+
+    private var sheetHeader: some View {
+        HStack(spacing: AppSize.Spacing.small) {
+            cancelButton
+                .layoutPriority(1)
+                .accessibilitySortPriority(1)
+
+            Spacer(minLength: 0)
+
+            sheetTitle
+                .accessibilitySortPriority(2)
+
+            Spacer(minLength: 0)
+
+            cancelButton
+                .hidden()
+                .disabled(true)
+                .accessibilityHidden(true)
+        }
+        .padding(.horizontal, AppSize.Spacing.large)
+        .padding(.top, AppSize.Spacing.large)
+        .padding(.bottom, AppSize.Spacing.tight)
+    }
+
+    private var sheetTitle: some View {
+        IndonesianSpeech.text("Formulir Gabung Kelas")
+            .font(AppTypography.headline)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityFocused($isTitleFocused)
+    }
+
+    private var cancelButton: some View {
+        Button(indonesian: "Batal") {
+            isPresented = false
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.capsule)
     }
 }
 
