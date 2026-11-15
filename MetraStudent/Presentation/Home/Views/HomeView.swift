@@ -24,10 +24,12 @@ struct HomeView: View {
     @State private var isShowingPDFPicker = false
     @State private var isShowingPhotoPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
-    #if os(iOS)
     @State private var isShowingCamera = false
     @State private var capturedCameraPhoto: Data?
-    #endif
+    @State private var cameraPermissionFallback: CameraPermissionFallback?
+    @State private var isRequestingCameraPermission = false
+    @State private var shouldReopenCameraFromSettings = false
+    @State private var cameraPermissionTask: Task<Void, Never>?
     
     private var isConverting: Bool {
         documentViewModel.progress != nil
@@ -37,20 +39,12 @@ struct HomeView: View {
         isVoiceOverEnabled && isConverting && scenePhase == .active && !isShowingPDFPicker && !isShowingPhotoPicker
     }
 
-    private var cameraAction: (() -> Void)? {
-        #if os(iOS)
-        { isShowingCamera = true }
-        #else
-        nil
-        #endif
-    }
-
     private var addDocumentButton: some View {
         AddDocumentButton(
             isDisabled: !documentViewModel.canImport || isConverting,
             onSelectPDF: { isShowingPDFPicker = true },
             onSelectPhoto: { isShowingPhotoPicker = true },
-            onTakePhoto: cameraAction
+            onTakePhoto: openCamera
         )
     }
     
@@ -94,6 +88,13 @@ struct HomeView: View {
                     documentViewModel.dismissImportSuccess()
                 }
             }
+        )
+    }
+
+    private var isShowingCameraPermissionAlert: Binding<Bool> {
+        Binding(
+            get: { cameraPermissionFallback != nil },
+            set: { if !$0 { cameraPermissionFallback = nil } }
         )
     }
     
@@ -291,6 +292,23 @@ struct HomeView: View {
                     guard shouldFocusImportProgress, !Task.isCancelled else { return }
                     isImportProgressFocused = true
                 }
+                .alert(
+                    IndonesianSpeech.text(cameraPermissionFallback?.title ?? ""),
+                    isPresented: isShowingCameraPermissionAlert,
+                    presenting: cameraPermissionFallback
+                ) { fallback in
+                    if fallback.canOpenSettings {
+                        Button(indonesian: "Buka Pengaturan Aplikasi") {
+                            cameraPermissionFallback = nil
+                            openCameraSettingsFromHome()
+                        }
+                    }
+                    Button(indonesian: "Tutup", role: .cancel) {
+                        cameraPermissionFallback = nil
+                    }
+                } message: { fallback in
+                    IndonesianSpeech.text(fallback.message)
+                }
         }
         .navigationTitle(IndonesianSpeech.text("Metra"))
         .task(id: searchText) {
@@ -313,11 +331,9 @@ struct HomeView: View {
                 await channelViewModel.joinChannel(code: code) != nil
             }
         }
-        #if os(iOS)
         .fullScreenCover(isPresented: $isShowingCamera, onDismiss: importCapturedPhoto) {
             DocumentCameraView { capturedCameraPhoto = $0 }
         }
-        #endif
         .photosPicker(
             isPresented: $isShowingPhotoPicker,
             selection: $selectedPhoto,
@@ -353,10 +369,15 @@ struct HomeView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                reopenCameraIfAuthorizedAfterSettings()
                 Task {
                     await channelViewModel.reloadAllChannels()
                 }
             }
+        }
+        .onDisappear {
+            cameraPermissionTask?.cancel()
+            cameraPermissionTask = nil
         }
         .onChange(of: documentViewModel.completedImport?.id) {
             guard let material = documentViewModel.completedImport else { return }
@@ -383,13 +404,60 @@ struct HomeView: View {
         }
     }
 
-    #if os(iOS)
+    private func openCamera() {
+        guard !isShowingCamera, !isRequestingCameraPermission else { return }
+        if let fallback = CameraPermission.currentFallback() {
+            cameraPermissionFallback = fallback
+            return
+        }
+        if CameraPermission.isAuthorized {
+            isShowingCamera = true
+            return
+        }
+
+        isRequestingCameraPermission = true
+        cameraPermissionTask = Task {
+            defer {
+                isRequestingCameraPermission = false
+                cameraPermissionTask = nil
+            }
+            let fallback = await CameraPermission.requestAccessIfNeeded()
+            guard !Task.isCancelled else { return }
+            if let fallback {
+                // Wait briefly for the system permission sheet to finish dismissing before presenting the alert.
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled, scenePhase != .background else { return }
+                cameraPermissionFallback = CameraPermission.currentFallback() ?? fallback
+            } else {
+                isShowingCamera = true
+            }
+        }
+    }
+
+    private func openCameraSettingsFromHome() {
+        shouldReopenCameraFromSettings = true
+        CameraPermission.openAppSettings { opened in
+            guard !opened else { return }
+            shouldReopenCameraFromSettings = false
+            documentViewModel.errorMessage = "Pengaturan aplikasi belum dapat dibuka. Buka Pengaturan secara manual untuk mengizinkan akses kamera."
+        }
+    }
+
+    private func reopenCameraIfAuthorizedAfterSettings() {
+        guard shouldReopenCameraFromSettings else { return }
+        shouldReopenCameraFromSettings = false
+        guard CameraPermission.isAuthorized,
+              documentViewModel.canImport,
+              !isConverting,
+              !channelViewModel.isShowingJoinSheet else { return }
+        isShowingCamera = true
+    }
+
     private func importCapturedPhoto() {
         guard let data = capturedCameraPhoto else { return }
         capturedCameraPhoto = nil
         documentViewModel.importCameraPhoto(data)
     }
-    #endif
     
     // MARK: - Search Helpers
     private var documentCountText: String {
