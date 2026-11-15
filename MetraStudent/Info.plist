@@ -9,8 +9,8 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Kamera digunakan untuk memandu pengambilan foto halaman materi dan mengonversinya menjadi materi belajar.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Mikrofon digunakan untuk merekam pertanyaan tentang materi yang kamu pilih.</string>
+	<string>Metra menggunakan mikrofon untuk merekam pertanyaanmu.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Ucapan diubah menjadi teks untuk Asisten Metra. Layanan pengenalan suara Apple dapat memproses rekaman jika perangkat belum mendukung pengenalan suara secara langsung.</string>
+	<string>Metra mengubah pertanyaan suaramu menjadi teks.</string>
 </dict>
 </plist>
