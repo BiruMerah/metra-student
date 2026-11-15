@@ -291,6 +291,10 @@ final class CloudKitManager {
     }
     
     private func parseMaterial(from record: CKRecord) -> MathMaterialModel? {
+        decodeMaterial(from: record)?.withTeacherSource()
+    }
+
+    private func decodeMaterial(from record: CKRecord) -> MathMaterialModel? {
         guard let title = record["title"] as? String else { return nil }
         let idString = record["materialID"] as? String ?? record.recordID.recordName
         let id = UUID(uuidString: idString) ?? UUID()

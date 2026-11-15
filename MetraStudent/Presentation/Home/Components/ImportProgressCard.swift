@@ -16,7 +16,7 @@ struct ImportProgressCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var tint: Color { isCancelling ? .gray : AppColor.brand }
-    private var statusTitle: String { isCancelling ? "Membatalkan…" : "Mengonversi dokumen" }
+    private var statusTitle: String { isCancelling ? "Membatalkan…" : "Mengonversi materi" }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -57,7 +57,7 @@ struct ImportProgressCard: View {
                     .controlSize(.small)
                     .tint(AppColor.danger)
                     .disabled(isCancelling)
-                    .accessibilityLabel(IndonesianSpeech.text("Batalkan penambahan dokumen"))
+                    .accessibilityLabel(IndonesianSpeech.text("Batalkan penambahan materi"))
             }
         }
         .padding(.vertical, 6)
@@ -76,7 +76,7 @@ struct ImportProgressCard: View {
             isStatusFocused: $isConvertingFocused
         )
         ImportProgressCard(
-            progress: "Membatalkan penambahan dokumen…",
+            progress: "Membatalkan penambahan materi…",
             isCancelling: true,
             onCancel: {},
             isStatusFocused: $isCancellingFocused

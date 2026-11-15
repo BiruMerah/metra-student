@@ -17,7 +17,7 @@ struct AddDocumentMenu: View {
             Button(indonesian: "Pilih dari Galeri", systemImage: "photo", action: onPickPhoto)
             Button(indonesian: "Pilih PDF", systemImage: "doc", action: onPickPDF)
         } label: {
-            Label(indonesian: "Tambah Dokumen", systemImage: "plus")
+            Label(indonesian: "Tambah Materi", systemImage: "plus")
         }
         .disabled(!isEnabled)
         .accessibilityHint(IndonesianSpeech.text("Pilih foto dari galeri atau berkas PDF"))

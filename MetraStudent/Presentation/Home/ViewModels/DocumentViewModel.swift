@@ -17,8 +17,8 @@ final class DocumentViewModel {
     var errorMessage: String?
 
     var importUnavailableReason: String? {
-        if !DocumentConverter.isSupported { return "Impor dokumen tersedia di iPhone dan iPad." }
-        if !storageIsPersistent { return "Penyimpanan dokumen tidak tersedia. Coba buka ulang aplikasi." }
+        if !DocumentConverter.isSupported { return "Impor materi tersedia di iPhone dan iPad." }
+        if !storageIsPersistent { return "Penyimpanan materi tidak tersedia. Coba buka ulang aplikasi." }
         return nil
     }
 
@@ -40,7 +40,7 @@ final class DocumentViewModel {
         do {
             savedMaterials = try mathMaterialRepository.fetchSavedMaterials()
         } catch {
-            errorMessage = "Daftar dokumen belum bisa dimuat. Coba buka ulang halaman utama."
+            errorMessage = "Daftar materi belum bisa dimuat. Coba buka ulang halaman utama."
         }
     }
 
@@ -92,7 +92,7 @@ final class DocumentViewModel {
                 importTask = nil
                 isCancelling = false
                 if Task.isCancelled {
-                    notificationManager?.announceAccessibility("Penambahan dokumen dibatalkan.")
+                    notificationManager?.announceAccessibility("Penambahan materi dibatalkan.")
                 }
             }
 
@@ -108,22 +108,22 @@ final class DocumentViewModel {
             } catch {
                 guard !Task.isCancelled else { return }
                 errorMessage = (error as? LocalizedError)?.errorDescription
-                    ?? "Dokumen belum dapat dikonversi. Periksa berkas lalu coba lagi."
+                    ?? "Materi belum dapat dikonversi. Periksa berkas lalu coba lagi."
                 return
             }
 
-            progress = "Menyimpan dokumen…"
+            progress = "Menyimpan materi…"
             do {
                 try mathMaterialRepository.saveMaterial(material)
             } catch {
-                errorMessage = "Dokumen sudah dikonversi, tetapi belum tersimpan. Periksa ruang penyimpanan lalu coba lagi."
+                errorMessage = "Materi sudah dikonversi, tetapi belum tersimpan. Periksa ruang penyimpanan lalu coba lagi."
                 return
             }
             savedMaterials.removeAll { $0.id == material.id }
             savedMaterials.append(material)
             savedMaterials.sort { $0.createdAt > $1.createdAt }
             completedImport = material
-            notificationManager?.announceAccessibility("Dokumen berhasil disimpan.")
+            notificationManager?.announceAccessibility("Materi berhasil disimpan.")
         }
     }
 
@@ -131,7 +131,7 @@ final class DocumentViewModel {
         guard let importTask, !isCancelling else { return }
         importTask.cancel()
         isCancelling = true
-        progress = "Membatalkan penambahan dokumen…"
+        progress = "Membatalkan penambahan materi…"
     }
 
     func deleteMaterials(ids: Set<UUID>) -> Bool {
@@ -140,20 +140,20 @@ final class DocumentViewModel {
         do {
             try mathMaterialRepository.deleteMaterials(ids: ids)
         } catch {
-            errorMessage = "Dokumen belum dapat dihapus. Coba lagi."
+            errorMessage = "Materi belum dapat dihapus. Coba lagi."
             return false
         }
         savedMaterials.removeAll { ids.contains($0.id) }
         if let completedImport, ids.contains(completedImport.id) {
             self.completedImport = nil
         }
-        notificationManager?.announceAccessibility(count == 1 ? "Dokumen dihapus." : "\(count) dokumen dihapus.")
+        notificationManager?.announceAccessibility(count == 1 ? "Materi dihapus." : "\(count) materi dihapus.")
         return true
     }
 
     func announceSelectionMode(_ isSelecting: Bool) {
         notificationManager?.announceAccessibility(isSelecting
-            ? "Mode pilih aktif. Ketuk dua kali pada dokumen untuk memilih."
+            ? "Mode pilih aktif. Ketuk dua kali pada materi untuk memilih."
             : "Mode pilih selesai.")
     }
 

@@ -196,14 +196,14 @@ struct HomeView: View {
                     if isSearching {
                         ContentUnavailableView {
                             Label {
-                                IndonesianSpeech.text("Dokumen tidak ditemukan")
+                                IndonesianSpeech.text("Materi tidak ditemukan")
                                     .font(AppTypography.headline)
                             } icon: {
                                 Image(systemName: "magnifyingglass")
                                     .accessibilityHidden(true)
                             }
                         } description: {
-                            IndonesianSpeech.text("Tidak ada dokumen yang cocok dengan “\(trimmedSearchText)”.")
+                            IndonesianSpeech.text("Tidak ada materi yang cocok dengan “\(trimmedSearchText)”.")
                                 .font(AppTypography.supporting)
                         }
                         .frame(maxWidth: .infinity)
@@ -218,7 +218,7 @@ struct HomeView: View {
                             IndonesianSpeech.text("Belum Ada Materi")
                                 .font(AppTypography.headline)
                                 .foregroundStyle(AppColor.heading)
-                            IndonesianSpeech.text("Materi dari guru dan dokumen yang kamu tambahkan akan muncul di sini.")
+                            IndonesianSpeech.text("Materi dari guru dan yang kamu tambahkan akan muncul di sini.")
                                 .font(AppTypography.supporting)
                                 .foregroundStyle(AppColor.secondaryText)
                                 .multilineTextAlignment(.center)
@@ -252,7 +252,7 @@ struct HomeView: View {
                 }
             } header: {
                 HStack {
-                    IndonesianSpeech.text("Daftar Dokumen")
+                    IndonesianSpeech.text("Daftar Materi")
                         .font(AppTypography.supportingEmphasis)
                         .foregroundStyle(AppColor.heading)
                     Spacer()
@@ -462,24 +462,24 @@ struct HomeView: View {
     // MARK: - Search Helpers
     private var documentCountText: String {
         let total = documentViewModel.savedMaterials.count
-        guard isSearching else { return "\(total) Dokumen" }
-        return "\(matchingDocuments.count) dari \(total) Dokumen"
+        guard isSearching else { return "\(total) Materi" }
+        return "\(matchingDocuments.count) dari \(total) Materi"
     }
     
     private var documentHeaderAccessibilityLabel: String {
         let total = documentViewModel.savedMaterials.count
-        guard total > 0 else { return "Daftar Dokumen, belum ada dokumen" }
+        guard total > 0 else { return "Daftar Materi, belum ada materi" }
         guard isSearching else {
-            return "Daftar Dokumen, \(total) dokumen tersimpan"
+            return "Daftar Materi, \(total) materi tersimpan"
         }
-        return "Daftar Dokumen, \(matchingDocuments.count) hasil pencarian dari \(total) dokumen"
+        return "Daftar Materi, \(matchingDocuments.count) hasil pencarian dari \(total) materi"
     }
     
     private func announceSearchResult() {
         let count = matchingDocuments.count
         let message = count == 0
-            ? "Tidak ada dokumen yang cocok"
-            : "\(count) dokumen ditemukan"
+            ? "Tidak ada materi yang cocok"
+            : "\(count) materi ditemukan"
         IndonesianSpeech.announce(message)
     }
     
@@ -505,7 +505,10 @@ struct HomeView: View {
             MathMaterialModel(
                 title: "Bab 1 - Persamaan Linear Satu Variabel",
                 category: "Aljabar",
-                content: "Persamaan linear satu variabel."
+                content: "Persamaan linear satu variabel.",
+                isFromTeacher: true,
+                sourceChannelName: "Matematika VII-A",
+                sourceTeacherName: "Bu Sari"
             ),
             MathMaterialModel(
                 title: "Bab 2 - Teorema Pythagoras",

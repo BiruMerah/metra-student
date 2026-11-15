@@ -41,7 +41,7 @@ enum DocumentConverter {
     }
 
     private struct UnsupportedPlatform: LocalizedError {
-        var errorDescription: String? { "Impor dokumen tersedia di iPhone dan iPad." }
+        var errorDescription: String? { "Impor materi tersedia di iPhone dan iPad." }
     }
 
     // The portable material stores the ordered reading chunks. The student's

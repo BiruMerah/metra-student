@@ -14,12 +14,23 @@ struct MaterialView: View {
     var body: some View {
         List {
             Section {
-                IndonesianSpeech.text(viewModel.material.title)
-                    .font(AppTypography.contentTitle)
-                    .accessibilityAddTraits(.isHeader)
-                    .textSelection(.enabled)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                    .listRowBackground(Color.clear)
+                VStack(alignment: .leading, spacing: AppSize.Spacing.small) {
+                    IndonesianSpeech.text(viewModel.material.title)
+                        .font(AppTypography.contentTitle)
+                        .accessibilityAddTraits(.isHeader)
+                        .textSelection(.enabled)
+
+                    if viewModel.material.isFromTeacher {
+                        TeacherSourceBadge(
+                            channelName: viewModel.material.sourceChannelName,
+                            teacherName: viewModel.material.sourceTeacherName,
+                            showsContext: true
+                        )
+                    }
+                }
+                .accessibilityElement(children: .contain)
+                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                .listRowBackground(Color.clear)
             }
             
             Section {
@@ -84,7 +95,7 @@ struct MaterialView: View {
                 viewModel.removeSavedMaterial()
             }
         } message: {
-            IndonesianSpeech.text("Materi “\(viewModel.material.title)” akan dihapus dari Dokumen Tersimpan.")
+            IndonesianSpeech.text("Materi “\(viewModel.material.title)” akan dihapus dari Materi Tersimpan.")
         }
         .alert(IndonesianSpeech.text("Terjadi Kesalahan"), isPresented: Binding(
             get: { viewModel.errorMessage != nil },
@@ -105,7 +116,10 @@ struct MaterialView: View {
         category: "Aljabar",
         content: "Contoh isi materi pembelajaran dari guru.",
         overview: MaterialOverview.sample.summaryText,
-        sections: MathSectionModel.sampleSections
+        sections: MathSectionModel.sampleSections,
+        isFromTeacher: true,
+        sourceChannelName: "Matematika VII-A",
+        sourceTeacherName: "Bu Sari"
     )
     let coordinator = AppCoordinator.makePreview(savedMaterials: [sampleMaterial])
     return NavigationStack(path: Bindable(coordinator).channelPath) {

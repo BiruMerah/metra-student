@@ -57,6 +57,15 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
     var validatedAt: Date? = nil
     var overview: String? = nil
     var sections: [MathSectionModel] = []
+    var isFromTeacher: Bool = false
+    var sourceChannelName: String? = nil
+    var sourceTeacherName: String? = nil
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, category, content, createdAt, revision
+        case defaultSpeechStyle, reviewStatus, validatedAt, overview, sections
+        case isFromTeacher, sourceChannelName, sourceTeacherName
+    }
     
     init(
         id: UUID = UUID(),
@@ -69,7 +78,10 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
         reviewStatus: ReviewStatus = .draft,
         validatedAt: Date? = nil,
         overview: String? = nil,
-        sections: [MathSectionModel] = []
+        sections: [MathSectionModel] = [],
+        isFromTeacher: Bool = false,
+        sourceChannelName: String? = nil,
+        sourceTeacherName: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -82,6 +94,49 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
         self.validatedAt = validatedAt
         self.overview = overview
         self.sections = sections
+        self.isFromTeacher = isFromTeacher
+        self.sourceChannelName = Self.normalizedMetadata(sourceChannelName)
+        self.sourceTeacherName = Self.normalizedMetadata(sourceTeacherName)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        category = try container.decodeIfPresent(String.self, forKey: .category) ?? "Tester"
+        content = try container.decodeIfPresent(String.self, forKey: .content) ?? "Tester"
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        revision = try container.decodeIfPresent(Int.self, forKey: .revision) ?? 1
+        defaultSpeechStyle = try container.decodeIfPresent(SpeechStyle.self, forKey: .defaultSpeechStyle) ?? .clearSpeak
+        reviewStatus = try container.decodeIfPresent(ReviewStatus.self, forKey: .reviewStatus) ?? .draft
+        validatedAt = try container.decodeIfPresent(Date.self, forKey: .validatedAt)
+        overview = try container.decodeIfPresent(String.self, forKey: .overview)
+        sections = try container.decodeIfPresent([MathSectionModel].self, forKey: .sections) ?? []
+        isFromTeacher = try container.decodeIfPresent(Bool.self, forKey: .isFromTeacher) ?? false
+        sourceChannelName = Self.normalizedMetadata(try container.decodeIfPresent(String.self, forKey: .sourceChannelName))
+        sourceTeacherName = Self.normalizedMetadata(try container.decodeIfPresent(String.self, forKey: .sourceTeacherName))
+    }
+
+    /// Marks this material as coming from a teacher's iCloud channel.
+    func withTeacherSource(channelName: String? = nil, teacherName: String? = nil) -> MathMaterialModel {
+        var copy = self
+        copy.isFromTeacher = true
+        if let channelName = Self.normalizedMetadata(channelName) {
+            copy.sourceChannelName = channelName
+        }
+        if let teacherName = Self.normalizedMetadata(teacherName),
+           teacherName.caseInsensitiveCompare("Tidak diketahui") != .orderedSame {
+            copy.sourceTeacherName = teacherName
+        }
+        return copy
+    }
+
+    private static func normalizedMetadata(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
     }
 
     var materialOverview: MaterialOverview {
@@ -120,7 +175,10 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
             reviewStatus: reviewStatus,
             validatedAt: validatedAt,
             overview: overview,
-            sections: updatedSections
+            sections: updatedSections,
+            isFromTeacher: isFromTeacher,
+            sourceChannelName: sourceChannelName,
+            sourceTeacherName: sourceTeacherName
         )
     }
 }
