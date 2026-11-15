@@ -45,7 +45,7 @@ struct DocumentCameraView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(white: 0.13).ignoresSafeArea()
             DocumentCameraPreview(camera: camera, showsPreview: phase.showsPreview)
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
@@ -61,13 +61,27 @@ struct DocumentCameraView: View {
                 .accessibilityAction { takePhoto() }
                 .accessibilityFocused($isCaptureFocused)
 
+            if phase.showsPreview {
+                GeometryReader { viewport in
+                    let guideWidth = min(viewport.size.width * 0.74, viewport.size.height * 0.40)
+                    CameraCornerGuide()
+                        .stroke(AppColor.brand, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .frame(width: guideWidth, height: guideWidth * (376.0 / 296.0))
+                        .position(x: viewport.size.width / 2, y: viewport.size.height * 0.48)
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
+
             IndonesianSpeech.text(phase.message)
-                .font(AppTypography.headline)
+                .font(AppTypography.body)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .padding(AppSize.Spacing.large)
+                .frame(maxWidth: .infinity, minHeight: 75)
                 .background(.black.opacity(0.82), in: RoundedRectangle(cornerRadius: AppSize.Radius.cameraPanel))
-                .padding(AppSize.Inset.page)
+                .padding(.horizontal, AppSize.Inset.page)
+                .padding(.bottom, AppSize.Spacing.medium)
                 .frame(maxHeight: .infinity, alignment: .bottom)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
@@ -79,10 +93,12 @@ struct DocumentCameraView: View {
                     .frame(width: AppSize.largeIconContainer, height: AppSize.largeIconContainer)
                     .background(.black.opacity(0.82), in: Circle())
             }
+            .buttonStyle(.plain)
             .accessibilityLabel(IndonesianSpeech.text("Tutup kamera"))
             .padding(AppSize.Spacing.large)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+        .preferredColorScheme(.dark)
         .accessibilityDefaultFocus($isCaptureFocused, true)
         .accessibilityAction(.escape, close)
         .task(id: isInBackground) {
@@ -220,6 +236,25 @@ struct DocumentCameraView: View {
         guard phase != .finished else { return }
         phase = .finished
         camera.stop()
+    }
+}
+
+private struct CameraCornerGuide: Shape {
+    func path(in rect: CGRect) -> Path {
+        let length: CGFloat = 30
+        let radius: CGFloat = 8
+        var path = Path()
+
+        for (x, dx) in [(rect.minX, 1.0), (rect.maxX, -1.0)] {
+            for (y, dy) in [(rect.minY, 1.0), (rect.maxY, -1.0)] {
+                path.move(to: CGPoint(x: x, y: y + dy * length))
+                path.addLine(to: CGPoint(x: x, y: y + dy * radius))
+                path.addQuadCurve(to: CGPoint(x: x + dx * radius, y: y), control: CGPoint(x: x, y: y))
+                path.addLine(to: CGPoint(x: x + dx * length, y: y))
+            }
+        }
+
+        return path
     }
 }
 

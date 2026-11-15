@@ -19,10 +19,15 @@ struct JoinChannelSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Kode kelas (contoh: MTK10A)", text: $joinChannelCodeInput)
+                    TextField(
+                        "Kode kelas (contoh: MTK10A)",
+                        text: $joinChannelCodeInput,
+                        prompt: Text("Kode kelas (contoh: MTK10A)").foregroundStyle(AppColor.secondaryText)
+                    )
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.characters)
-                        .font(AppTypography.accessCode)
+                        .font(AppTypography.body)
+                        .listRowBackground(Color(.secondarySystemGroupedBackground))
                         .accessibilityLabel(IndonesianSpeech.text("Kode undangan kelas"))
                     
                     Button {
@@ -43,15 +48,21 @@ struct JoinChannelSheet: View {
                                     .accessibilityHidden(true)
                             }
                             IndonesianSpeech.text(isLoading ? "Sedang bergabung…" : "Gabung")
-                                .font(AppTypography.headline)
+                                .font(AppTypography.body)
                             Spacer()
                         }
                     }
+                    .listRowBackground(Color(.secondarySystemGroupedBackground))
                     .disabled(joinChannelCodeInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                 } header: {
                     IndonesianSpeech.text("Kode undangan kelas")
+                        .font(AppTypography.supporting)
+                        .foregroundStyle(AppColor.secondaryText)
+                        .textCase(nil)
                 } footer: {
                     IndonesianSpeech.text("Masukkan enam karakter kode undangan dari guru.")
+                        .font(AppTypography.supporting)
+                        .foregroundStyle(AppColor.secondaryText)
                 }
             }
             .navigationTitle(IndonesianSpeech.text("Gabung Kelas"))
@@ -73,6 +84,7 @@ struct JoinChannelSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }
 

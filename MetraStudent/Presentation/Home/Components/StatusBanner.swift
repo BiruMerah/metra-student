@@ -9,26 +9,23 @@ import SwiftUI
 
 struct StatusBanner: View {
     let message: String
-    let systemImage: String
-    let tint: Color
-
     var body: some View {
-        HStack(spacing: 12) {
-            IconTile(systemImage, tint: tint)
-            IndonesianSpeech.text(message)
-                .font(AppTypography.supporting)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
-        .listRowBackground(TintedRowBackground(tint: tint))
+        IndonesianSpeech.text(message)
+            .font(AppTypography.body)
+            .foregroundStyle(AppColor.secondaryText)
+            .padding(AppSize.Inset.page)
+            .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
+            .metraCard(radius: AppSize.Radius.assistantCard, border: .clear)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 }
 
 #Preview {
     List {
-        StatusBanner(message: "“Foto 8 Nov” sudah tersimpan.", systemImage: "checkmark.circle.fill", tint: AppColor.success)
-        StatusBanner(message: "Fitur AI belum tersedia di perangkat ini.", systemImage: "exclamationmark.triangle.fill", tint: AppColor.warning)
+        StatusBanner(message: "“Foto 8 Nov” sudah tersimpan.")
+        StatusBanner(message: "Fitur AI belum tersedia di perangkat ini.")
     }
     .listStyle(.insetGrouped)
 }

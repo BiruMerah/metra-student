@@ -9,21 +9,17 @@ import SwiftUI
 
 struct ChannelSyncingView: View {
     var body: some View {
-        VStack(spacing: 12) {
+        HStack(spacing: AppSize.Spacing.medium) {
             ProgressView()
                 .controlSize(.regular)
                 .accessibilityHidden(true)
-            IndonesianSpeech.text("Menyinkronkan kelas dengan iCloud…")
-                .font(AppTypography.supportingEmphasis)
+            IndonesianSpeech.text("Menyinkronkan kelas…")
+                .font(AppTypography.headline)
                 .foregroundStyle(.primary)
-            IndonesianSpeech.text("Memeriksa akun dan memuat daftar kelasmu.")
-                .font(AppTypography.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 16)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        .padding(AppSize.Spacing.large)
+        .frame(maxWidth: .infinity, minHeight: AppSize.Height.documentRow, alignment: .leading)
+        .metraCard(radius: AppSize.Radius.assistantCard, border: AppColor.brand.opacity(0.18))
     }
 }
 

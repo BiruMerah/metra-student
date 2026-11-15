@@ -22,7 +22,7 @@ struct IndeterminateProgressBar: View {
                 let width = geometry.size.width
                 let segment = width * 0.35
                 Capsule()
-                    .fill(tint.opacity(0.18))
+                    .fill(Color.primary.opacity(0.15))
                     .overlay(alignment: .leading) {
                         Capsule()
                             .fill(tint)

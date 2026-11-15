@@ -31,21 +31,10 @@ struct AddDocumentButton: View {
                 Label(indonesian: "Pilih Foto dari Galeri", systemImage: "photo")
             }
         } label: {
-            HStack(spacing: AppSize.Spacing.actions) {
-                Image(systemName: "doc.badge.plus")
-                    .font(.title3.weight(.semibold))
-                IndonesianSpeech.text("Tambah Dokumen")
-                    .font(AppTypography.headline)
-            }
-            .padding(.vertical, AppSize.Spacing.small)
-            .padding(.horizontal, AppSize.Spacing.large)
-            .frame(maxWidth: .infinity, minHeight: AppSize.Height.largeButton)
-            .background(
-                AppColor.brandFill,
-                in: RoundedRectangle(cornerRadius: AppSize.Radius.largeButton, style: .circular)
-            )
-            .foregroundStyle(AppColor.onBrand)
+            IndonesianSpeech.text("Tambah Dokumen")
+                .metraActionLabel(.primary)
         }
+        .menuStyle(.borderlessButton)
         .disabled(isDisabled)
         .accessibilityLabel(IndonesianSpeech.text("Tambah Dokumen"))
         .accessibilityHint(IndonesianSpeech.text("Buka pilihan sumber dokumen untuk dikonversi menjadi materi matematika bersuara"))

@@ -37,18 +37,8 @@ struct OnboardingView: View {
 
     private var welcome: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Image(.onboardingMetraMark)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 33, height: 31)
-                    .accessibilityHidden(true)
-                IndonesianSpeech.text("Metra Student")
-                    .font(AppTypography.wordmark)
-                    .foregroundStyle(AppColor.heading)
-            }
-            .frame(minHeight: 40)
-            .padding(.horizontal, AppSize.Inset.page)
+            MetraWordmark()
+                .padding(.horizontal, AppSize.Inset.page)
 
             heading("Belajar matematika,\ndengan caramu.", on: .welcome)
                 .padding(.horizontal, AppSize.Inset.page)
@@ -61,7 +51,7 @@ struct OnboardingView: View {
                 .accessibilityHidden(true)
                 .padding(.top, 38)
 
-            intro("Pahami rumus, navigasi materi per bagian dengan mudah, dan tanyakan yang belum jelas dengan Metra Assistant.")
+            intro("Pahami rumus, ikuti materi per bagian, dan tanyakan yang belum jelas dengan suara.")
                 .padding(.horizontal, 36)
                 .padding(.top, 46)
         }
@@ -73,7 +63,7 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             heading("Selamat datang\ndi Metra", on: .guide)
 
-            intro("Belajar matematika untuk tunanetra")
+            intro("Belajar matematika dengan cara yang lebih mudah diikuti.")
                 .padding(.horizontal, 16)
                 .padding(.top, 18)
 
@@ -120,9 +110,9 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: AppSize.Spacing.tight) {
                 IndonesianSpeech.text(feature.title)
                     .font(AppTypography.headline)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.primary)
                 IndonesianSpeech.text(feature.description)
-                    .font(AppTypography.callout.leading(.loose))
+                    .font(AppTypography.callout)
                     .foregroundStyle(AppColor.secondaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -143,16 +133,8 @@ struct OnboardingView: View {
                 }
             } label: {
                 IndonesianSpeech.text("Lanjutkan")
-                    .font(AppTypography.headline)
-                    .foregroundStyle(AppColor.onBrand)
-                    .padding(.vertical, AppSize.Spacing.medium)
-                    .frame(maxWidth: .infinity, minHeight: AppSize.Height.largeButton)
-                    .background(
-                        AppColor.brandFill,
-                        in: RoundedRectangle(cornerRadius: AppSize.Radius.largeButton, style: .circular)
-                    )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(MetraActionStyle())
         }
         .padding(.horizontal, AppSize.Inset.sheet)
         .frame(maxWidth: 440)
@@ -171,23 +153,23 @@ struct OnboardingView: View {
     private static let features = [
         Feature(
             symbol: "f.cursive",
-            title: "Matematika lisan",
-            description: "Belajar matematika dan rumus yang ramah VoiceOver agar kamu bisa memahami maknanya dalam konteks."
+            title: "Rumus dengan suara",
+            description: "Baca rumus dalam kalimat yang ramah VoiceOver agar kamu bisa memahami maknanya dalam konteks."
         ),
         Feature(
             symbol: "doc.text.fill",
-            title: "Navigasi materi dengan mudah",
+            title: "Belajar per topik",
             description: "Pelajari materi per topik dan baca satu kalimat demi satu kalimat, sesuai ritmemu."
         ),
         Feature(
             symbol: "mic",
-            title: "Metra Assistant",
-            description: "Ketuk dua kali pada kalimat materi yang ingin kamu pahami, lalu ajukan pertanyaan dengan suara."
+            title: "Asisten Metra",
+            description: "Ketuk dua kali pada kalimat yang ingin kamu pahami, lalu ajukan pertanyaan dengan suara."
         ),
         Feature(
             symbol: "graduationcap",
-            title: "Channel dengan guru",
-            description: "Masukkan kode undangan dari guru untuk gabung channel dan menerima materi kelas."
+            title: "Materi dari guru",
+            description: "Masukkan kode undangan dari guru untuk menerima materi kelas."
         )
     ]
 }

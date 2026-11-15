@@ -19,44 +19,34 @@ struct DisplayProfileRow: View {
         Button {
             isNameFieldFocused = true
         } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(AppColor.brand)
-                    .accessibilityHidden(true)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    TextField("Contoh: Budi", text: $userName)
-                        .font(AppTypography.headline)
-                        .focused($isNameFieldFocused)
-                        .autocorrectionDisabled()
-                        .submitLabel(.done)
-                        .onSubmit {
-                            isNameFieldFocused = false
-                        }
-                        .accessibilityLabel(IndonesianSpeech.text("Nama Tampilan Siswa"))
-                    
-                    HStack(spacing: 5) {
-                        if isInitialSyncing {
-                            ProgressView()
-                                .controlSize(.mini)
-                        } else {
-                            Image(systemName: isSignedInToiCloud ? "checkmark.icloud.fill" : "exclamationmark.icloud.fill")
-                                .foregroundStyle(isSignedInToiCloud ? AppColor.success : AppColor.danger)
-                        }
-                        IndonesianSpeech.text(accountStatusMessage)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: AppSize.Spacing.tight) {
+                TextField("Contoh: Budi", text: $userName)
+                    .font(AppTypography.body.weight(.medium))
+                    .focused($isNameFieldFocused)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .onSubmit {
+                        isNameFieldFocused = false
                     }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(IndonesianSpeech.text("Status iCloud: \(accountStatusMessage)"))
-                }
+                    .accessibilityLabel(IndonesianSpeech.text("Nama Tampilan Siswa"))
                 
-                Image(systemName: "pencil")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 5) {
+                    if isInitialSyncing {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else if !isSignedInToiCloud {
+                        Image(systemName: "exclamationmark.icloud")
+                            .foregroundStyle(AppColor.danger)
+                            .accessibilityHidden(true)
+                    }
+                    IndonesianSpeech.text(accountStatusMessage)
+                        .font(AppTypography.supporting)
+                        .foregroundStyle(AppColor.secondaryText)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(IndonesianSpeech.text("Status iCloud: \(accountStatusMessage)"))
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, AppSize.Spacing.tight)
         }
         .buttonStyle(.plain)
     }

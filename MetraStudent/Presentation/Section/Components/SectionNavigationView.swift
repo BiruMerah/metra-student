@@ -9,25 +9,19 @@ import SwiftUI
 
 struct SectionNavigationView: View {
     let title: String
-    let symbol: String
+    var appearance: MetraActionStyle.Appearance = .primary
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Label(indonesian: title, systemImage: symbol)
-                .font(AppTypography.supportingEmphasis)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, AppSize.Spacing.small)
+            IndonesianSpeech.text(title)
         }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
-        .buttonBorderShape(.capsule)
+        .buttonStyle(MetraActionStyle(appearance: appearance))
         .accessibilityLabel(IndonesianSpeech.text(title))
     }
 }
 
 #Preview {
-    SectionNavigationView(title: "Segmen Selanjutnya", symbol: "forward.end.fill", action: {})
+    SectionNavigationView(title: "Segmen Selanjutnya", action: {})
         .padding()
 }

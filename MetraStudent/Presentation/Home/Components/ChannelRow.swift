@@ -12,49 +12,37 @@ struct ChannelRow: View {
     var onLeave: (() -> Void)? = nil
     
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            HStack(alignment: .center, spacing: 12) {
-                Image(systemName: "folder.fill.badge.person.crop")
-                    .font(.title2)
-                    .foregroundStyle(AppColor.brand)
-                    .frame(width: 40, height: 40)
-                    .background(AppColor.brandSubtle, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .accessibilityHidden(true)
-                
-                VStack(alignment: .leading, spacing: 3) {
-                    IndonesianSpeech.text(channel.name)
-                        .font(AppTypography.headline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                    
-                    IndonesianSpeech.text("Guru: \(channel.createdBy)")
-                        .font(AppTypography.supporting)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+        HStack(spacing: AppSize.Spacing.small) {
+            VStack(alignment: .leading, spacing: AppSize.Spacing.tight) {
+                IndonesianSpeech.text(channel.name)
+                    .font(AppTypography.body.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                IndonesianSpeech.text("Guru: \(channel.createdBy)")
+                    .font(AppTypography.supporting)
+                    .foregroundStyle(AppColor.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(IndonesianSpeech.text("Kelas \(channel.name). Guru: \(channel.createdBy)."))
             
-            Spacer(minLength: 8)
+            Spacer(minLength: AppSize.Spacing.small)
             
             if let onLeave {
                 Button(role: .destructive, action: onLeave) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                        IndonesianSpeech.text("Keluar")
-                    }
-                    .font(AppTypography.supportingEmphasis)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(AppColor.danger.opacity(0.12), in: Capsule())
-                    .foregroundStyle(AppColor.danger)
+                    IndonesianSpeech.text("Keluar")
+                        .font(AppTypography.body)
+                        .foregroundStyle(AppColor.secondaryText)
+                        .padding(.horizontal, AppSize.Spacing.medium)
+                        .frame(minHeight: AppSize.Height.tapTarget)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(IndonesianSpeech.text("Keluar dari kelas \(channel.name)"))
                 .accessibilityHint(IndonesianSpeech.text("Keluar dari kelas ini."))
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, AppSize.Spacing.tight)
     }
 }

@@ -58,7 +58,7 @@ struct AIAssistantView: View {
         .sensoryFeedback(.start, trigger: isRecording) { _, recording in recording }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(AppColor.background)
+        .presentationBackground(Color(.systemBackground))
         .task { focused = .heading }
         .onChange(of: viewModel.errorMessage) { _, message in
             if message != nil { focused = .error }
@@ -78,11 +78,11 @@ struct AIAssistantView: View {
     private func content(viewportHeight: CGFloat) -> some View {
         ScrollViewReader { scroll in
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: AppSize.Inset.sheet) {
                     IndonesianSpeech.text("Metra Assistant", spokenAs: "Asisten Metra")
                         .font(AppTypography.screenTitle)
                         .foregroundStyle(AppColor.heading)
-                        .padding(.top, 30)
+                        .padding(.top, AppSize.Inset.sheet)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityFocused($focused, equals: .heading)
 
@@ -91,7 +91,7 @@ struct AIAssistantView: View {
                             .font(AppTypography.headline)
                             .foregroundStyle(AppColor.heading)
                         IndonesianSpeech.text(viewModel.selection.sentence)
-                            .font(AppTypography.readingBody)
+                            .font(AppTypography.body)
                     }
                     .padding(AppSize.Inset.assistantCard)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -101,9 +101,9 @@ struct AIAssistantView: View {
                     if showsReadyStatus {
                         VStack(spacing: 0) {
                             Spacer(minLength: 0)
-                            Label(indonesian: viewModel.status, systemImage: "mic")
-                                .font(AppTypography.supportingEmphasis)
-                                .foregroundStyle(.secondary)
+                            Label(indonesian: viewModel.status, systemImage: "record.circle")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColor.secondaryText)
                                 .multilineTextAlignment(.center)
                             Spacer(minLength: 0)
                         }
@@ -128,21 +128,22 @@ struct AIAssistantView: View {
                             viewModel.cancel()
                             focused = .record
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(MetraActionStyle(appearance: .secondary, fullWidth: false))
                     } else if viewModel.phase == .requestingPermissions || isRecording {
                         statusRow(viewModel.status, showsProgress: !isRecording)
                     }
 
                     if let answer = viewModel.answer {
-                        result("Jawaban", text: answer)
+                        result("Jawaban", text: answer, headingColor: AppColor.heading)
                             .accessibilityFocused($focused, equals: .answer)
                             .accessibilityIdentifier("assistant-answer")
                             .id(Focus.answer)
                             .padding(AppSize.Inset.assistantCard)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                Color.primary.opacity(0.06),
-                                in: RoundedRectangle(cornerRadius: AppSize.Radius.assistantCard)
+                            .metraCard(
+                                radius: AppSize.Radius.assistantCard,
+                                fill: Color(.systemBackground),
+                                border: AppColor.brand.opacity(0.32)
                             )
                     }
                 }
@@ -168,15 +169,9 @@ struct AIAssistantView: View {
     private var footer: some View {
         VStack(spacing: AppSize.Spacing.actions) {
             Button(action: viewModel.ask) {
-                Label(indonesian: isRecording ? "Hentikan Bertanya" : "Tanya Asisten Metra",
-                      systemImage: isRecording ? "stop.fill" : "mic.fill")
-                    .font(AppTypography.headline)
-                    .frame(maxWidth: .infinity)
+                IndonesianSpeech.text(isRecording ? "Hentikan Bertanya" : "Tanya Asisten Metra")
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .buttonBorderShape(.capsule)
-            .tint(isRecording ? AppColor.danger : AppColor.brandFill)
+            .buttonStyle(MetraActionStyle())
             .disabled(!viewModel.canAsk)
             .accessibilityHint(IndonesianSpeech.text(isRecording
                 ? "Menghentikan rekaman dan memproses pertanyaan."
@@ -186,16 +181,13 @@ struct AIAssistantView: View {
 
             Button(action: close) {
                 IndonesianSpeech.text("Kembali ke Topik")
-                    .font(AppTypography.headline)
-                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .buttonBorderShape(.capsule)
+            .buttonStyle(MetraActionStyle(appearance: .secondary))
             .accessibilityIdentifier("assistant-return-to-topic")
         }
         .padding(.horizontal, AppSize.Inset.sheet)
-        .padding(.vertical, AppSize.Spacing.actions)
+        .padding(.top, AppSize.Spacing.actions)
+        .padding(.bottom, AppSize.Spacing.tight)
         .frame(maxWidth: 680)
         .frame(maxWidth: .infinity)
         .background(AppColor.background)
@@ -205,26 +197,31 @@ struct AIAssistantView: View {
     @ViewBuilder
     private var availabilityNotice: some View {
         if let unavailable = viewModel.availabilityMessage {
-            notice(unavailable, symbol: "exclamationmark.circle", tint: AppColor.warning)
-            Button(indonesian: "Periksa Ketersediaan Lagi") { viewModel.refreshAvailability() }
-                .buttonStyle(.bordered)
+            VStack(alignment: .leading, spacing: AppSize.Spacing.large) {
+                notice(unavailable)
+                Button(indonesian: "Periksa Ketersediaan Lagi") { viewModel.refreshAvailability() }
+                    .buttonStyle(MetraActionStyle(appearance: .secondary, fullWidth: false))
+            }
         }
     }
 
     @ViewBuilder
     private var errorNotice: some View {
         if let error = viewModel.errorMessage {
-            notice(error, symbol: "exclamationmark.bubble", tint: AppColor.danger)
-                .accessibilityFocused($focused, equals: .error)
-            #if os(iOS)
-            if !viewModel.permissionsGranted {
-                Button(indonesian: "Buka Pengaturan Aplikasi") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
+            VStack(alignment: .leading, spacing: AppSize.Spacing.large) {
+                notice(error)
+                    .accessibilityFocused($focused, equals: .error)
+                #if os(iOS)
+                if !viewModel.permissionsGranted {
+                    Button(indonesian: "Buka Pengaturan Aplikasi") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
                     }
+                    .buttonStyle(MetraActionStyle(appearance: .secondary, fullWidth: false))
                 }
+                #endif
             }
-            #endif
         }
     }
 
@@ -233,23 +230,24 @@ struct AIAssistantView: View {
             if showsProgress {
                 ProgressView().accessibilityHidden(true)
             } else {
-                Image(systemName: isRecording ? "waveform" : "bubble.left.and.bubble.right")
-                    .foregroundStyle(isRecording ? AppColor.danger : AppColor.brand)
+                Image(systemName: "record.circle")
+                    .foregroundStyle(AppColor.secondaryText)
                     .accessibilityHidden(true)
             }
             IndonesianSpeech.text(text)
-                .font(AppTypography.headline)
+                .font(AppTypography.body)
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("assistant-status")
     }
 
-    private func result(_ title: String, text: String) -> some View {
+    private func result(_ title: String, text: String, headingColor: Color = .primary) -> some View {
         VStack(alignment: .leading, spacing: AppSize.Spacing.small) {
             IndonesianSpeech.text(title)
                 .font(AppTypography.headline)
+                .foregroundStyle(headingColor)
             IndonesianSpeech.text(text)
-                .font(AppTypography.readingBody)
+                .font(AppTypography.body)
                 .textSelection(.enabled)
         }
         .accessibilityElement(children: .combine)
@@ -260,12 +258,13 @@ struct AIAssistantView: View {
         dismiss()
     }
 
-    private func notice(_ text: String, symbol: String, tint: Color) -> some View {
-        Label(indonesian: text, systemImage: symbol)
-            .font(AppTypography.supporting)
-            .padding(AppSize.Spacing.large)
+    private func notice(_ text: String) -> some View {
+        IndonesianSpeech.text(text)
+            .font(AppTypography.body)
+            .foregroundStyle(AppColor.secondaryText)
+            .padding(AppSize.Inset.assistantCard)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: AppSize.Radius.card))
+            .background(AppColor.brandSubtle, in: RoundedRectangle(cornerRadius: AppSize.Radius.card))
             .accessibilityElement(children: .combine)
     }
 }

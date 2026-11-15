@@ -12,68 +12,51 @@ struct MaterialView: View {
     @State private var confirmsMaterialDeletion = false
     
     var body: some View {
-        List {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: AppSize.Inset.sheet) {
                 IndonesianSpeech.text(viewModel.material.title)
                     .font(AppTypography.contentTitle)
                     .accessibilityAddTraits(.isHeader)
                     .textSelection(.enabled)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                    .listRowBackground(Color.clear)
-            }
-            
-            Section {
-                MaterialOverviewView(overview: viewModel.overview)
-            } header: {
-                IndonesianSpeech.text("Ringkasan Materi")
-                    .font(AppTypography.headline)
-                    .textCase(nil)
-            }
-            
-            Section {
-                ForEach(Array(viewModel.sections.enumerated()), id: \.element.id) { index, section in
-                    MaterialSectionRow(
-                        section: section,
-                        index: index,
-                        onTap: {
-                            viewModel.openSection(at: index)
-                        }
-                    )
-                }
-            } header: {
-                IndonesianSpeech.text("Segmen")
-                    .font(AppTypography.headline)
-                    .textCase(nil)
-            } footer: {
-                IndonesianSpeech.text("Pilih segmen untuk melihat detailnya.")
-                    .font(AppTypography.supporting)
-            }
 
-            if viewModel.isSaved {
-                Section {
+                VStack(alignment: .leading, spacing: AppSize.Spacing.small) {
+                    IndonesianSpeech.text("Ringkasan Materi")
+                        .font(AppTypography.headline)
+                        .accessibilityAddTraits(.isHeader)
+                    MaterialOverviewView(overview: viewModel.overview)
+                }
+
+                VStack(alignment: .leading, spacing: AppSize.Spacing.small) {
+                    IndonesianSpeech.text("Segmen")
+                        .font(AppTypography.headline)
+                        .accessibilityAddTraits(.isHeader)
+                    if !viewModel.sections.isEmpty {
+                        sectionRows
+                    }
+                    IndonesianSpeech.text("Pilih segmen untuk melihat detailnya.")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.secondaryText)
+                        .padding(.top, AppSize.Spacing.small)
+                }
+
+                if viewModel.isSaved {
                     Button {
                         confirmsMaterialDeletion = true
                     } label: {
-                        Label(indonesian: "Hapus Materi", systemImage: "trash")
-                            .font(AppTypography.headline)
-                            .frame(maxWidth: .infinity)
+                        IndonesianSpeech.text("Hapus Materi")
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .buttonBorderShape(.capsule)
-                    .tint(AppColor.danger)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+                    .buttonStyle(MetraActionStyle(appearance: .destructive))
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, AppSize.Inset.page)
+            .padding(.top, AppSize.Spacing.large)
+            .padding(.bottom, AppSize.Inset.sheet)
         }
-        .listStyle(.insetGrouped)
-        .contentMargins(.horizontal, AppSize.Inset.page, for: .scrollContent)
-        .scrollContentBackground(.hidden)
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle(IndonesianSpeech.text("Detail Materi"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .onAppear {
             viewModel.checkSavedStatus()
@@ -96,6 +79,23 @@ struct MaterialView: View {
         } message: {
             IndonesianSpeech.text(viewModel.errorMessage ?? "")
         }
+    }
+
+    private var sectionRows: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(viewModel.sections.enumerated()), id: \.element.id) { index, section in
+                if index > 0 {
+                    Divider()
+                        .padding(.horizontal, AppSize.Inset.page)
+                        .accessibilityHidden(true)
+                }
+
+                MaterialSectionRow(section: section, index: index) {
+                    viewModel.openSection(at: index)
+                }
+            }
+        }
+        .metraCard()
     }
 }
 

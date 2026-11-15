@@ -11,11 +11,11 @@ struct MaterialOverviewView: View {
     let overview: MaterialOverview
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: AppSize.Spacing.medium) {
             if let summary = overview.summaryText,
                !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 IndonesianSpeech.text(summary)
-                    .font(AppTypography.readingBody)
+                    .font(AppTypography.body)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
 
@@ -28,7 +28,9 @@ struct MaterialOverviewView: View {
                 overviewLine("Halaman", value: overview.pageNumber.formatted(.number.locale(IndonesianSpeech.locale)))
             }
         }
-        .padding(.vertical, 6)
+        .padding(AppSize.Inset.readingCard)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .metraCard()
     }
 
     private func overviewLine(_ title: String, value: String) -> some View {

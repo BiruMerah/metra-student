@@ -14,8 +14,15 @@ struct SearchField: View {
     @Binding var text: String
     var placeholder: String = "Cari judul dokumen..."
     @ScaledMetric(relativeTo: .body) private var iconInset: CGFloat = 28
-    
+
     var body: some View {
+        input
+            .padding(.horizontal, AppSize.Spacing.large)
+            .metraCard(radius: AppSize.Radius.assistantCard, border: AppColor.brand.opacity(0.18))
+    }
+
+    @ViewBuilder
+    private var input: some View {
         #if os(iOS)
         DocumentSearchInput(text: $text, placeholder: placeholder, iconInset: iconInset)
         #else
@@ -117,7 +124,10 @@ private struct DocumentSearchInput: UIViewRepresentable {
         if field.text != text {
             field.text = text
         }
-        field.placeholder = placeholder
+        field.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            attributes: [.foregroundColor: UIColor(AppColor.secondaryText)]
+        )
         field.isEnabled = isEnabled
         field.leftView?.frame.size = CGSize(width: iconInset, height: iconInset)
         field.rightView?.frame.size = CGSize(width: iconInset, height: max(AppSize.Height.tapTarget, iconInset))

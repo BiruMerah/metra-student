@@ -10,19 +10,18 @@ import SwiftUI
 struct SectionHighlightCard<Content: View>: View {
     let title: String
     let symbol: String
-    var background = Color(uiColor: .secondarySystemGroupedBackground)
+    var background = Color(.secondarySystemGroupedBackground)
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSize.Spacing.medium) {
+        VStack(alignment: .leading, spacing: AppSize.Spacing.small) {
             HStack(spacing: AppSize.Spacing.small) {
                 Image(systemName: symbol)
-                    .foregroundStyle(AppColor.brand)
                     .accessibilityHidden(true)
                 IndonesianSpeech.text(title)
-                    .foregroundStyle(.primary)
             }
-            .font(AppTypography.headline)
+            .font(AppTypography.body)
+            .foregroundStyle(AppColor.secondaryText)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(IndonesianSpeech.text(title))
             .accessibilityAddTraits(.isHeader)
@@ -31,12 +30,7 @@ struct SectionHighlightCard<Content: View>: View {
         }
         .padding(AppSize.Inset.readingCard)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(background, in: RoundedRectangle(cornerRadius: AppSize.Radius.callout))
-        .overlay {
-            RoundedRectangle(cornerRadius: AppSize.Radius.callout)
-                .strokeBorder(AppColor.brand.opacity(0.4), lineWidth: 1)
-                .accessibilityHidden(true)
-        }
+        .metraCard(radius: AppSize.Radius.callout, fill: background, border: AppColor.brand.opacity(0.22))
         .accessibilityElement(children: .contain)
     }
 }

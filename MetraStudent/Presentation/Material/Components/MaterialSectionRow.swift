@@ -14,34 +14,25 @@ struct MaterialSectionRow: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
-                Image(systemName: "doc.text.fill")
-                    .font(.title2)
-                    .foregroundStyle(AppColor.brand)
-                    .frame(width: 52, height: 52)
-                    .background(AppColor.brandSubtle, in: RoundedRectangle(cornerRadius: 12))
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    IndonesianSpeech.text(section.title)
-                        .font(AppTypography.headline)
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            HStack(spacing: AppSize.Spacing.medium) {
+                IndonesianSpeech.text(section.title)
+                    .font(AppTypography.body)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(.tertiary)
                     .accessibilityHidden(true)
             }
+            .padding(.horizontal, AppSize.Inset.page)
+            .padding(.vertical, AppSize.Spacing.large)
+            .frame(minHeight: 58)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .alignmentGuide(.listRowSeparatorLeading) { dimensions in
-            dimensions[.leading] + 64
-        }
         .accessibilityLabel(IndonesianSpeech.text("Segmen \(index + 1), \(section.title)"))
         .accessibilityHint(IndonesianSpeech.text("Buka detail topik"))
     }

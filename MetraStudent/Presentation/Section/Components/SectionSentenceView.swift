@@ -13,7 +13,7 @@ struct SectionSentenceView: View {
 
     var body: some View {
         IndonesianSpeech.text(sentence.text)
-            .font(AppTypography.readingBody)
+            .font(AppTypography.body)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, minHeight: AppSize.Height.tapTarget, alignment: .leading)
             .contentShape(Rectangle())

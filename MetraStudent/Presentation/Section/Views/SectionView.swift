@@ -39,8 +39,8 @@ struct SectionView: View {
                         .id("topic-start")
 
                     IndonesianSpeech.text(viewModel.progress)
-                        .font(AppTypography.supporting)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.secondaryText)
                         .padding(.top, AppSize.Spacing.small)
                         .accessibilityFocused($readingFocus, equals: .progress)
 
@@ -58,40 +58,18 @@ struct SectionView: View {
                             }
                         }
                     }
-                    .padding(.top, AppSize.Spacing.large)
+                    .padding(.top, AppSize.Inset.sheet)
                     .accessibilityElement(children: .contain)
-
-                    VStack(spacing: AppSize.Spacing.medium) {
-                        Divider().accessibilityHidden(true)
-
-                        if viewModel.hasNextSection {
-                            SectionNavigationView(
-                                title: "Segmen Selanjutnya",
-                                symbol: "forward.end.fill",
-                                action: viewModel.nextSection
-                            )
-                        } else {
-                            SectionNavigationView(title: "Selesaikan Materi", symbol: "checkmark") {
-                                confirmsMaterialCompletion = true
-                            }
-                        }
-
-                        if viewModel.hasPreviousSection {
-                            SectionNavigationView(
-                                title: "Segmen Sebelumnya",
-                                symbol: "backward.end.fill",
-                                action: viewModel.previousSection
-                            )
-                        }
-                    }
-                    .padding(.top, AppSize.Spacing.large)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, AppSize.Inset.page)
-                .padding(.top, 24)
-                .padding(.bottom, 32)
+                .padding(.top, AppSize.Inset.readingCard)
+                .padding(.bottom, AppSize.Spacing.medium)
             }
             .accessibilityElement(children: .contain)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                navigationFooter
+            }
             .task(id: viewModel.section.id) {
                 readingFocus = nil
                 proxy.scrollTo("topic-start", anchor: .top)
@@ -104,6 +82,7 @@ struct SectionView: View {
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle(IndonesianSpeech.text("Detail Topik"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -121,11 +100,17 @@ struct SectionView: View {
                         IndonesianSpeech.text("Gaya pembacaan")
                     }
                 } label: {
-                    Label(indonesian: "Gaya pembacaan: \(viewModel.speechStyle.localizedLabel)", systemImage: "waveform")
+                    Image(systemName: "waveform")
+                        .font(.title3)
+                        .foregroundStyle(AppColor.onBrand)
+                        .frame(width: AppSize.Height.tapTarget, height: AppSize.Height.tapTarget)
+                        .background(AppColor.brandFill, in: Circle())
                 }
+                .menuStyle(.borderlessButton)
                 .accessibilityLabel(IndonesianSpeech.text("Gaya pembacaan matematika, \(viewModel.speechStyle.localizedLabel)"))
                 .accessibilityHint(IndonesianSpeech.text("Pilih bacaan terperinci atau bacaan ringkas."))
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .sheet(item: $assistant, onDismiss: {
             if let lastSelectedSentenceID {
@@ -150,6 +135,37 @@ struct SectionView: View {
         }
     }
 
+    private var navigationFooter: some View {
+        VStack(spacing: AppSize.Spacing.small) {
+            Divider()
+                .padding(.bottom, AppSize.Spacing.tight)
+                .accessibilityHidden(true)
+
+            if viewModel.hasNextSection {
+                SectionNavigationView(title: "Segmen Selanjutnya", action: viewModel.nextSection)
+            } else {
+                SectionNavigationView(title: "Selesaikan Materi") {
+                    confirmsMaterialCompletion = true
+                }
+            }
+
+            if viewModel.hasPreviousSection {
+                SectionNavigationView(
+                    title: "Segmen Sebelumnya",
+                    appearance: .secondary,
+                    action: viewModel.previousSection
+                )
+            } else {
+                Spacer(minLength: 0)
+                    .frame(height: AppSize.Height.largeButton)
+                    .accessibilityHidden(true)
+            }
+        }
+        .padding(.horizontal, AppSize.Inset.page)
+        .padding(.bottom, AppSize.Spacing.tight)
+        .background(AppColor.background)
+    }
+
     @ViewBuilder
     private func contentBlock(_ block: SectionReadingBlock) -> some View {
         switch block.kind {
@@ -160,7 +176,7 @@ struct SectionView: View {
                 sentences(in: block)
             }
         case .visual:
-            SectionHighlightCard(title: "Visual Matematika", symbol: "chart.xyaxis.line") {
+            SectionHighlightCard(title: "Visual Matematika", symbol: "chart.bar.xaxis") {
                 sentences(in: block)
             }
         }

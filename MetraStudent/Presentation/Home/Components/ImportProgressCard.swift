@@ -19,23 +19,19 @@ struct ImportProgressCard: View {
     private var statusTitle: String { isCancelling ? "Membatalkan…" : "Mengonversi dokumen" }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                IconTile("sparkles", tint: tint)
-                    .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion && !isCancelling)
-                VStack(alignment: .leading, spacing: 2) {
-                    IndonesianSpeech.text(statusTitle)
-                        .font(AppTypography.headline)
-                        .contentTransition(.opacity)
-                    IndonesianSpeech.text(progress)
-                        .font(AppTypography.supporting)
-                        .foregroundStyle(.secondary)
-                        .contentTransition(.opacity)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .animation(reduceMotion ? nil : .easeInOut, value: progress)
-                .animation(reduceMotion ? nil : .easeInOut, value: isCancelling)
+        VStack(alignment: .leading, spacing: AppSize.Spacing.medium) {
+            VStack(alignment: .leading, spacing: AppSize.Spacing.tight) {
+                IndonesianSpeech.text(statusTitle)
+                    .font(AppTypography.headline)
+                    .contentTransition(.opacity)
+                IndonesianSpeech.text(progress)
+                    .font(AppTypography.supporting)
+                    .foregroundStyle(AppColor.secondaryText)
+                    .contentTransition(.opacity)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .animation(reduceMotion ? nil : .easeInOut, value: progress)
+            .animation(reduceMotion ? nil : .easeInOut, value: isCancelling)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(IndonesianSpeech.text(statusTitle))
             .accessibilityValue(IndonesianSpeech.text(progress))
@@ -53,15 +49,16 @@ struct ImportProgressCard: View {
             HStack {
                 Spacer(minLength: 0)
                 Button(indonesian: "Batalkan", action: onCancel)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(AppColor.danger)
+                    .buttonStyle(MetraActionStyle(appearance: .neutral, fullWidth: false))
                     .disabled(isCancelling)
                     .accessibilityLabel(IndonesianSpeech.text("Batalkan penambahan dokumen"))
             }
         }
-        .padding(.vertical, 6)
-        .listRowBackground(TintedRowBackground(tint: tint))
+        .padding(AppSize.Inset.page)
+        .metraCard(radius: AppSize.Radius.assistantCard, border: .clear)
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 }
 

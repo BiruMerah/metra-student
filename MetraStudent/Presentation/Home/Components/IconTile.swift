@@ -14,9 +14,10 @@ struct IconTile: View {
 
     @ScaledMetric(relativeTo: .headline) private var size: CGFloat = 40
 
-    init(_ systemName: String, tint: Color = AppColor.brand) {
+    init(_ systemName: String, tint: Color = AppColor.brand, size: CGFloat = 40) {
         self.systemName = systemName
         self.tint = tint
+        _size = ScaledMetric(wrappedValue: size, relativeTo: .headline)
     }
 
     var body: some View {
@@ -24,7 +25,10 @@ struct IconTile: View {
             .font(.title3)
             .foregroundStyle(tint)
             .frame(width: size, height: size)
-            .background(tint.opacity(0.15), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .background(
+                tint == AppColor.brand ? AppColor.brandSubtle : tint.opacity(0.15),
+                in: RoundedRectangle(cornerRadius: AppSize.Radius.callout)
+            )
             .accessibilityHidden(true)
     }
 }

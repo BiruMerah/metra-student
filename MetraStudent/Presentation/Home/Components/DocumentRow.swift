@@ -21,6 +21,10 @@ struct DocumentRow: View {
         return sectionCount > 0 ? "\(date), \(sectionCount) segmen" : date
     }
 
+    private var subtitle: String {
+        material.category.isEmpty ? metadata : material.category
+    }
+
     var body: some View {
         if let isSelected {
             rowButton
@@ -50,21 +54,23 @@ struct DocumentRow: View {
                         .accessibilityHidden(true)
                 }
                 if !isLargeText {
-                    IconTile("doc.text.fill")
+                    IconTile("doc.text", size: 36)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     IndonesianSpeech.text(material.title)
-                        .font(AppTypography.headline)
+                        .font(AppTypography.body.weight(.medium))
+                        .foregroundStyle(AppColor.heading)
                         .lineLimit(isLargeText ? nil : 2)
-                    IndonesianSpeech.text(metadata)
+                    IndonesianSpeech.text(subtitle)
                         .font(AppTypography.supporting)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColor.secondaryText)
                 }
+                .layoutPriority(1)
                 Spacer(minLength: 0)
                 if isSelected == nil {
                     Image(systemName: "chevron.right")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(AppColor.brand)
                         .transition(.opacity)
                         .accessibilityHidden(true)
                 }
@@ -74,9 +80,14 @@ struct DocumentRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .alignmentGuide(.listRowSeparatorLeading) { dimensions in
+            dimensions[.leading] + (isLargeText || isSelected != nil ? 0 : 36 + AppSize.Spacing.medium)
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(IndonesianSpeech.text(material.title))
-        .accessibilityValue(IndonesianSpeech.text(metadata))
+        .accessibilityValue(IndonesianSpeech.text(
+            material.category.isEmpty ? metadata : "\(material.category), \(metadata)"
+        ))
     }
 }
 

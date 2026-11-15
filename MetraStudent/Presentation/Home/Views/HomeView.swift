@@ -99,19 +99,21 @@ struct HomeView: View {
     
     private var homeList: some View {
         List {
+            Section {
+                MetraWordmark()
+                    .padding(.vertical, AppSize.Spacing.medium)
+                    .accessibilityAddTraits(.isHeader)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
+
             if channelViewModel.channels.isEmpty {
                 // MARK: - Not joining any channel state
                 Section {
                     VStack(spacing: AppSize.Spacing.actions) {
                         if channelViewModel.isInitialSyncing {
                             ChannelSyncingView()
-                                .padding(.horizontal, AppSize.Spacing.large)
-                                .padding(.vertical, 14)
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    Color(.secondarySystemGroupedBackground),
-                                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                )
                         } else {
                             JoinChannelButton(
                                 isDisabled: channelViewModel.isInitialSyncing || isConverting,
@@ -124,9 +126,9 @@ struct HomeView: View {
                         addDocumentButton
                     }
                     .listRowInsets(EdgeInsets(
-                        top: AppSize.Spacing.tight,
+                        top: 0,
                         leading: 0,
-                        bottom: AppSize.Spacing.tight,
+                        bottom: 0,
                         trailing: 0
                     ))
                     .listRowBackground(Color.clear)
@@ -144,6 +146,8 @@ struct HomeView: View {
                         isSignedInToiCloud: channelViewModel.isSignedInToiCloud,
                         accountStatusMessage: channelViewModel.accountStatusMessage
                     )
+                    .listRowInsets(.horizontal, AppSize.Inset.page)
+                    .listRowBackground(HomeListCardBackground(isFirst: true, isLast: false))
                     
                     ForEach(channelViewModel.channels) { channel in
                         ChannelRow(
@@ -151,6 +155,15 @@ struct HomeView: View {
                             onLeave: {
                                 channelViewModel.leaveChannel(channel)
                             }
+                        )
+                        .listRowInsets(.horizontal, AppSize.Inset.page)
+                        .listRowBackground(HomeListCardBackground(
+                            isFirst: false,
+                            isLast: channel.id == channelViewModel.channels.last?.id
+                        ))
+                        .listRowSeparator(
+                            channel.id == channelViewModel.channels.last?.id ? .hidden : .visible,
+                            edges: .bottom
                         )
                         .swipeActions {
                             if !isConverting {
@@ -187,94 +200,129 @@ struct HomeView: View {
             )
             
             Section {
+                documentHeader
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+
                 if !documentViewModel.savedMaterials.isEmpty || isSearching {
                     SearchField(text: $searchText)
+                        .padding(.bottom, AppSize.Spacing.medium)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
-                
-                if matchingDocuments.isEmpty {
-                    if isSearching {
-                        ContentUnavailableView {
-                            Label {
-                                IndonesianSpeech.text("Dokumen tidak ditemukan")
-                                    .font(AppTypography.headline)
-                            } icon: {
-                                Image(systemName: "magnifyingglass")
-                                    .accessibilityHidden(true)
-                            }
-                        } description: {
-                            IndonesianSpeech.text("Tidak ada dokumen yang cocok dengan “\(trimmedSearchText)”.")
-                                .font(AppTypography.supporting)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppSize.Spacing.small)
-                        .accessibilityElement(children: .combine)
-                    } else {
-                        VStack(spacing: AppSize.Spacing.small) {
-                            Image(systemName: "doc.text")
-                                .font(.largeTitle)
-                                .foregroundStyle(AppColor.brand)
-                                .accessibilityHidden(true)
-                            IndonesianSpeech.text("Belum Ada Materi")
-                                .font(AppTypography.headline)
-                                .foregroundStyle(AppColor.heading)
-                            IndonesianSpeech.text("Materi dari guru dan dokumen yang kamu tambahkan akan muncul di sini.")
-                                .font(AppTypography.supporting)
-                                .foregroundStyle(AppColor.secondaryText)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppSize.Spacing.large)
-                        .accessibilityElement(children: .combine)
-                    }
-                } else {
-                    ForEach(matchingDocuments) { material in
-                        DocumentRow(
-                            material: material,
-                            isSelected: nil,
-                            onTap: {
-                                guard !isConverting else { return }
-                                channelViewModel.openMaterialDetail(material)
-                            },
-                            onDelete: {
-                                guard !isConverting else { return }
-                                _ = documentViewModel.deleteMaterials(ids: [material.id])
-                            }
-                        )
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            if !isConverting {
-                                Button(indonesian: "Hapus", role: .destructive) {
-                                    _ = documentViewModel.deleteMaterials(ids: [material.id])
-                                }
-                            }
-                        }
-                    }
-                }
-            } header: {
-                HStack {
-                    IndonesianSpeech.text("Daftar Dokumen")
-                        .font(AppTypography.supportingEmphasis)
-                        .foregroundStyle(AppColor.heading)
-                    Spacer()
-                    if !documentViewModel.savedMaterials.isEmpty {
-                        IndonesianSpeech.text(documentCountText)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .textCase(nil)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(IndonesianSpeech.text(documentHeaderAccessibilityLabel))
-                .accessibilityAddTraits(.isHeader)
+
+                documentRows
             }
             .disabled(isConverting)
             .opacity(isConverting ? 0.45 : 1.0)
             .accessibilityHidden(isConverting)
         }
-        .listStyle(.insetGrouped)
-        .listSectionSpacing(AppSize.Spacing.medium)
+        .listStyle(.plain)
+        .listSectionSpacing(AppSize.Spacing.large)
+        .environment(\.defaultMinListRowHeight, 0)
         .contentMargins(.horizontal, AppSize.Inset.page, for: .scrollContent)
+        .contentMargins(.top, 0, for: .scrollContent)
         .scrollContentBackground(.hidden)
         .background(AppColor.background.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private var documentRows: some View {
+        if matchingDocuments.isEmpty {
+            if isSearching {
+                documentPlaceholder(
+                    title: "Dokumen tidak ditemukan",
+                    message: "Tidak ada dokumen yang cocok dengan “\(trimmedSearchText)”."
+                )
+            } else {
+                documentPlaceholder(
+                    title: "Belum Ada Materi",
+                    message: "Materi dari guru dan dokumen yang kamu tambahkan akan muncul di sini.",
+                    showsIcon: true
+                )
+            }
+        } else {
+            let documents = matchingDocuments
+            ForEach(documents) { material in
+                DocumentRow(
+                    material: material,
+                    isSelected: nil,
+                    onTap: {
+                        guard !isConverting else { return }
+                        channelViewModel.openMaterialDetail(material)
+                    },
+                    onDelete: {
+                        guard !isConverting else { return }
+                        _ = documentViewModel.deleteMaterials(ids: [material.id])
+                    }
+                )
+                .listRowInsets(EdgeInsets(
+                    top: 0,
+                    leading: AppSize.Spacing.large,
+                    bottom: 0,
+                    trailing: AppSize.Spacing.large
+                ))
+                .listRowBackground(HomeListCardBackground(
+                    isFirst: material.id == documents.first?.id,
+                    isLast: material.id == documents.last?.id
+                ))
+                .listRowSeparator(.hidden, edges: .top)
+                .listRowSeparator(material.id == documents.last?.id ? .hidden : .visible, edges: .bottom)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    if !isConverting {
+                        Button(indonesian: "Hapus", role: .destructive) {
+                            _ = documentViewModel.deleteMaterials(ids: [material.id])
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var documentHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            IndonesianSpeech.text("Daftar Dokumen")
+                .font(AppTypography.supportingEmphasis)
+                .foregroundStyle(AppColor.heading)
+            Spacer()
+            if !documentViewModel.savedMaterials.isEmpty {
+                IndonesianSpeech.text(documentCountText)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.secondaryText)
+            }
+        }
+        .padding(.horizontal, AppSize.Spacing.tight)
+        .padding(.top, AppSize.Inset.sheet)
+        .padding(.bottom, AppSize.Spacing.medium)
+        .textCase(nil)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(IndonesianSpeech.text(documentHeaderAccessibilityLabel))
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    private func documentPlaceholder(title: String, message: String, showsIcon: Bool = false) -> some View {
+        VStack(spacing: AppSize.Spacing.small) {
+            if showsIcon {
+                IconTile("doc.text", size: AppSize.Height.tapTarget)
+                    .padding(.bottom, AppSize.Spacing.tight)
+            }
+            IndonesianSpeech.text(title)
+                .font(AppTypography.headline)
+                .foregroundStyle(AppColor.heading)
+            IndonesianSpeech.text(message)
+                .font(AppTypography.supporting)
+                .foregroundStyle(AppColor.secondaryText)
+        }
+        .multilineTextAlignment(.center)
+        .padding(AppSize.Inset.page)
+        .frame(maxWidth: .infinity, minHeight: showsIcon ? 174 : 120, alignment: showsIcon ? .top : .center)
+        .metraCard(radius: AppSize.Radius.assistantCard, border: AppColor.brand.opacity(0.18))
+        .accessibilityElement(children: .combine)
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     var body: some View {
@@ -292,7 +340,8 @@ struct HomeView: View {
                     isImportProgressFocused = true
                 }
         }
-        .navigationTitle(IndonesianSpeech.text("Metra"))
+        .navigationTitle(IndonesianSpeech.text("Metra Student"))
+        .toolbar(.hidden, for: .navigationBar)
         .task(id: searchText) {
             guard isSearching else { return }
             try? await Task.sleep(for: .milliseconds(600))
