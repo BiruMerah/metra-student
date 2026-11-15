@@ -82,10 +82,15 @@ nonisolated struct StudyMaterial: Identifiable, Codable, Equatable, Hashable, Se
     var topics: [MetraTopic]
     /// Whole-file summary; optional so existing v1 documents still decode.
     var overview: String? = nil
+    /// Printed book/document title, kept separate from the student's editable title.
+    var sourceTitle: String? = nil
+    /// True only when chunk page labels represent printed source pages.
+    var pageLabelsAreSource: Bool = false
 
     init(id: UUID, title: String, category: String, createdAt: Date, revision: Int,
          defaultSpeechStyle: MetraSpeechStyle, reviewStatus: MetraReviewStatus,
-         validatedAt: Date?, topics: [MetraTopic], overview: String? = nil) {
+         validatedAt: Date?, topics: [MetraTopic], overview: String? = nil,
+         sourceTitle: String? = nil, pageLabelsAreSource: Bool = false) {
         self.id = id
         self.title = title
         self.category = category
@@ -96,6 +101,8 @@ nonisolated struct StudyMaterial: Identifiable, Codable, Equatable, Hashable, Se
         self.validatedAt = validatedAt
         self.topics = topics
         self.overview = overview
+        self.sourceTitle = sourceTitle
+        self.pageLabelsAreSource = pageLabelsAreSource
     }
 
     var isValidated: Bool { reviewStatus == .validated && validatedAt != nil }
@@ -116,7 +123,7 @@ nonisolated struct StudyMaterial: Identifiable, Codable, Equatable, Hashable, Se
 
     // Old PoC materials remain local drafts until a teacher reviews them.
     private enum CodingKeys: String, CodingKey {
-        case id, title, category, createdAt, revision, defaultSpeechStyle, reviewStatus, validatedAt, topics, content, overview
+        case id, title, category, createdAt, revision, defaultSpeechStyle, reviewStatus, validatedAt, topics, content, overview, sourceTitle, pageLabelsAreSource
     }
 
     init(from decoder: Decoder) throws {
@@ -130,6 +137,8 @@ nonisolated struct StudyMaterial: Identifiable, Codable, Equatable, Hashable, Se
         reviewStatus = try values.decodeIfPresent(MetraReviewStatus.self, forKey: .reviewStatus) ?? .draft
         validatedAt = try values.decodeIfPresent(Date.self, forKey: .validatedAt)
         overview = try values.decodeIfPresent(String.self, forKey: .overview)
+        sourceTitle = try values.decodeIfPresent(String.self, forKey: .sourceTitle)
+        pageLabelsAreSource = try values.decodeIfPresent(Bool.self, forKey: .pageLabelsAreSource) ?? false
         if let structured = try values.decodeIfPresent([MetraTopic].self, forKey: .topics) {
             topics = structured
         } else {
@@ -150,6 +159,8 @@ nonisolated struct StudyMaterial: Identifiable, Codable, Equatable, Hashable, Se
         try values.encodeIfPresent(validatedAt, forKey: .validatedAt)
         try values.encode(topics, forKey: .topics)
         try values.encodeIfPresent(overview, forKey: .overview)
+        try values.encodeIfPresent(sourceTitle, forKey: .sourceTitle)
+        try values.encode(pageLabelsAreSource, forKey: .pageLabelsAreSource)
         // Older PoC receivers can still display the teacher's default reading.
         try values.encode(content, forKey: .content)
     }
@@ -178,6 +189,7 @@ nonisolated struct StudyMaterial: Identifiable, Codable, Equatable, Hashable, Se
               !topics.isEmpty, topics.count <= 1_000,
               Set(topics.map(\.id)).count == topics.count else { throw MetraMaterialError.invalidContent }
         guard overview.map({ !$0.isMetraBlank && $0.count <= 8_000 }) ?? true else { throw MetraMaterialError.invalidContent }
+        guard sourceTitle.map({ !$0.isMetraBlank && $0.count <= 500 }) ?? true else { throw MetraMaterialError.invalidContent }
         let chunks = topics.flatMap(\.chunks)
         guard !chunks.isEmpty, chunks.count <= 20_000,
               Set(chunks.map(\.id)).count == chunks.count else { throw MetraMaterialError.invalidContent }

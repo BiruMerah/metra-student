@@ -10,6 +10,8 @@ import SwiftUI
 struct MaterialView: View {
     @Bindable var viewModel: MaterialViewModel
     @State private var confirmsMaterialDeletion = false
+    @State private var editsTitle = false
+    @State private var titleDraft = ""
     
     var body: some View {
         List {
@@ -52,11 +54,11 @@ struct MaterialView: View {
                     )
                 }
             } header: {
-                IndonesianSpeech.text("Segmen")
+                IndonesianSpeech.text("Topik")
                     .font(AppTypography.headline)
                     .textCase(nil)
             } footer: {
-                IndonesianSpeech.text("Pilih segmen untuk melihat detailnya.")
+                IndonesianSpeech.text("Pilih topik untuk melihat detailnya.")
                     .font(AppTypography.supporting)
             }
 
@@ -85,6 +87,16 @@ struct MaterialView: View {
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle(IndonesianSpeech.text("Detail Materi"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    titleDraft = viewModel.material.title
+                    editsTitle = true
+                } label: {
+                    Label(indonesian: "Edit Judul", systemImage: "pencil")
+                }
+            }
+        }
         .toolbar(.hidden, for: .tabBar)
         .onAppear {
             viewModel.checkSavedStatus()
@@ -96,6 +108,16 @@ struct MaterialView: View {
             }
         } message: {
             IndonesianSpeech.text("Materi “\(viewModel.material.title)” akan dihapus dari Materi Tersimpan.")
+        }
+        .alert(IndonesianSpeech.text("Edit Judul"), isPresented: $editsTitle) {
+            TextField("Judul materi", text: $titleDraft)
+            Button(indonesian: "Batal", role: .cancel) {}
+            Button(indonesian: "Simpan") {
+                viewModel.updateTitle(titleDraft)
+            }
+            .disabled(titleDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } message: {
+            IndonesianSpeech.text("Masukkan judul baru untuk materi ini.")
         }
         .alert(IndonesianSpeech.text("Terjadi Kesalahan"), isPresented: Binding(
             get: { viewModel.errorMessage != nil },
@@ -119,7 +141,8 @@ struct MaterialView: View {
         sections: MathSectionModel.sampleSections,
         isFromTeacher: true,
         sourceChannelName: "Matematika VII-A",
-        sourceTeacherName: "Bu Sari"
+        sourceTeacherName: "Bu Sari",
+        sourceTitle: "Matematika untuk SMP/MTs Kelas IX"
     )
     let coordinator = AppCoordinator.makePreview(savedMaterials: [sampleMaterial])
     return NavigationStack(path: Bindable(coordinator).channelPath) {

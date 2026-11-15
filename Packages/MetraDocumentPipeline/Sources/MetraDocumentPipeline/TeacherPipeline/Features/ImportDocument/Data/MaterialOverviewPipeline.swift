@@ -55,12 +55,14 @@ struct MaterialOverviewPipeline: MaterialOverviewGenerating {
     static func sourceSegments(_ material: StudyMaterial) -> [String] {
         let allChunks = material.topics.flatMap(\.chunks)
         let pages = uniqueOrderedPages(in: allChunks)
-        let header = "Total halaman: \(max(1, pages.count)) halaman (\(pages.isEmpty ? "1" : pages.joined(separator: ", ")))."
+        let header = pages.isEmpty
+            ? "Nomor halaman pada materi sumber tidak terdeteksi."
+            : "Halaman materi sumber: \(pages.joined(separator: ", "))."
         return [header] + material.topics.enumerated().flatMap { index, topic -> [String] in
-            let pageInfo = topicPageDescription(for: topic) ?? "halaman 1"
+            let pageInfo = topicPageDescription(for: topic) ?? "bagian materi"
             let heading = "Topik \(index + 1) (\(pageInfo)): \(topic.title)"
             return [heading] + topic.chunks.map { chunk in
-                let label = chunk.pageLabel.map { "halaman \($0)" } ?? pageInfo
+                let label = chunk.pageLabel.map { "halaman \($0)" } ?? "bagian materi"
                 return "[\(label) - \(topic.title)] " + chunk.readingText(style: .clearSpeak)
             }
         }
@@ -95,9 +97,10 @@ struct MaterialOverviewPipeline: MaterialOverviewGenerating {
     static func composeMaterialInformation(for material: StudyMaterial, aiSummary: String?) -> String {
         let allChunks = material.topics.flatMap(\.chunks)
         let pages = uniqueOrderedPages(in: allChunks)
-        let pageCount = max(1, pages.count)
 
         if let ai = aiSummary?.trimmingCharacters(in: .whitespacesAndNewlines), !ai.isEmpty {
+            if pages.isEmpty { return ai }
+            let pageCount = pages.count
             let lower = ai.lowercased()
             if lower.hasPrefix("materi ini terdiri dari ") && lower.contains("halaman") {
                 return ai
@@ -105,6 +108,12 @@ struct MaterialOverviewPipeline: MaterialOverviewGenerating {
             if lower.contains("halaman ") {
                 return "Materi ini terdiri dari \(pageCount) halaman. \(ai)"
             }
+        }
+
+        if pages.isEmpty {
+            let topics = material.topics.map(\.title).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            guard !topics.isEmpty else { return "Ringkasan materi belum tersedia." }
+            return "Materi ini membahas \(joinIndonesianList(Array(topics.prefix(8))))."
         }
 
         return buildPageByPageNarrative(for: material, pages: pages)

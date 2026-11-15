@@ -42,7 +42,7 @@ struct MaterialSectionRow: View {
         .alignmentGuide(.listRowSeparatorLeading) { dimensions in
             dimensions[.leading] + 64
         }
-        .accessibilityLabel(IndonesianSpeech.text("Segmen \(index + 1), \(section.title)"))
+        .accessibilityLabel(IndonesianSpeech.text("Topik \(index + 1), \(section.title)"))
         .accessibilityHint(IndonesianSpeech.text("Buka detail topik"))
     }
 }

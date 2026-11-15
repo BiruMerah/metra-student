@@ -92,7 +92,7 @@ final class TeacherMaterialExtractionService: MaterialPreparationProtocol {
     private struct ChunkProjection {
         let parts: [MetraContentPart]
         let needsCorrection: Bool
-        let pageLabel: String
+        let pageLabel: String?
     }
 
     /// Projects the engine's exact, already-merged ClearSpeak reading into inline
@@ -101,6 +101,9 @@ final class TeacherMaterialExtractionService: MaterialPreparationProtocol {
     func portableMaterial(from material: MathMaterialModel, firstBookPage: Int?, bookPageLabels: [Int]? = nil, reviewPageIndices: Set<Int> = []) async throws -> StudyMaterial {
         let runID = try requireRunID(material)
         let run = try RunRepository().finalRun(id: runID)
+        let sourcePageLabels = bookPageLabels ?? (firstBookPage == nil
+            ? Self.inferredBookPageLabels(from: material.chunks, pageIDs: run.document.pages.map(\.id))
+            : nil)
         let pageIndices = Dictionary(uniqueKeysWithValues: run.document.pages.enumerated().map { ($0.element.id, $0.offset) })
         let formulas = Dictionary(uniqueKeysWithValues: run.document.pages.flatMap(\.formulas).map { ($0.id, $0) })
         let segments = Dictionary(uniqueKeysWithValues: run.document.pages.flatMap(\.blocks).flatMap(\.segments).map { ($0.id, $0) })
@@ -116,7 +119,8 @@ final class TeacherMaterialExtractionService: MaterialPreparationProtocol {
                 ? (chunk.kind == "formula" ? FormulaSpeechVerbalizer.verbalize(chunk.sourceText) : chunk.sourceText)
                 : rawReading
             let pageIndex = pageIndices[chunk.pageID] ?? 0
-            let label = String(bookPageLabels.flatMap { $0.indices.contains(pageIndex) ? $0[pageIndex] : nil } ?? ((firstBookPage ?? 1) + pageIndex))
+            let label = sourcePageLabels.flatMap { $0.indices.contains(pageIndex) ? String($0[pageIndex]) : nil }
+                ?? firstBookPage.map { String($0 + pageIndex) }
             let hasFallbackPreview = chunk.formulaFallbackIDs?.isEmpty == false &&
                 !(chunk.spokenPreview?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             let isCollapsedUnresolvedFormula = chunk.kind == "formula" && chunk.spokenText == nil && !hasFallbackPreview
@@ -209,6 +213,7 @@ final class TeacherMaterialExtractionService: MaterialPreparationProtocol {
 
         let chunkByID = Dictionary(uniqueKeysWithValues: bodyChunks.map { ($0.id, $0) })
         var result = StudyMaterial(id: material.id, title: material.title, category: "Matematika", content: "", createdAt: material.createdAt)
+        result.pageLabelsAreSource = sourcePageLabels != nil || firstBookPage != nil
         var orphanSuppressedIDs: [String] = []
         result.topics = material.readingTopicIndex.topics.compactMap { topic in
             let topicChunks = topic.chunkIDs.compactMap { chunkByID[$0] }
@@ -266,6 +271,36 @@ final class TeacherMaterialExtractionService: MaterialPreparationProtocol {
               coveredIDs.count == expectedIDs.count,
               Set(coveredIDs) == Set(expectedIDs) else { throw MetraMaterialError.invalidContent }
         return result
+    }
+
+    /// Uses only layout-classified standalone page numbers. For multi-page imports,
+    /// at least two pages must agree on the same consecutive numbering sequence.
+    private static func inferredBookPageLabels(from chunks: [MathChunkModel], pageIDs: [String]) -> [Int]? {
+        guard !pageIDs.isEmpty else { return nil }
+        let pageIndices = Dictionary(uniqueKeysWithValues: pageIDs.enumerated().map { ($0.element, $0.offset) })
+        var pagesByBase: [Int: Set<Int>] = [:]
+
+        for chunk in chunks where chunk.kind == "number" {
+            guard let pageIndex = pageIndices[chunk.pageID],
+                  let value = standalonePageNumber(chunk.sourceText) else { continue }
+            pagesByBase[value - pageIndex, default: []].insert(pageIndex)
+        }
+
+        guard let best = pagesByBase.max(by: { $0.value.count < $1.value.count }) else { return nil }
+        let minimumEvidence = pageIDs.count == 1 ? 1 : 2
+        guard best.value.count >= minimumEvidence,
+              pagesByBase.filter({ $0.value.count == best.value.count }).count == 1 else { return nil }
+
+        let labels = pageIDs.indices.map { best.key + $0 }
+        guard labels.allSatisfy({ (1...9_999).contains($0) }) else { return nil }
+        return labels
+    }
+
+    private static func standalonePageNumber(_ text: String) -> Int? {
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalized.range(of: #"^[0-9]{1,4}$"#, options: .regularExpression) != nil,
+              let value = Int(normalized), (1...9_999).contains(value) else { return nil }
+        return value
     }
 
     private static func utf16Slice(_ text: String, range: [Int]?) -> String {

@@ -18,7 +18,7 @@ struct DocumentRow: View {
     private var metadata: String {
         let date = material.createdAt.formatted(.dateTime.day().month(.wide).year().locale(IndonesianSpeech.locale))
         let sectionCount = material.sections.count
-        return sectionCount > 0 ? "\(date), \(sectionCount) segmen" : date
+        return sectionCount > 0 ? "\(date), \(sectionCount) topik" : date
     }
 
     private var accessibilityValueText: String {

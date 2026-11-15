@@ -19,13 +19,22 @@ struct MaterialOverviewView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
 
+                if let sourceTitle = normalized(overview.sourceTitle) {
+                    overviewLine("Sumber", value: sourceTitle)
+                }
+
                 if !overview.pageLabels.isEmpty {
                     overviewLine("Halaman", value: overview.pageLabels.joined(separator: ", "))
                 }
             } else {
                 overviewLine("Bab", value: overview.chapter)
                 overviewLine("Subbab", value: overview.subchapter)
-                overviewLine("Halaman", value: overview.pageNumber.formatted(.number.locale(IndonesianSpeech.locale)))
+                if let sourceTitle = normalized(overview.sourceTitle) {
+                    overviewLine("Sumber", value: sourceTitle)
+                }
+                if overview.pageNumber > 0 {
+                    overviewLine("Halaman", value: overview.pageNumber.formatted(.number.locale(IndonesianSpeech.locale)))
+                }
             }
         }
         .padding(.vertical, 6)
@@ -37,6 +46,12 @@ struct MaterialOverviewView: View {
             .fixedSize(horizontal: false, vertical: true)
             .textSelection(.enabled)
             .accessibilityLabel(IndonesianSpeech.text("\(title), \(value)"))
+    }
+
+    private func normalized(_ value: String?) -> String? {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else { return nil }
+        return value
     }
 }
 
