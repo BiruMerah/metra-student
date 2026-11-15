@@ -9,8 +9,15 @@ nonisolated enum IndonesianSpeech {
         Text(attributed(value, spokenAs: spokenAs))
     }
 
-    static func announce(_ message: String) {
-        AccessibilityNotification.Announcement(attributed(message)).post()
+    static func announce(
+        _ message: String,
+        priority: AttributeScopes.AccessibilityAttributes.AnnouncementPriorityAttribute.AnnouncementPriority? = nil
+    ) {
+        var text = attributed(message)
+        if let priority {
+            text.accessibilitySpeechAnnouncementPriority = priority
+        }
+        AccessibilityNotification.Announcement(text).post()
     }
 
     static func attributed(_ value: String, spokenAs: String? = nil) -> AttributedString {
