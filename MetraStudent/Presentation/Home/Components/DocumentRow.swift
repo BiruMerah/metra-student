@@ -21,19 +21,27 @@ struct DocumentRow: View {
         return sectionCount > 0 ? "\(date), \(sectionCount) segmen" : date
     }
 
+    private var accessibilityValueText: String {
+        guard material.isFromTeacher else { return metadata }
+        if let channelName = material.sourceChannelName {
+            return "Dari guru, \(channelName), \(metadata)"
+        }
+        return "Dari guru, \(metadata)"
+    }
+
     var body: some View {
         if let isSelected {
             rowButton
                 .listRowBackground(TintedRowBackground(tint: isSelected ? AppColor.brand : .clear))
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
-                .accessibilityHint(IndonesianSpeech.text(isSelected ? "Batalkan pilihan dokumen ini" : "Pilih dokumen ini"))
+                .accessibilityHint(IndonesianSpeech.text(isSelected ? "Batalkan pilihan materi ini" : "Pilih materi ini"))
         } else {
             rowButton
-                .accessibilityHint(IndonesianSpeech.text("Buka detail dokumen"))
+                .accessibilityHint(IndonesianSpeech.text("Buka detail materi"))
                 .contextMenu {
-                    Button(indonesian: "Hapus Dokumen", systemImage: "trash", role: .destructive, action: onDelete)
+                    Button(indonesian: "Hapus Materi", systemImage: "trash", role: .destructive, action: onDelete)
                 }
-                .accessibilityAction(named: IndonesianSpeech.text("Hapus Dokumen"), onDelete)
+                .accessibilityAction(named: IndonesianSpeech.text("Hapus Materi"), onDelete)
         }
     }
 
@@ -59,6 +67,10 @@ struct DocumentRow: View {
                     IndonesianSpeech.text(metadata)
                         .font(AppTypography.supporting)
                         .foregroundStyle(.secondary)
+                    if material.isFromTeacher {
+                        TeacherSourceBadge()
+                            .padding(.top, AppSize.Spacing.tight)
+                    }
                 }
                 Spacer(minLength: 0)
                 if isSelected == nil {
@@ -76,16 +88,23 @@ struct DocumentRow: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(IndonesianSpeech.text(material.title))
-        .accessibilityValue(IndonesianSpeech.text(metadata))
+        .accessibilityValue(IndonesianSpeech.text(accessibilityValueText))
     }
 }
 
 #Preview {
-    let material = MathMaterialModel(title: "Bab I – Persamaan Linear Satu Variabel")
+    let teacherMaterial = MathMaterialModel(
+        title: "Bab I – Persamaan Linear Satu Variabel",
+        isFromTeacher: true,
+        sourceChannelName: "Matematika VII-A",
+        sourceTeacherName: "Bu Sari"
+    )
+    let localMaterial = MathMaterialModel(title: "Catatan – Teorema Pythagoras")
     List {
-        DocumentRow(material: material, isSelected: nil, onTap: {}, onDelete: {})
-        DocumentRow(material: material, isSelected: false, onTap: {}, onDelete: {})
-        DocumentRow(material: material, isSelected: true, onTap: {}, onDelete: {})
+        DocumentRow(material: teacherMaterial, isSelected: nil, onTap: {}, onDelete: {})
+        DocumentRow(material: localMaterial, isSelected: nil, onTap: {}, onDelete: {})
+        DocumentRow(material: teacherMaterial, isSelected: false, onTap: {}, onDelete: {})
+        DocumentRow(material: teacherMaterial, isSelected: true, onTap: {}, onDelete: {})
     }
     .listStyle(.insetGrouped)
 }

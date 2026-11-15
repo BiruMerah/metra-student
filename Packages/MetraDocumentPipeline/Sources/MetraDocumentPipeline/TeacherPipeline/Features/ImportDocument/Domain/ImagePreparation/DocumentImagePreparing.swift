@@ -24,7 +24,7 @@ enum DocumentImagePreparationError: TeacherUserFacingError {
     var errorDescription: String? {
         switch self {
         case .pageLimit(let found, let available):
-            return "Sedikitnya \(found) halaman terdeteksi, tetapi hanya tersisa \(available) halaman. Maksimal 10 halaman per dokumen. Pilih lebih sedikit foto atau ambil foto satu lembar per gambar."
+            return "Sedikitnya \(found) halaman terdeteksi, tetapi hanya tersisa \(available) halaman. Maksimal 10 halaman per materi. Pilih lebih sedikit foto atau ambil foto satu lembar per gambar."
         case .unreadableImage: return "Gambar belum dapat disiapkan. Coba pilih ulang atau ambil foto kembali."
         }
     }

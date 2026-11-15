@@ -1,6 +1,6 @@
 # Metra Student
 
-Metra Student adalah aplikasi iPhone dan iPad untuk mengubah foto atau PDF materi matematika menjadi materi yang dapat dibaca dan didengarkan. Konversi dokumen berjalan di perangkat menggunakan Core ML dan framework Apple.
+Metra Student adalah aplikasi iPhone dan iPad untuk mengubah foto atau PDF materi matematika menjadi materi yang dapat dibaca dan didengarkan. Konversi materi berjalan di perangkat menggunakan Core ML dan framework Apple.
 
 ## Mulai mengembangkan
 
@@ -76,9 +76,9 @@ Xcode mengompilasi model menjadi `.mlmodelc`. CI mengambil aset melalui Git LFS,
 
 ## Menggunakan aplikasi
 
-Buka **Dokumen**, ketuk **Tambah Dokumen (+)**, lalu pilih foto dari Galeri atau PDF dari Files. Batasnya **50 MB per berkas** dan **10 halaman per PDF**. Hasil konversi disimpan di perangkat. Jika ada halaman yang gagal dibaca, aplikasi menampilkan nomor halamannya dan tidak menyimpan materi parsial.
+Buka **Daftar Materi**, ketuk **Tambah Materi (+)**, lalu pilih foto dari Galeri atau PDF dari Files. Batasnya **50 MB per berkas** dan **10 halaman per PDF**. Hasil konversi disimpan di perangkat. Jika ada halaman yang gagal dibaca, aplikasi menampilkan nomor halamannya dan tidak menyimpan materi parsial.
 
-Dokumen terbaru tampil di atas. Gunakan pencarian untuk menemukan judul, atau ketuk **Pilih** untuk menghapus beberapa dokumen. Satu dokumen juga dapat dihapus dari menu tekan lama, aksi VoiceOver pada baris, atau detail dokumen. Pembaca mendukung ClearSpeak dan SimpleSpeak; data SpeakEasy ikut tersimpan jika dihasilkan pipeline.
+Materi terbaru tampil di atas. Gunakan pencarian untuk menemukan judul, atau ketuk **Pilih** untuk menghapus beberapa materi. Satu materi juga dapat dihapus dari menu tekan lama, aksi VoiceOver pada baris, atau detail materi. Pembaca mendukung ClearSpeak dan SimpleSpeak; data SpeakEasy ikut tersimpan jika dihasilkan pipeline.
 
 ## Pipeline
 

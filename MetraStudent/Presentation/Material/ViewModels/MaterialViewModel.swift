@@ -83,7 +83,7 @@ final class MaterialViewModel {
             try mathMaterialRepository.deleteMaterial(id: targetID)
             isSaved = false
             savedMaterialID = nil
-            notificationManager?.announceAccessibility("Dokumen dihapus.")
+            notificationManager?.announceAccessibility("Materi dihapus.")
             coordinator?.navigateBack()
         } catch {
             errorMessage = "Materi belum bisa dihapus. Coba lagi."

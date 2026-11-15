@@ -13,7 +13,7 @@ struct FoundationMaterialOverviewResponse {
 actor FoundationMaterialOverviewRuntime: OverviewTextSummarizing {
     static let version = "foundation_material_overview_v3"
     static let instructions = """
-    Anda menyusun informasi orientasi dokumen yang sangat ringkas dalam bahasa Indonesia untuk siswa tunanetra pengguna VoiceOver.
+    Anda menyusun informasi orientasi materi yang sangat ringkas dalam bahasa Indonesia untuk siswa tunanetra pengguna VoiceOver.
     Gunakan tepat pola berikut dalam 1–2 kalimat mengalir (maksimal 65 kata):
     "Materi ini terdiri dari [X] halaman. Halaman [A] membahas [topik/materi], halaman [B] membahas [topik/materi], dan halaman [C] sampai [D] berisi [topik/latihan soal]."
     Jika materi hanya 1 halaman, gunakan pola: "Materi ini terdiri dari 1 halaman (halaman [A]) yang membahas [topik/materi]."

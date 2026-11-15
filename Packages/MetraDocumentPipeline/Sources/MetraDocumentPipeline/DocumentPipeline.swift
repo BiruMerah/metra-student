@@ -25,7 +25,7 @@ public enum DocumentPipeline {
             preparesImage: url.pathExtension.lowercased() != "pdf",
             onProgress: onProgress
         ) {
-            onProgress("Membuka dokumen…")
+            onProgress("Membuka materi…")
             let reader = Task.detached(priority: .userInitiated) { try readPages(from: url) }
             return try await withTaskCancellationHandler {
                 try await reader.value
@@ -81,7 +81,7 @@ public enum DocumentPipeline {
                 let failed = Set(recovery.assessments.filter { $0.status != .ready }.map(\.id))
                 let numbers = pages.enumerated().compactMap { failed.contains($0.element.id) ? String($0.offset + 1) : nil }
                 throw ImportError.invalid(numbers.isEmpty
-                    ? "Dokumen tidak menghasilkan bacaan. Coba gunakan dokumen yang lebih jelas."
+                    ? "Materi tidak menghasilkan bacaan. Coba gunakan materi yang lebih jelas."
                     : "Halaman \(numbers.joined(separator: ", ")) belum bisa dibaca. Periksa halaman tersebut dan coba lagi.")
             }
             try Task.checkCancellation()
@@ -100,7 +100,7 @@ public enum DocumentPipeline {
         } catch let error as TeacherUserFacingError {
             throw error
         } catch {
-            throw ImportError.invalid("Dokumen belum bisa dikonversi. Periksa apakah berkas bisa dibuka, lalu coba lagi.")
+            throw ImportError.invalid("Materi belum bisa dikonversi. Periksa apakah berkas bisa dibuka, lalu coba lagi.")
         }
     }
 
@@ -126,9 +126,9 @@ public enum DocumentPipeline {
             .map { String($0.sourceText.prefix(180)) }
             .joined(separator: "\n")
 
-        onProgress("Menyusun judul dokumen…")
+        onProgress("Menyusun judul materi…")
         let session = LanguageModelSession(model: model, instructions: """
-            Buat satu judul dokumen dalam bahasa Indonesia dengan maksimal \(titleLimit) karakter.
+            Buat satu judul materi dalam bahasa Indonesia dengan maksimal \(titleLimit) karakter.
             Utamakan nama buku sumber jika tercantum dengan jelas. Pertahankan nama asli buku.
             Jika tercantum, sertakan kelas atau jilid yang membedakan buku itu selama masih muat.
             Jika nama buku tidak jelas, beri nama berdasarkan pokok bahasan seluruh materi.

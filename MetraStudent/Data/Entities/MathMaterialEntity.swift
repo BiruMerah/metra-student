@@ -23,6 +23,9 @@ final class MathMaterialEntity {
     var validatedAt: Date? = nil
     var overview: String? = nil
     var sectionsData: Data = Data()
+    var isFromTeacher: Bool = false
+    var sourceChannelName: String? = nil
+    var sourceTeacherName: String? = nil
     
     init(
         id: UUID = UUID(),
@@ -35,7 +38,10 @@ final class MathMaterialEntity {
         reviewStatusRaw: String = ReviewStatus.draft.rawValue,
         validatedAt: Date? = nil,
         overview: String? = nil,
-        sectionsData: Data = Data()
+        sectionsData: Data = Data(),
+        isFromTeacher: Bool = false,
+        sourceChannelName: String? = nil,
+        sourceTeacherName: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -48,6 +54,9 @@ final class MathMaterialEntity {
         self.validatedAt = validatedAt
         self.overview = overview
         self.sectionsData = sectionsData
+        self.isFromTeacher = isFromTeacher
+        self.sourceChannelName = sourceChannelName
+        self.sourceTeacherName = sourceTeacherName
     }
     
     // MARK: - Mapper
@@ -64,7 +73,10 @@ final class MathMaterialEntity {
             reviewStatus: ReviewStatus(rawValue: self.reviewStatusRaw) ?? .draft,
             validatedAt: self.validatedAt,
             overview: self.overview,
-            sections: decodedSections
+            sections: decodedSections,
+            isFromTeacher: self.isFromTeacher,
+            sourceChannelName: self.sourceChannelName,
+            sourceTeacherName: self.sourceTeacherName
         )
     }
     
@@ -79,6 +91,9 @@ final class MathMaterialEntity {
         self.validatedAt = domain.validatedAt
         self.overview = domain.overview
         self.sectionsData = (try? JSONEncoder().encode(domain.sections)) ?? Data()
+        self.isFromTeacher = domain.isFromTeacher
+        self.sourceChannelName = domain.sourceChannelName
+        self.sourceTeacherName = domain.sourceTeacherName
     }
     
     static func from(domain: MathMaterialModel) -> MathMaterialEntity {
@@ -94,7 +109,10 @@ final class MathMaterialEntity {
             reviewStatusRaw: domain.reviewStatus.rawValue,
             validatedAt: domain.validatedAt,
             overview: domain.overview,
-            sectionsData: encodedSections
+            sectionsData: encodedSections,
+            isFromTeacher: domain.isFromTeacher,
+            sourceChannelName: domain.sourceChannelName,
+            sourceTeacherName: domain.sourceTeacherName
         )
     }
 }
