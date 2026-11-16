@@ -17,7 +17,7 @@ struct AIAssistantView: View {
 
     private var showsReadyStatus: Bool {
         viewModel.phase == .idle && viewModel.canAsk &&
-            viewModel.question.isEmpty && viewModel.errorMessage == nil
+            viewModel.inputText.isEmpty && viewModel.question.isEmpty && viewModel.errorMessage == nil
     }
 
     private var resultFocus: Focus? {
@@ -101,7 +101,7 @@ struct AIAssistantView: View {
                     if showsReadyStatus {
                         VStack(spacing: 0) {
                             Spacer(minLength: 0)
-                            Label(indonesian: viewModel.status, systemImage: "mic")
+                            Label(indonesian: viewModel.status, systemImage: "text.bubble")
                                 .font(AppTypography.supportingEmphasis)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
@@ -167,22 +167,7 @@ struct AIAssistantView: View {
 
     private var footer: some View {
         VStack(spacing: AppSize.Spacing.actions) {
-            Button(action: viewModel.ask) {
-                Label(indonesian: isRecording ? "Hentikan Bertanya" : "Tanya Asisten Metra",
-                      systemImage: isRecording ? "stop.fill" : "mic.fill")
-                    .font(AppTypography.headline)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .buttonBorderShape(.capsule)
-            .tint(isRecording ? AppColor.danger : AppColor.brandFill)
-            .disabled(!viewModel.canAsk)
-            .accessibilityHint(IndonesianSpeech.text(isRecording
-                ? "Menghentikan rekaman dan memproses pertanyaan."
-                : "Mulai merekam pertanyaan. Rekaman paling lama enam puluh detik."))
-            .accessibilityIdentifier("assistant-record")
-            .accessibilityFocused($focused, equals: .record)
+            questionComposer
 
             Button(action: close) {
                 IndonesianSpeech.text("Kembali ke Topik")
@@ -202,10 +187,76 @@ struct AIAssistantView: View {
         .overlay(alignment: .top) { Divider().accessibilityHidden(true) }
     }
 
+    private var questionComposer: some View {
+        HStack(alignment: .bottom, spacing: AppSize.Spacing.small) {
+            TextField(
+                "",
+                text: $viewModel.inputText,
+                prompt: IndonesianSpeech.text(isRecording ? "Mendengarkan pertanyaan…" : "Ketik pertanyaan…"),
+                axis: .vertical
+            )
+            .font(AppTypography.body)
+            .lineLimit(1...4)
+            .submitLabel(.send)
+            .disabled(viewModel.phase != .idle || viewModel.availabilityMessage != nil)
+            .onSubmit(viewModel.submitTypedQuestion)
+            .accessibilityLabel(IndonesianSpeech.text("Pertanyaan untuk Asisten Metra"))
+            .accessibilityHint(IndonesianSpeech.text("Ketik pertanyaan lalu pilih Kirim, atau gunakan tombol mikrofon."))
+            .accessibilityIdentifier("assistant-question-input")
+
+            if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Button(action: viewModel.submitTypedQuestion) {
+                    Image(systemName: "arrow.up")
+                        .font(.headline)
+                        .foregroundStyle(AppColor.onBrand)
+                        .frame(width: AppSize.Height.tapTarget, height: AppSize.Height.tapTarget)
+                        .background(AppColor.brandFill, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(!viewModel.canSubmitText)
+                .accessibilityLabel(IndonesianSpeech.text("Kirim Pertanyaan"))
+                .accessibilityHint(IndonesianSpeech.text("Mengirim pertanyaan yang diketik ke Asisten Metra."))
+                .accessibilityIdentifier("assistant-send")
+            }
+
+            Button(action: viewModel.ask) {
+                Image(systemName: isRecording ? "stop.fill" : "mic.fill")
+                    .font(.headline)
+                    .foregroundStyle(isRecording ? AppColor.onBrand : AppColor.brand)
+                    .frame(width: AppSize.Height.tapTarget, height: AppSize.Height.tapTarget)
+                    .background(isRecording ? AppColor.danger : AppColor.brandSubtle, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!viewModel.canRecord)
+            .accessibilityLabel(IndonesianSpeech.text(isRecording ? "Hentikan Rekaman" : "Rekam Pertanyaan"))
+            .accessibilityHint(IndonesianSpeech.text(isRecording
+                ? "Menghentikan rekaman dan mengirim pertanyaan."
+                : "Mulai merekam pertanyaan. Rekaman paling lama enam puluh detik."))
+            .accessibilityIdentifier("assistant-record")
+            .accessibilityFocused($focused, equals: .record)
+        }
+        .padding(.leading, AppSize.Spacing.large)
+        .padding(.trailing, AppSize.Spacing.tight)
+        .padding(.vertical, AppSize.Spacing.tight)
+        .frame(minHeight: AppSize.Height.searchField)
+        .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: AppSize.Radius.largeButton))
+        .overlay {
+            RoundedRectangle(cornerRadius: AppSize.Radius.largeButton)
+                .strokeBorder(Color.primary.opacity(0.12))
+                .accessibilityHidden(true)
+        }
+    }
+
     @ViewBuilder
     private var availabilityNotice: some View {
         if let unavailable = viewModel.availabilityMessage {
             notice(unavailable, symbol: "exclamationmark.circle", tint: AppColor.warning)
+            #if os(iOS)
+            if viewModel.availabilityCanOpenSettings {
+                Button(indonesian: "Buka Pengaturan") { openSettings() }
+                    .buttonStyle(.borderedProminent)
+            }
+            #endif
             Button(indonesian: "Periksa Ketersediaan Lagi") { viewModel.refreshAvailability() }
                 .buttonStyle(.bordered)
         }
@@ -217,12 +268,8 @@ struct AIAssistantView: View {
             notice(error, symbol: "exclamationmark.bubble", tint: AppColor.danger)
                 .accessibilityFocused($focused, equals: .error)
             #if os(iOS)
-            if !viewModel.permissionsGranted {
-                Button(indonesian: "Buka Pengaturan Aplikasi") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
-                    }
-                }
+            if viewModel.needsPermissionSettings {
+                Button(indonesian: "Buka Pengaturan Aplikasi") { openSettings() }
             }
             #endif
         }
@@ -259,6 +306,13 @@ struct AIAssistantView: View {
         viewModel.cancel()
         dismiss()
     }
+
+    #if os(iOS)
+    private func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+    #endif
 
     private func notice(_ text: String, symbol: String, tint: Color) -> some View {
         Label(indonesian: text, systemImage: symbol)
