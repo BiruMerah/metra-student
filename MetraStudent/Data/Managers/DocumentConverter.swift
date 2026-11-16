@@ -59,6 +59,8 @@ enum DocumentConverter {
         let content: String
         let createdAt: Date
         let overview: String?
+        let sourceTitle: String?
+        let pageLabelsAreSource: Bool?
         let topics: [Section]
 
         var studentMaterial: MathMaterialModel {
@@ -69,7 +71,9 @@ enum DocumentConverter {
                 content: content,
                 createdAt: createdAt,
                 overview: overview,
-                sections: topics.map { MathSectionModel(id: $0.id, title: $0.title, chunks: $0.chunks) }
+                sections: topics.map { MathSectionModel(id: $0.id, title: $0.title, chunks: $0.chunks) },
+                sourceTitle: sourceTitle,
+                pageLabelsAreSource: pageLabelsAreSource ?? false
             )
         }
     }

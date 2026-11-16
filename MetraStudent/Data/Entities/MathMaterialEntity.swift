@@ -26,6 +26,8 @@ final class MathMaterialEntity {
     var isFromTeacher: Bool = false
     var sourceChannelName: String? = nil
     var sourceTeacherName: String? = nil
+    var sourceTitle: String? = nil
+    var pageLabelsAreSource: Bool = false
     
     init(
         id: UUID = UUID(),
@@ -41,7 +43,9 @@ final class MathMaterialEntity {
         sectionsData: Data = Data(),
         isFromTeacher: Bool = false,
         sourceChannelName: String? = nil,
-        sourceTeacherName: String? = nil
+        sourceTeacherName: String? = nil,
+        sourceTitle: String? = nil,
+        pageLabelsAreSource: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -57,6 +61,8 @@ final class MathMaterialEntity {
         self.isFromTeacher = isFromTeacher
         self.sourceChannelName = sourceChannelName
         self.sourceTeacherName = sourceTeacherName
+        self.sourceTitle = sourceTitle
+        self.pageLabelsAreSource = pageLabelsAreSource
     }
     
     // MARK: - Mapper
@@ -76,7 +82,9 @@ final class MathMaterialEntity {
             sections: decodedSections,
             isFromTeacher: self.isFromTeacher,
             sourceChannelName: self.sourceChannelName,
-            sourceTeacherName: self.sourceTeacherName
+            sourceTeacherName: self.sourceTeacherName,
+            sourceTitle: self.sourceTitle,
+            pageLabelsAreSource: self.pageLabelsAreSource
         )
     }
     
@@ -94,6 +102,8 @@ final class MathMaterialEntity {
         self.isFromTeacher = domain.isFromTeacher
         self.sourceChannelName = domain.sourceChannelName
         self.sourceTeacherName = domain.sourceTeacherName
+        self.sourceTitle = domain.sourceTitle
+        self.pageLabelsAreSource = domain.pageLabelsAreSource
     }
     
     static func from(domain: MathMaterialModel) -> MathMaterialEntity {
@@ -112,7 +122,9 @@ final class MathMaterialEntity {
             sectionsData: encodedSections,
             isFromTeacher: domain.isFromTeacher,
             sourceChannelName: domain.sourceChannelName,
-            sourceTeacherName: domain.sourceTeacherName
+            sourceTeacherName: domain.sourceTeacherName,
+            sourceTitle: domain.sourceTitle,
+            pageLabelsAreSource: domain.pageLabelsAreSource
         )
     }
 }

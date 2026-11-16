@@ -15,6 +15,7 @@ nonisolated struct MaterialOverview: Equatable, Hashable, Sendable {
     let summaryText: String?
     let topicCount: Int
     let pageLabels: [String]
+    let sourceTitle: String?
 
     init(
         chapter: String = "",
@@ -23,7 +24,8 @@ nonisolated struct MaterialOverview: Equatable, Hashable, Sendable {
         questionCount: Int = 0,
         summaryText: String? = nil,
         topicCount: Int = 0,
-        pageLabels: [String] = []
+        pageLabels: [String] = [],
+        sourceTitle: String? = nil
     ) {
         self.chapter = chapter
         self.subchapter = subchapter
@@ -32,6 +34,7 @@ nonisolated struct MaterialOverview: Equatable, Hashable, Sendable {
         self.summaryText = summaryText
         self.topicCount = topicCount
         self.pageLabels = pageLabels
+        self.sourceTitle = sourceTitle
     }
 
     static let sample = MaterialOverview(
@@ -41,7 +44,8 @@ nonisolated struct MaterialOverview: Equatable, Hashable, Sendable {
         questionCount: 1,
         summaryText: "Materi ini membahas persamaan linear satu variabel dan langkah penyelesaiannya.",
         topicCount: 4,
-        pageLabels: ["21"]
+        pageLabels: ["21"],
+        sourceTitle: "Matematika untuk SMP/MTs Kelas IX"
     )
 }
 
@@ -60,11 +64,13 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
     var isFromTeacher: Bool = false
     var sourceChannelName: String? = nil
     var sourceTeacherName: String? = nil
+    var sourceTitle: String? = nil
+    var pageLabelsAreSource: Bool = false
 
     private enum CodingKeys: String, CodingKey {
         case id, title, category, content, createdAt, revision
         case defaultSpeechStyle, reviewStatus, validatedAt, overview, sections
-        case isFromTeacher, sourceChannelName, sourceTeacherName
+        case isFromTeacher, sourceChannelName, sourceTeacherName, sourceTitle, pageLabelsAreSource
     }
     
     init(
@@ -81,7 +87,9 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
         sections: [MathSectionModel] = [],
         isFromTeacher: Bool = false,
         sourceChannelName: String? = nil,
-        sourceTeacherName: String? = nil
+        sourceTeacherName: String? = nil,
+        sourceTitle: String? = nil,
+        pageLabelsAreSource: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -97,6 +105,8 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
         self.isFromTeacher = isFromTeacher
         self.sourceChannelName = Self.normalizedMetadata(sourceChannelName)
         self.sourceTeacherName = Self.normalizedMetadata(sourceTeacherName)
+        self.sourceTitle = Self.normalizedMetadata(sourceTitle)
+        self.pageLabelsAreSource = pageLabelsAreSource
     }
 
     init(from decoder: Decoder) throws {
@@ -115,6 +125,8 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
         isFromTeacher = try container.decodeIfPresent(Bool.self, forKey: .isFromTeacher) ?? false
         sourceChannelName = Self.normalizedMetadata(try container.decodeIfPresent(String.self, forKey: .sourceChannelName))
         sourceTeacherName = Self.normalizedMetadata(try container.decodeIfPresent(String.self, forKey: .sourceTeacherName))
+        sourceTitle = Self.normalizedMetadata(try container.decodeIfPresent(String.self, forKey: .sourceTitle))
+        pageLabelsAreSource = try container.decodeIfPresent(Bool.self, forKey: .pageLabelsAreSource) ?? false
     }
 
     /// Marks this material as coming from a teacher's iCloud channel.
@@ -141,8 +153,10 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
 
     var materialOverview: MaterialOverview {
         var seenPages = Set<String>()
-        let pages = sections.flatMap(\.chunks).compactMap(\.pageLabel).filter { seenPages.insert($0).inserted }
-        let firstPage = pages.first.flatMap(Int.init) ?? 1
+        let pages = pageLabelsAreSource
+            ? sections.flatMap(\.chunks).compactMap(\.pageLabel).filter { seenPages.insert($0).inserted }
+            : []
+        let firstPage = pages.first.flatMap(Int.init) ?? 0
         return MaterialOverview(
             chapter: title,
             subchapter: sections.first?.title ?? category,
@@ -150,7 +164,8 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
             questionCount: 0,
             summaryText: overview,
             topicCount: sections.count,
-            pageLabels: pages
+            pageLabels: pages,
+            sourceTitle: sourceTitle
         )
     }
 
@@ -178,7 +193,9 @@ nonisolated struct MathMaterialModel: Identifiable, Codable, Equatable, Hashable
             sections: updatedSections,
             isFromTeacher: isFromTeacher,
             sourceChannelName: sourceChannelName,
-            sourceTeacherName: sourceTeacherName
+            sourceTeacherName: sourceTeacherName,
+            sourceTitle: sourceTitle,
+            pageLabelsAreSource: pageLabelsAreSource
         )
     }
 }
@@ -207,6 +224,8 @@ nonisolated struct PortableMaterial: Decodable, Sendable {
     let reviewStatus: ReviewStatus?
     let validatedAt: Date?
     let overview: String?
+    let sourceTitle: String?
+    let pageLabelsAreSource: Bool?
     let topics: [Topic]?
 
     var studentMaterial: MathMaterialModel {
@@ -230,7 +249,9 @@ nonisolated struct PortableMaterial: Decodable, Sendable {
             reviewStatus: reviewStatus ?? .draft,
             validatedAt: validatedAt,
             overview: overview,
-            sections: mappedSections
+            sections: mappedSections,
+            sourceTitle: sourceTitle,
+            pageLabelsAreSource: pageLabelsAreSource ?? false
         )
     }
 }
