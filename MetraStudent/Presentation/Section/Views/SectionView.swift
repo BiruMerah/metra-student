@@ -66,7 +66,7 @@ struct SectionView: View {
 
                         if viewModel.hasNextSection {
                             SectionNavigationView(
-                                title: "Segmen Selanjutnya",
+                                title: "Topik Selanjutnya",
                                 symbol: "forward.end.fill",
                                 action: viewModel.nextSection
                             )
@@ -78,7 +78,7 @@ struct SectionView: View {
 
                         if viewModel.hasPreviousSection {
                             SectionNavigationView(
-                                title: "Segmen Sebelumnya",
+                                title: "Topik Sebelumnya",
                                 symbol: "backward.end.fill",
                                 action: viewModel.previousSection
                             )

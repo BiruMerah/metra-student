@@ -149,12 +149,9 @@ final class ChannelViewModel {
             if let channel = try? await cloudKitManager.fetchChannel(byCode: code) {
                 loadedChannels.append(channel)
                 let upperCode = channel.code.uppercased()
-                if let fetchedMaterials = try? await cloudKitManager.fetchMaterials(for: upperCode) {
+                if let fetchedMaterials = try? await fetchAndTagMaterials(for: channel) {
                     allMaterialsByChannel[upperCode] = fetchedMaterials
-                    for material in fetchedMaterials {
-                        try? mathMaterialRepository.saveMaterial(material)
-                        savedStatusByMaterialID[material.id] = true
-                    }
+                    autosaveChannelMaterials(fetchedMaterials)
                 }
             }
         }
@@ -183,12 +180,9 @@ final class ChannelViewModel {
             )
             upsertChannel(channel)
             let upperCode = channel.code.uppercased()
-            if let fetchedMaterials = try? await cloudKitManager.fetchMaterials(for: upperCode) {
+            if let fetchedMaterials = try? await fetchAndTagMaterials(for: channel) {
                 materialsByChannel[upperCode] = fetchedMaterials
-                for material in fetchedMaterials {
-                    try? mathMaterialRepository.saveMaterial(material)
-                    savedStatusByMaterialID[material.id] = true
-                }
+                autosaveChannelMaterials(fetchedMaterials)
             }
             onMaterialsAutosaved?()
             return channel
@@ -217,7 +211,7 @@ final class ChannelViewModel {
         defer { isLoadingMaterials = false }
         
         do {
-            let fetchedMaterials = try await cloudKitManager.fetchMaterials(for: code)
+            let fetchedMaterials = try await fetchAndTagMaterials(for: channel)
             materialsByChannel[code] = fetchedMaterials
             
             // Update saved status cache for these materials
@@ -246,8 +240,8 @@ final class ChannelViewModel {
         do {
             try mathMaterialRepository.saveMaterial(material)
             savedStatusByMaterialID[material.id] = true
-            notificationManager.announceAccessibility("Materi “\(material.title)” berhasil disimpan ke Dokumen")
-            feedbackMessage = "Materi “\(material.title)” berhasil disimpan ke Dokumen."
+            notificationManager.announceAccessibility("Materi “\(material.title)” berhasil disimpan ke Daftar Materi")
+            feedbackMessage = "Materi “\(material.title)” berhasil disimpan ke Daftar Materi."
         } catch {
             errorMessage = "Materi belum bisa disimpan. Coba lagi."
         }
@@ -257,6 +251,20 @@ final class ChannelViewModel {
         coordinator?.navigate(to: .material(material))
     }
     
+    private func fetchAndTagMaterials(for channel: ClassroomChannelModel) async throws -> [MathMaterialModel] {
+        let fetched = try await cloudKitManager.fetchMaterials(for: channel.code.uppercased())
+        return fetched.map {
+            $0.withTeacherSource(channelName: channel.name, teacherName: channel.createdBy)
+        }
+    }
+
+    private func autosaveChannelMaterials(_ materials: [MathMaterialModel]) {
+        for material in materials {
+            try? mathMaterialRepository.saveMaterial(material)
+            savedStatusByMaterialID[material.id] = true
+        }
+    }
+
     private func upsertChannel(_ channel: ClassroomChannelModel) {
         if let idx = channels.firstIndex(where: { $0.code == channel.code }) {
             channels[idx] = channel

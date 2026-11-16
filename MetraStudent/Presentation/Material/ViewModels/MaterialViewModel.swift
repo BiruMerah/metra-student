@@ -12,9 +12,9 @@ import Observation
 @MainActor
 final class MaterialViewModel {
     // MARK: - Observable UI State
-    let material: MathMaterialModel
-    let overview: MaterialOverview
-    let sections: [MathSectionModel]
+    var material: MathMaterialModel
+    var overview: MaterialOverview
+    var sections: [MathSectionModel]
     var selectedSpeechStyle: SpeechStyle
     var isSaved: Bool = false
     var hasDuplicateTitle: Bool = false
@@ -83,10 +83,40 @@ final class MaterialViewModel {
             try mathMaterialRepository.deleteMaterial(id: targetID)
             isSaved = false
             savedMaterialID = nil
-            notificationManager?.announceAccessibility("Dokumen dihapus.")
+            notificationManager?.announceAccessibility("Materi dihapus.")
             coordinator?.navigateBack()
         } catch {
             errorMessage = "Materi belum bisa dihapus. Coba lagi."
+        }
+    }
+
+    func updateTitle(_ title: String) {
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedTitle.isEmpty, normalizedTitle != material.title else { return }
+
+        var updatedMaterial = material
+        updatedMaterial.title = normalizedTitle
+        errorMessage = nil
+
+        do {
+            let status = try mathMaterialRepository.evaluateSaveStatus(for: updatedMaterial)
+            guard !status.hasDuplicateTitle else {
+                errorMessage = "Judul tersebut sudah digunakan oleh materi lain. Pilih judul yang berbeda."
+                return
+            }
+
+            if isSaved {
+                try mathMaterialRepository.saveMaterial(updatedMaterial)
+            }
+
+            material = updatedMaterial
+            overview = mathMaterialRepository.overview(for: updatedMaterial)
+            sections = mathMaterialRepository.sections(for: updatedMaterial)
+            checkSavedStatus()
+            coordinator?.documentViewModel.reload()
+            notificationManager?.announceAccessibility("Judul materi berhasil diubah menjadi \(normalizedTitle).")
+        } catch {
+            errorMessage = "Judul materi belum bisa diubah. Coba lagi."
         }
     }
 

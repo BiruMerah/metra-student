@@ -13,7 +13,7 @@ nonisolated enum TeacherPDFPageImporter {
             throw ImportError.invalid("Unggah PDF hanya menerima berkas PDF.")
         }
         guard remainingPages > 0 else {
-            throw ImportError.invalid("Maksimal 10 halaman per dokumen.")
+            throw ImportError.invalid("Maksimal 10 halaman per materi.")
         }
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
@@ -31,7 +31,7 @@ nonisolated enum TeacherPDFPageImporter {
                 }
                 let capacity = min(pageLimit, remainingPages)
                 guard document.pageCount <= capacity else {
-                    throw ImportError.invalid("PDF ini memiliki \(document.pageCount) halaman. Sisa kapasitas \(capacity) halaman; maksimal 10 halaman per dokumen.")
+                    throw ImportError.invalid("PDF ini memiliki \(document.pageCount) halaman. Sisa kapasitas \(capacity) halaman; maksimal 10 halaman per materi.")
                 }
                 return try (0..<document.pageCount).map { index in
                     try Task.checkCancellation()

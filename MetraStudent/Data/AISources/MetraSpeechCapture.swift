@@ -17,12 +17,12 @@ final class MetraSpeechCapture: AssistantVoiceCapturingProtocol {
             SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
         }
         guard speech == .authorized else {
-            throw AIAssistantFailure.permissionDenied("Izin pengenalan suara belum diberikan. Aktifkan Pengenalan Ucapan untuk aplikasi ini di Pengaturan.")
+            throw AIAssistantFailure.permissionDenied("Izinkan pengenalan suara di Pengaturan untuk menggunakan mikrofon Asisten Metra.")
         }
         try Task.checkCancellation()
         let microphone = await AVAudioApplication.requestRecordPermission()
         guard microphone else {
-            throw AIAssistantFailure.permissionDenied("Izin mikrofon belum diberikan. Aktifkan Mikrofon untuk aplikasi ini di Pengaturan.")
+            throw AIAssistantFailure.permissionDenied("Izinkan mikrofon di Pengaturan untuk merekam pertanyaan.")
         }
     }
 
@@ -30,7 +30,7 @@ final class MetraSpeechCapture: AssistantVoiceCapturingProtocol {
         cancel()
         guard SFSpeechRecognizer.authorizationStatus() == .authorized,
               AVAudioApplication.shared.recordPermission == .granted else {
-            throw AIAssistantFailure.permissionDenied("Izin mikrofon atau pengenalan suara berubah. Aktifkan kembali di Pengaturan.")
+            throw AIAssistantFailure.permissionDenied("Izinkan mikrofon dan pengenalan suara di Pengaturan untuk merekam pertanyaan.")
         }
         let locale = Locale(identifier: localeIdentifier)
         guard SFSpeechRecognizer.supportedLocales().contains(where: {

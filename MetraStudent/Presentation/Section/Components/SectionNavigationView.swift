@@ -28,6 +28,6 @@ struct SectionNavigationView: View {
 }
 
 #Preview {
-    SectionNavigationView(title: "Segmen Selanjutnya", symbol: "forward.end.fill", action: {})
+    SectionNavigationView(title: "Topik Selanjutnya", symbol: "forward.end.fill", action: {})
         .padding()
 }

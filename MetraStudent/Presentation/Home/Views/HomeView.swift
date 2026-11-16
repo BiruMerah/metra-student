@@ -20,29 +20,30 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
     @AccessibilityFocusState(for: .voiceOver) private var isImportProgressFocused: Bool
+    @ScaledMetric(relativeTo: .largeTitle) private var headerLogoHeight: CGFloat = 28
     @State private var searchText = ""
     @State private var isShowingPDFPicker = false
     @State private var isShowingPhotoPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
-    #if os(iOS)
     @State private var isShowingCamera = false
     @State private var capturedCameraPhoto: Data?
-    #endif
+    @State private var cameraPermissionFallback: CameraPermissionFallback?
+    @State private var isRequestingCameraPermission = false
+    @State private var shouldReopenCameraFromSettings = false
+    @State private var cameraPermissionTask: Task<Void, Never>?
+    @State private var isRefreshing = false
+    @State private var refreshTask: Task<Void, Never>?
     
     private var isConverting: Bool {
         documentViewModel.progress != nil
     }
 
-    private var shouldFocusImportProgress: Bool {
-        isVoiceOverEnabled && isConverting && scenePhase == .active && !isShowingPDFPicker && !isShowingPhotoPicker
+    private var isRefreshDisabled: Bool {
+        isConverting || isRefreshing || channelViewModel.isInitialSyncing
     }
 
-    private var cameraAction: (() -> Void)? {
-        #if os(iOS)
-        { isShowingCamera = true }
-        #else
-        nil
-        #endif
+    private var shouldFocusImportProgress: Bool {
+        isVoiceOverEnabled && isConverting && scenePhase == .active && !isShowingPDFPicker && !isShowingPhotoPicker
     }
 
     private var addDocumentButton: some View {
@@ -50,7 +51,7 @@ struct HomeView: View {
             isDisabled: !documentViewModel.canImport || isConverting,
             onSelectPDF: { isShowingPDFPicker = true },
             onSelectPhoto: { isShowingPhotoPicker = true },
-            onTakePhoto: cameraAction
+            onTakePhoto: openCamera
         )
     }
     
@@ -96,9 +97,41 @@ struct HomeView: View {
             }
         )
     }
+
+    private var isShowingCameraPermissionAlert: Binding<Bool> {
+        Binding(
+            get: { cameraPermissionFallback != nil },
+            set: { if !$0 { cameraPermissionFallback = nil } }
+        )
+    }
     
     private var homeList: some View {
         List {
+            Section {
+                HStack(spacing: AppSize.Spacing.actions) {
+                    Image(.onboardingMetraMark)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: headerLogoHeight * (33.0 / 31.0), height: headerLogoHeight)
+                        .foregroundStyle(AppColor.brand)
+                        .accessibilityHidden(true)
+
+                    IndonesianSpeech.text("Metra Siswa")
+                        .font(AppTypography.screenTitle)
+                        .foregroundStyle(AppColor.heading)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(IndonesianSpeech.text("Metra Siswa"))
+                .accessibilityAddTraits(.isHeader)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+
             if channelViewModel.channels.isEmpty {
                 // MARK: - Not joining any channel state
                 Section {
@@ -195,14 +228,14 @@ struct HomeView: View {
                     if isSearching {
                         ContentUnavailableView {
                             Label {
-                                IndonesianSpeech.text("Dokumen tidak ditemukan")
+                                IndonesianSpeech.text("Materi tidak ditemukan")
                                     .font(AppTypography.headline)
                             } icon: {
                                 Image(systemName: "magnifyingglass")
                                     .accessibilityHidden(true)
                             }
                         } description: {
-                            IndonesianSpeech.text("Tidak ada dokumen yang cocok dengan “\(trimmedSearchText)”.")
+                            IndonesianSpeech.text("Tidak ada materi yang cocok dengan “\(trimmedSearchText)”.")
                                 .font(AppTypography.supporting)
                         }
                         .frame(maxWidth: .infinity)
@@ -217,7 +250,7 @@ struct HomeView: View {
                             IndonesianSpeech.text("Belum Ada Materi")
                                 .font(AppTypography.headline)
                                 .foregroundStyle(AppColor.heading)
-                            IndonesianSpeech.text("Materi dari guru dan dokumen yang kamu tambahkan akan muncul di sini.")
+                            IndonesianSpeech.text("Materi dari guru dan yang kamu tambahkan akan muncul di sini.")
                                 .font(AppTypography.supporting)
                                 .foregroundStyle(AppColor.secondaryText)
                                 .multilineTextAlignment(.center)
@@ -251,7 +284,7 @@ struct HomeView: View {
                 }
             } header: {
                 HStack {
-                    IndonesianSpeech.text("Daftar Dokumen")
+                    IndonesianSpeech.text("Daftar Materi")
                         .font(AppTypography.supportingEmphasis)
                         .foregroundStyle(AppColor.heading)
                     Spacer()
@@ -273,6 +306,7 @@ struct HomeView: View {
         .listStyle(.insetGrouped)
         .listSectionSpacing(AppSize.Spacing.medium)
         .contentMargins(.horizontal, AppSize.Inset.page, for: .scrollContent)
+        .contentMargins(.top, 0, for: .scrollContent)
         .scrollContentBackground(.hidden)
         .background(AppColor.background.ignoresSafeArea())
     }
@@ -291,8 +325,39 @@ struct HomeView: View {
                     guard shouldFocusImportProgress, !Task.isCancelled else { return }
                     isImportProgressFocused = true
                 }
+                .alert(
+                    IndonesianSpeech.text(cameraPermissionFallback?.title ?? ""),
+                    isPresented: isShowingCameraPermissionAlert,
+                    presenting: cameraPermissionFallback
+                ) { fallback in
+                    if fallback.canOpenSettings {
+                        Button(indonesian: "Buka Pengaturan Aplikasi") {
+                            cameraPermissionFallback = nil
+                            openCameraSettingsFromHome()
+                        }
+                    }
+                    Button(indonesian: "Tutup", role: .cancel) {
+                        cameraPermissionFallback = nil
+                    }
+                } message: { fallback in
+                    IndonesianSpeech.text(fallback.message)
+                }
         }
-        .navigationTitle(IndonesianSpeech.text("Metra"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: triggerRefresh) {
+                    if isRefreshing {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+                .disabled(isRefreshDisabled)
+                .accessibilityLabel(IndonesianSpeech.text(isRefreshing ? "Sedang memperbarui materi" : "Perbarui Materi"))
+                .accessibilityHint(IndonesianSpeech.text("Memuat ulang kelas dan daftar materi tersimpan."))
+            }
+        }
         .task(id: searchText) {
             guard isSearching else { return }
             try? await Task.sleep(for: .milliseconds(600))
@@ -300,9 +365,7 @@ struct HomeView: View {
             announceSearchResult()
         }
         .refreshable {
-            guard !isConverting else { return }
-            await channelViewModel.reloadAllChannels()
-            documentViewModel.reload()
+            await refreshMaterials()
         }
         .sheet(isPresented: $channelViewModel.isShowingJoinSheet) {
             JoinChannelSheet(
@@ -313,11 +376,9 @@ struct HomeView: View {
                 await channelViewModel.joinChannel(code: code) != nil
             }
         }
-        #if os(iOS)
         .fullScreenCover(isPresented: $isShowingCamera, onDismiss: importCapturedPhoto) {
             DocumentCameraView { capturedCameraPhoto = $0 }
         }
-        #endif
         .photosPicker(
             isPresented: $isShowingPhotoPicker,
             selection: $selectedPhoto,
@@ -345,18 +406,22 @@ struct HomeView: View {
         .onAppear {
             documentViewModel.reload()
         }
-        .refreshable {
-            await channelViewModel.reloadAllChannels()
-        }
         .task {
             await channelViewModel.initialize()
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                reopenCameraIfAuthorizedAfterSettings()
                 Task {
                     await channelViewModel.reloadAllChannels()
                 }
             }
+        }
+        .onDisappear {
+            cameraPermissionTask?.cancel()
+            cameraPermissionTask = nil
+            refreshTask?.cancel()
+            refreshTask = nil
         }
         .onChange(of: documentViewModel.completedImport?.id) {
             guard let material = documentViewModel.completedImport else { return }
@@ -383,35 +448,110 @@ struct HomeView: View {
         }
     }
 
-    #if os(iOS)
+    private func triggerRefresh() {
+        guard !isRefreshDisabled else { return }
+        refreshTask?.cancel()
+        refreshTask = Task {
+            defer { refreshTask = nil }
+            await refreshMaterials(announceCompletion: true)
+        }
+    }
+
+    @MainActor
+    private func refreshMaterials(announceCompletion: Bool = false) async {
+        guard !isConverting, !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+
+        if announceCompletion {
+            IndonesianSpeech.announce("Memperbarui daftar materi…")
+        }
+
+        await channelViewModel.reloadAllChannels()
+        guard !Task.isCancelled else { return }
+        documentViewModel.reload()
+
+        if announceCompletion {
+            IndonesianSpeech.announce("Daftar materi diperbarui.")
+        }
+    }
+
+    private func openCamera() {
+        guard !isShowingCamera, !isRequestingCameraPermission else { return }
+        if let fallback = CameraPermission.currentFallback() {
+            cameraPermissionFallback = fallback
+            return
+        }
+        if CameraPermission.isAuthorized {
+            isShowingCamera = true
+            return
+        }
+
+        isRequestingCameraPermission = true
+        cameraPermissionTask = Task {
+            defer {
+                isRequestingCameraPermission = false
+                cameraPermissionTask = nil
+            }
+            let fallback = await CameraPermission.requestAccessIfNeeded()
+            guard !Task.isCancelled else { return }
+            if let fallback {
+                // Wait briefly for the system permission sheet to finish dismissing before presenting the alert.
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled, scenePhase != .background else { return }
+                cameraPermissionFallback = CameraPermission.currentFallback() ?? fallback
+            } else {
+                isShowingCamera = true
+            }
+        }
+    }
+
+    private func openCameraSettingsFromHome() {
+        shouldReopenCameraFromSettings = true
+        CameraPermission.openAppSettings { opened in
+            guard !opened else { return }
+            shouldReopenCameraFromSettings = false
+            documentViewModel.errorMessage = "Pengaturan aplikasi belum dapat dibuka. Buka Pengaturan secara manual untuk mengizinkan akses kamera."
+        }
+    }
+
+    private func reopenCameraIfAuthorizedAfterSettings() {
+        guard shouldReopenCameraFromSettings else { return }
+        shouldReopenCameraFromSettings = false
+        guard CameraPermission.isAuthorized,
+              documentViewModel.canImport,
+              !isConverting,
+              !channelViewModel.isShowingJoinSheet else { return }
+        isShowingCamera = true
+    }
+
     private func importCapturedPhoto() {
         guard let data = capturedCameraPhoto else { return }
         capturedCameraPhoto = nil
         documentViewModel.importCameraPhoto(data)
     }
-    #endif
     
     // MARK: - Search Helpers
     private var documentCountText: String {
         let total = documentViewModel.savedMaterials.count
-        guard isSearching else { return "\(total) Dokumen" }
-        return "\(matchingDocuments.count) dari \(total) Dokumen"
+        guard isSearching else { return "\(total) Materi" }
+        return "\(matchingDocuments.count) dari \(total) Materi"
     }
     
     private var documentHeaderAccessibilityLabel: String {
         let total = documentViewModel.savedMaterials.count
-        guard total > 0 else { return "Daftar Dokumen, belum ada dokumen" }
+        guard total > 0 else { return "Daftar Materi, belum ada materi" }
         guard isSearching else {
-            return "Daftar Dokumen, \(total) dokumen tersimpan"
+            return "Daftar Materi, \(total) materi tersimpan"
         }
-        return "Daftar Dokumen, \(matchingDocuments.count) hasil pencarian dari \(total) dokumen"
+        return "Daftar Materi, \(matchingDocuments.count) hasil pencarian dari \(total) materi"
     }
     
     private func announceSearchResult() {
         let count = matchingDocuments.count
         let message = count == 0
-            ? "Tidak ada dokumen yang cocok"
-            : "\(count) dokumen ditemukan"
+            ? "Tidak ada materi yang cocok"
+            : "\(count) materi ditemukan"
         IndonesianSpeech.announce(message)
     }
     
@@ -437,7 +577,10 @@ struct HomeView: View {
             MathMaterialModel(
                 title: "Bab 1 - Persamaan Linear Satu Variabel",
                 category: "Aljabar",
-                content: "Persamaan linear satu variabel."
+                content: "Persamaan linear satu variabel.",
+                isFromTeacher: true,
+                sourceChannelName: "Matematika VII-A",
+                sourceTeacherName: "Bu Sari"
             ),
             MathMaterialModel(
                 title: "Bab 2 - Teorema Pythagoras",

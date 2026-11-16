@@ -41,7 +41,7 @@ final class SectionViewModel {
     private let sections: [MathSectionModel]
 
     var section: MathSectionModel { sections[currentSectionIndex] }
-    var progress: String { "Segmen \(currentSectionIndex + 1) dari \(sections.count)" }
+    var progress: String { "Topik \(currentSectionIndex + 1) dari \(sections.count)" }
     var hasPreviousSection: Bool { currentSectionIndex > 0 }
     var hasNextSection: Bool { currentSectionIndex + 1 < sections.count }
     var lastSentenceID: String? {

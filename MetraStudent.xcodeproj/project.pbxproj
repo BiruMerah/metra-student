@@ -108,7 +108,6 @@
 			developmentRegion = id;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
 				id,
 			);

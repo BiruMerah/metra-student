@@ -10,16 +10,29 @@ import SwiftUI
 struct MaterialView: View {
     @Bindable var viewModel: MaterialViewModel
     @State private var confirmsMaterialDeletion = false
+    @State private var editsTitle = false
+    @State private var titleDraft = ""
     
     var body: some View {
         List {
             Section {
-                IndonesianSpeech.text(viewModel.material.title)
-                    .font(AppTypography.contentTitle)
-                    .accessibilityAddTraits(.isHeader)
-                    .textSelection(.enabled)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                    .listRowBackground(Color.clear)
+                VStack(alignment: .leading, spacing: AppSize.Spacing.small) {
+                    IndonesianSpeech.text(viewModel.material.title)
+                        .font(AppTypography.contentTitle)
+                        .accessibilityAddTraits(.isHeader)
+                        .textSelection(.enabled)
+
+                    if viewModel.material.isFromTeacher {
+                        TeacherSourceBadge(
+                            channelName: viewModel.material.sourceChannelName,
+                            teacherName: viewModel.material.sourceTeacherName,
+                            showsContext: true
+                        )
+                    }
+                }
+                .accessibilityElement(children: .contain)
+                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                .listRowBackground(Color.clear)
             }
             
             Section {
@@ -41,22 +54,29 @@ struct MaterialView: View {
                     )
                 }
             } header: {
-                IndonesianSpeech.text("Segmen")
+                IndonesianSpeech.text("Topik")
                     .font(AppTypography.headline)
                     .textCase(nil)
             } footer: {
-                IndonesianSpeech.text("Pilih segmen untuk melihat detailnya.")
+                IndonesianSpeech.text("Pilih topik untuk melihat detailnya.")
                     .font(AppTypography.supporting)
             }
 
             if viewModel.isSaved {
                 Section {
-                    Button {
+                    Button(role: .destructive) {
                         confirmsMaterialDeletion = true
                     } label: {
-                        Label(indonesian: "Hapus Materi", systemImage: "trash")
-                            .font(AppTypography.headline)
-                            .frame(maxWidth: .infinity)
+                        HStack(spacing: AppSize.Spacing.small) {
+                            Image(systemName: "trash")
+                                .foregroundStyle(AppColor.onBrand.opacity(0.85))
+                                .symbolRenderingMode(.hierarchical)
+                                .accessibilityHidden(true)
+                            IndonesianSpeech.text("Hapus Materi")
+                        }
+                        .font(AppTypography.headline)
+                        .foregroundStyle(AppColor.onBrand)
+                        .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
@@ -74,6 +94,16 @@ struct MaterialView: View {
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle(IndonesianSpeech.text("Detail Materi"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    titleDraft = viewModel.material.title
+                    editsTitle = true
+                } label: {
+                    Label(indonesian: "Edit Judul", systemImage: "pencil")
+                }
+            }
+        }
         .toolbar(.hidden, for: .tabBar)
         .onAppear {
             viewModel.checkSavedStatus()
@@ -84,7 +114,17 @@ struct MaterialView: View {
                 viewModel.removeSavedMaterial()
             }
         } message: {
-            IndonesianSpeech.text("Materi “\(viewModel.material.title)” akan dihapus dari Dokumen Tersimpan.")
+            IndonesianSpeech.text("Materi “\(viewModel.material.title)” akan dihapus dari Materi Tersimpan.")
+        }
+        .alert(IndonesianSpeech.text("Edit Judul"), isPresented: $editsTitle) {
+            TextField("Judul materi", text: $titleDraft)
+            Button(indonesian: "Batal", role: .cancel) {}
+            Button(indonesian: "Simpan") {
+                viewModel.updateTitle(titleDraft)
+            }
+            .disabled(titleDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } message: {
+            IndonesianSpeech.text("Masukkan judul baru untuk materi ini.")
         }
         .alert(IndonesianSpeech.text("Terjadi Kesalahan"), isPresented: Binding(
             get: { viewModel.errorMessage != nil },
@@ -105,7 +145,11 @@ struct MaterialView: View {
         category: "Aljabar",
         content: "Contoh isi materi pembelajaran dari guru.",
         overview: MaterialOverview.sample.summaryText,
-        sections: MathSectionModel.sampleSections
+        sections: MathSectionModel.sampleSections,
+        isFromTeacher: true,
+        sourceChannelName: "Matematika VII-A",
+        sourceTeacherName: "Bu Sari",
+        sourceTitle: "Matematika untuk SMP/MTs Kelas IX"
     )
     let coordinator = AppCoordinator.makePreview(savedMaterials: [sampleMaterial])
     return NavigationStack(path: Bindable(coordinator).channelPath) {

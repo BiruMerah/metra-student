@@ -11,11 +11,30 @@ struct AssistantLogicChecks {
     static func main() async throws {
         let selection = try selectionsFromSectionReader()
         try selectionFollowsSpeechStyle()
+        try await typedQuestionWithoutVoicePermission(selection)
         try await directQuestionAndAskAgain(selection)
         try await unavailableModelAndDeniedPermission(selection)
         try await lateResultsAreIgnored(selection)
         try await languageErrorsAndRetry(selection)
         print("All Metra Assistant Method 3 checks passed.")
+    }
+
+    private static func typedQuestionWithoutVoicePermission(_ selection: AIAssistantSelection) async throws {
+        let capture = CaptureStub()
+        let generator = GeneratorStub([reply])
+        let controller = makeController(selection, capture, generator)
+
+        controller.inputText = "  \(question)  "
+        try expect(controller.canSubmitText, "A non-empty typed question should be ready to send")
+        controller.submitTypedQuestion()
+        try await until { controller.answer != nil }
+
+        try expect(controller.question == question && controller.inputText.isEmpty,
+                   "A typed question should be trimmed, displayed, and cleared from the input")
+        try expect(controller.answer == reply && generator.requests.count == 1,
+                   "A typed question should generate exactly one answer")
+        try expect(capture.permissionRequests == 0 && capture.locales.isEmpty,
+                   "Typing a question must not request microphone or speech permission")
     }
 
     private static func selectionsFromSectionReader() throws -> AIAssistantSelection {

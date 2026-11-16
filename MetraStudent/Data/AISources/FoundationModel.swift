@@ -11,6 +11,7 @@ final class FoundationModel {
     }
 
     var availabilityMessage: String? { generator.availabilityMessage }
+    var availabilityCanOpenSettings: Bool { generator.availabilityCanOpenSettings }
 
     // Some iOS 27 models can answer in Indonesian even when supportsLocale returns false.
     func answer(question: String, selection: AIAssistantSelection) async throws -> String {
@@ -82,7 +83,16 @@ final class FoundationModel {
 @MainActor
 private final class OnDeviceIndonesianGenerator: AssistantGeneratingProtocol {
     private let model = SystemLanguageModel.default
+
+    private var usesEnglishDeviceLanguage: Bool {
+        guard let preferredLanguage = Locale.preferredLanguages.first else { return false }
+        return Locale(identifier: preferredLanguage).language.languageCode?.identifier == "en"
+    }
+
     var availabilityMessage: String? {
+        guard usesEnglishDeviceLanguage else {
+            return "Asisten Metra hanya tersedia saat bahasa iPhone menggunakan English. Buka Pengaturan, lalu pilih Umum, Bahasa & Wilayah, Bahasa iPhone, dan English."
+        }
         switch model.availability {
         case .available: return nil
         case .unavailable(.deviceNotEligible):
@@ -94,6 +104,12 @@ private final class OnDeviceIndonesianGenerator: AssistantGeneratingProtocol {
         case .unavailable:
             return "Asisten Metra belum tersedia. Coba periksa lagi nanti."
         }
+    }
+
+    var availabilityCanOpenSettings: Bool {
+        if !usesEnglishDeviceLanguage { return true }
+        if case .unavailable(.appleIntelligenceNotEnabled) = model.availability { return true }
+        return false
     }
 
     func respond(instructions: String, prompt: String) async throws -> String {

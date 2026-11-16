@@ -12,7 +12,7 @@ struct AddDocumentButton: View {
     let onSelectPDF: () -> Void
     let onSelectPhoto: () -> Void
     var onTakePhoto: (() -> Void)?
-    
+
     var body: some View {
         Menu {
             if let onTakePhoto {
@@ -24,7 +24,7 @@ struct AddDocumentButton: View {
             } label: {
                 Label(indonesian: "Pilih Berkas PDF", systemImage: "doc", spokenAs: "Pilih berkas pe de ef")
             }
-            
+
             Button {
                 onSelectPhoto()
             } label: {
@@ -34,7 +34,8 @@ struct AddDocumentButton: View {
             HStack(spacing: AppSize.Spacing.actions) {
                 Image(systemName: "doc.badge.plus")
                     .font(.title3.weight(.semibold))
-                IndonesianSpeech.text("Tambah Dokumen")
+                    .accessibilityHidden(true)
+                IndonesianSpeech.text("Tambah Materi")
                     .font(AppTypography.headline)
             }
             .padding(.vertical, AppSize.Spacing.small)
@@ -47,8 +48,13 @@ struct AddDocumentButton: View {
             .foregroundStyle(AppColor.onBrand)
         }
         .disabled(isDisabled)
-        .accessibilityLabel(IndonesianSpeech.text("Tambah Dokumen"))
-        .accessibilityHint(IndonesianSpeech.text("Buka pilihan sumber dokumen untuk dikonversi menjadi materi matematika bersuara"))
+        .accessibilityLabel(
+            IndonesianSpeech.text(
+                "Tambah Materi. Ambil foto, gambar, atau PDF untuk diubah menjadi matematika yang dibacakan",
+                spokenAs: "Tambah materi. Ambil foto, gambar, atau pe de ef untuk diubah menjadi matematika yang dibacakan"
+            )
+        )
+        .accessibilityHint(IndonesianSpeech.text("Ketuk dua kali untuk membuka pilihan sumber materi"))
     }
 }
 
