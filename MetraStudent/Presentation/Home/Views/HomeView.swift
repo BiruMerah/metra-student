@@ -20,6 +20,7 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
     @AccessibilityFocusState(for: .voiceOver) private var isImportProgressFocused: Bool
+    @ScaledMetric(relativeTo: .largeTitle) private var headerLogoHeight: CGFloat = 28
     @State private var searchText = ""
     @State private var isShowingPDFPicker = false
     @State private var isShowingPhotoPicker = false
@@ -30,9 +31,15 @@ struct HomeView: View {
     @State private var isRequestingCameraPermission = false
     @State private var shouldReopenCameraFromSettings = false
     @State private var cameraPermissionTask: Task<Void, Never>?
+    @State private var isRefreshing = false
+    @State private var refreshTask: Task<Void, Never>?
     
     private var isConverting: Bool {
         documentViewModel.progress != nil
+    }
+
+    private var isRefreshDisabled: Bool {
+        isConverting || isRefreshing || channelViewModel.isInitialSyncing
     }
 
     private var shouldFocusImportProgress: Bool {
@@ -100,6 +107,31 @@ struct HomeView: View {
     
     private var homeList: some View {
         List {
+            Section {
+                HStack(spacing: AppSize.Spacing.actions) {
+                    Image(.onboardingMetraMark)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: headerLogoHeight * (33.0 / 31.0), height: headerLogoHeight)
+                        .foregroundStyle(AppColor.brand)
+                        .accessibilityHidden(true)
+
+                    IndonesianSpeech.text("Metra Siswa")
+                        .font(AppTypography.screenTitle)
+                        .foregroundStyle(AppColor.heading)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(IndonesianSpeech.text("Metra Siswa"))
+                .accessibilityAddTraits(.isHeader)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+
             if channelViewModel.channels.isEmpty {
                 // MARK: - Not joining any channel state
                 Section {
@@ -274,6 +306,7 @@ struct HomeView: View {
         .listStyle(.insetGrouped)
         .listSectionSpacing(AppSize.Spacing.medium)
         .contentMargins(.horizontal, AppSize.Inset.page, for: .scrollContent)
+        .contentMargins(.top, 0, for: .scrollContent)
         .scrollContentBackground(.hidden)
         .background(AppColor.background.ignoresSafeArea())
     }
@@ -310,7 +343,21 @@ struct HomeView: View {
                     IndonesianSpeech.text(fallback.message)
                 }
         }
-        .navigationTitle(IndonesianSpeech.text("Metra Siswa"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: triggerRefresh) {
+                    if isRefreshing {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+                .disabled(isRefreshDisabled)
+                .accessibilityLabel(IndonesianSpeech.text(isRefreshing ? "Sedang memperbarui materi" : "Perbarui Materi"))
+                .accessibilityHint(IndonesianSpeech.text("Memuat ulang kelas dan daftar materi tersimpan."))
+            }
+        }
         .task(id: searchText) {
             guard isSearching else { return }
             try? await Task.sleep(for: .milliseconds(600))
@@ -318,9 +365,7 @@ struct HomeView: View {
             announceSearchResult()
         }
         .refreshable {
-            guard !isConverting else { return }
-            await channelViewModel.reloadAllChannels()
-            documentViewModel.reload()
+            await refreshMaterials()
         }
         .sheet(isPresented: $channelViewModel.isShowingJoinSheet) {
             JoinChannelSheet(
@@ -361,9 +406,6 @@ struct HomeView: View {
         .onAppear {
             documentViewModel.reload()
         }
-        .refreshable {
-            await channelViewModel.reloadAllChannels()
-        }
         .task {
             await channelViewModel.initialize()
         }
@@ -378,6 +420,8 @@ struct HomeView: View {
         .onDisappear {
             cameraPermissionTask?.cancel()
             cameraPermissionTask = nil
+            refreshTask?.cancel()
+            refreshTask = nil
         }
         .onChange(of: documentViewModel.completedImport?.id) {
             guard let material = documentViewModel.completedImport else { return }
@@ -401,6 +445,34 @@ struct HomeView: View {
             }
         } message: {
             IndonesianSpeech.text(channelViewModel.errorMessage ?? documentViewModel.errorMessage ?? "")
+        }
+    }
+
+    private func triggerRefresh() {
+        guard !isRefreshDisabled else { return }
+        refreshTask?.cancel()
+        refreshTask = Task {
+            defer { refreshTask = nil }
+            await refreshMaterials(announceCompletion: true)
+        }
+    }
+
+    @MainActor
+    private func refreshMaterials(announceCompletion: Bool = false) async {
+        guard !isConverting, !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+
+        if announceCompletion {
+            IndonesianSpeech.announce("Memperbarui daftar materi…")
+        }
+
+        await channelViewModel.reloadAllChannels()
+        guard !Task.isCancelled else { return }
+        documentViewModel.reload()
+
+        if announceCompletion {
+            IndonesianSpeech.announce("Daftar materi diperbarui.")
         }
     }
 

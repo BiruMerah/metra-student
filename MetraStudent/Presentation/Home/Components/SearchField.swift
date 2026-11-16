@@ -12,7 +12,7 @@ import UIKit
 
 struct SearchField: View {
     @Binding var text: String
-    var placeholder: String = "Cari judul materi..."
+    var placeholder: String = "Cari judul materi"
     @ScaledMetric(relativeTo: .body) private var iconInset: CGFloat = 28
     
     var body: some View {
@@ -26,7 +26,7 @@ struct SearchField: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .submitLabel(.search)
-                .accessibilityLabel(IndonesianSpeech.text("Cari materi"))
+                .accessibilityLabel(IndonesianSpeech.text("Cari judul materi"))
                 .accessibilityHint(IndonesianSpeech.text("Ketik untuk menyaring daftar materi di bawah"))
                 .accessibilityActions {
                     if !text.isEmpty {
@@ -79,7 +79,7 @@ private struct DocumentSearchInput: UIViewRepresentable {
         field.autocorrectionType = .no
         field.autocapitalizationType = .none
         field.returnKeyType = .search
-        field.accessibilityLabel = "Cari materi"
+        field.accessibilityLabel = "Cari judul materi"
         field.accessibilityHint = "Ketik untuk menyaring daftar materi di bawah"
         field.accessibilityLanguage = IndonesianSpeech.languageTag
 
