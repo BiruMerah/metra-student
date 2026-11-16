@@ -310,7 +310,7 @@ struct HomeView: View {
                     IndonesianSpeech.text(fallback.message)
                 }
         }
-        .navigationTitle(IndonesianSpeech.text("Metra untuk Siswa"))
+        .navigationTitle(IndonesianSpeech.text("Metra Siswa"))
         .task(id: searchText) {
             guard isSearching else { return }
             try? await Task.sleep(for: .milliseconds(600))

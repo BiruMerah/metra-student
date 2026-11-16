@@ -64,12 +64,19 @@ struct MaterialView: View {
 
             if viewModel.isSaved {
                 Section {
-                    Button {
+                    Button(role: .destructive) {
                         confirmsMaterialDeletion = true
                     } label: {
-                        Label(indonesian: "Hapus Materi", systemImage: "trash")
-                            .font(AppTypography.headline)
-                            .frame(maxWidth: .infinity)
+                        HStack(spacing: AppSize.Spacing.small) {
+                            Image(systemName: "trash")
+                                .foregroundStyle(AppColor.onBrand.opacity(0.85))
+                                .symbolRenderingMode(.hierarchical)
+                                .accessibilityHidden(true)
+                            IndonesianSpeech.text("Hapus Materi")
+                        }
+                        .font(AppTypography.headline)
+                        .foregroundStyle(AppColor.onBrand)
+                        .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
