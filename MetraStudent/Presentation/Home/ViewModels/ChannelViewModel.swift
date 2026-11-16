@@ -21,6 +21,7 @@ final class ChannelViewModel {
     weak var coordinator: AppCoordinator?
     private let cloudKitManager: CloudKitManager
     @ObservationIgnored var onMaterialsAutosaved: (() -> Void)?
+    @ObservationIgnored private var membershipRevision = 0
     
     // MARK: - Channel State
     var channels: [ClassroomChannelModel] = []
@@ -54,12 +55,12 @@ final class ChannelViewModel {
         mathMaterialRepository: MathMaterialProtocol,
         notificationManager: NotificationProtocol,
         coordinator: AppCoordinator? = nil,
-        cloudKitManager: CloudKitManager = .shared
+        cloudKitManager: CloudKitManager? = nil
     ) {
         self.mathMaterialRepository = mathMaterialRepository
         self.notificationManager = notificationManager
         self.coordinator = coordinator
-        self.cloudKitManager = cloudKitManager
+        self.cloudKitManager = cloudKitManager ?? .shared
         
         if let savedName = UserDefaults.standard.string(forKey: userNameKey),
            !savedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -104,8 +105,10 @@ final class ChannelViewModel {
     }
     
     func checkAccountStatus() async {
+        let revision = membershipRevision
         do {
             let status = try await cloudKitManager.checkAccountStatus()
+            guard revision == membershipRevision else { return }
             switch status {
             case .available:
                 isSignedInToiCloud = true
@@ -124,6 +127,7 @@ final class ChannelViewModel {
                 accountStatusMessage = "Status iCloud tidak diketahui."
             }
         } catch {
+            guard revision == membershipRevision else { return }
             isSignedInToiCloud = false
             accountStatusMessage = "Status akun iCloud belum bisa diperiksa."
             errorMessage = "Status akun iCloud belum bisa diperiksa. Periksa koneksi internet, lalu coba lagi."
@@ -131,6 +135,7 @@ final class ChannelViewModel {
     }
     
     func reloadAllChannels() async {
+        let revision = membershipRevision
         isLoading = true
         defer { isLoading = false }
         
@@ -156,6 +161,10 @@ final class ChannelViewModel {
             }
         }
         
+        if revision != membershipRevision {
+            await reloadAllChannels()
+            return
+        }
         self.channels = loadedChannels
         self.materialsByChannel = allMaterialsByChannel
         onMaterialsAutosaved?()
@@ -178,13 +187,7 @@ final class ChannelViewModel {
                 code: cleanCode,
                 displayMember: student
             )
-            upsertChannel(channel)
-            let upperCode = channel.code.uppercased()
-            if let fetchedMaterials = try? await fetchAndTagMaterials(for: channel) {
-                materialsByChannel[upperCode] = fetchedMaterials
-                autosaveChannelMaterials(fetchedMaterials)
-            }
-            onMaterialsAutosaved?()
+            await didJoinChannel(channel)
             return channel
         } catch let ckError as CKError where ckError.code == .unknownItem {
             errorMessage = CloudKitManager.JoinError.notFound(cleanCode).errorDescription
@@ -199,9 +202,25 @@ final class ChannelViewModel {
     }
     
     func leaveChannel(_ channel: ClassroomChannelModel) {
+        membershipRevision += 1
         cloudKitManager.removeSavedChannelCodeLocally(channel.code)
         channels.removeAll { $0.code == channel.code }
         materialsByChannel.removeValue(forKey: channel.code.uppercased())
+    }
+
+    func didJoinChannel(_ channel: ClassroomChannelModel) async {
+        membershipRevision += 1
+        isSignedInToiCloud = true
+        accountStatusMessage = "Terhubung ke iCloud"
+        errorMessage = nil
+        upsertChannel(channel)
+        let code = channel.code.uppercased()
+        if let fetchedMaterials = try? await fetchAndTagMaterials(for: channel) {
+            materialsByChannel[code] = fetchedMaterials
+            autosaveChannelMaterials(fetchedMaterials)
+        }
+        onMaterialsAutosaved?()
+        notificationManager.announceAccessibility("Berhasil bergabung ke kelas \(channel.name).")
     }
     
     // MARK: - Channel Materials Actions

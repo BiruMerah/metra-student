@@ -2,15 +2,39 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Undangan Kelas Metra</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>id.birumerah.metra.student.classroom-invitation</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>id</string>
 	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>Kamera digunakan untuk memandu pengambilan foto halaman materi dan mengonversinya menjadi materi belajar.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Metra menggunakan mikrofon untuk merekam pertanyaanmu.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Metra mengubah pertanyaan suaramu menjadi teks.</string>
+	<key>CKSharingSupported</key>
+	<true/>
+	<key>MetraClassroomContainerIdentifier</key>
+	<string>$(METRA_CLASSROOM_CONTAINER_IDENTIFIER)</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Undangan Kelas Metra</string>
+			<key>UTTypeIdentifier</key>
+			<string>id.birumerah.metra.student.classroom-invitation</string>
+		</dict>
+	</array>
 </dict>
 </plist>

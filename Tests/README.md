@@ -1,5 +1,7 @@
 # Metra Assistant Method 3 checks
 
+Untuk undangan kelas lewat link iCloud, lihat [ClassroomInvitations.md](ClassroomInvitations.md) dan jalankan `zsh Tests/run-classroom-invitation-checks.sh`.
+
 Run from the metra-student repository with Xcode 27 and macOS 27.
 
 ```sh

@@ -88,6 +88,14 @@ final class AppCoordinator {
     @ViewBuilder
     func buildDestination(for route: AppRoutes) -> some View {
         switch route {
+        case .classroomInvitation(let link):
+            StudentClassroomInvitationView(link: link, studentName: channelViewModel.displayName) { channel, name in
+                self.channelViewModel.userName = name
+                await self.channelViewModel.didJoinChannel(channel)
+                self.popToRoot()
+            }
+            .onDisappear { ClassroomInvitationInbox.shared.finish(link) }
+
         case .material(let material):
             MaterialView(
                 viewModel: MaterialViewModel(

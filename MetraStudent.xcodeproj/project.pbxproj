@@ -290,7 +290,7 @@
 				CODE_SIGN_ENTITLEMENTS = MetraStudent/MetraStudent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 96SXDK9ZFJ;
+				DEVELOPMENT_TEAM = U3CC574JGM;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -300,7 +300,11 @@
 				INFOPLIST_FILE = MetraStudent/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Metra untuk Siswa";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Kamera digunakan untuk memandu pengambilan foto halaman materi dan mengonversinya menjadi materi belajar.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra menggunakan jaringan lokal agar siswa dapat menemukan kelas, bergabung dengan kelas, dan menerima materi dari guru.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Metra menggunakan mikrofon untuk merekam pertanyaanmu.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Metra mengubah pertanyaan suaramu menjadi teks.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -316,7 +320,9 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = id.birumerah.metra.student;
+				METRA_CLASSROOM_CONTAINER_IDENTIFIER = "iCloud.$(METRA_TEACHER_BUNDLE_IDENTIFIER)";
+				METRA_TEACHER_BUNDLE_IDENTIFIER = id.valen.TeacherPeerPOC;
+				PRODUCT_BUNDLE_IDENTIFIER = id.valen.MetraStudent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -342,7 +348,7 @@
 				CODE_SIGN_ENTITLEMENTS = MetraStudent/MetraStudent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 96SXDK9ZFJ;
+				DEVELOPMENT_TEAM = U3CC574JGM;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -352,7 +358,11 @@
 				INFOPLIST_FILE = MetraStudent/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Metra untuk Siswa";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Kamera digunakan untuk memandu pengambilan foto halaman materi dan mengonversinya menjadi materi belajar.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Metra menggunakan jaringan lokal agar siswa dapat menemukan kelas, bergabung dengan kelas, dan menerima materi dari guru.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Metra menggunakan mikrofon untuk merekam pertanyaanmu.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Metra mengubah pertanyaan suaramu menjadi teks.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -368,7 +378,9 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = id.birumerah.metra.student;
+				METRA_CLASSROOM_CONTAINER_IDENTIFIER = "iCloud.$(METRA_TEACHER_BUNDLE_IDENTIFIER)";
+				METRA_TEACHER_BUNDLE_IDENTIFIER = id.valen.TeacherPeerPOC;
+				PRODUCT_BUNDLE_IDENTIFIER = id.valen.MetraStudent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;

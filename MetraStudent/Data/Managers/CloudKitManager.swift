@@ -9,7 +9,7 @@ import Foundation
 import CloudKit
 
 @MainActor
-final class CloudKitManager {
+final class CloudKitManager: ClassroomInvitationReceiving {
     static let shared = CloudKitManager()
 
     enum JoinError: LocalizedError {
@@ -24,7 +24,8 @@ final class CloudKitManager {
         }
     }
     
-    let container = CKContainer(identifier: "iCloud.id.birumerah.metra")
+    // Runtime metadata and signed entitlements use the same Xcode build setting.
+    let container = ClassroomInvitationContract.containerIdentifier.map { CKContainer(identifier: $0) } ?? CKContainer.default()
     
     var publicDatabase: CKDatabase {
         container.publicCloudDatabase
@@ -206,29 +207,120 @@ final class CloudKitManager {
             throw JoinError.notFound(cleanCode)
         }
         
-        let currentUserID = try? await fetchCurrentUserRecordID()
-        let ownerRecordID = publicRecord["ownerUserRecordID"] as? String
-        let isOwner = (ownerRecordID != nil && ownerRecordID == currentUserID?.recordName)
-        
-        if !isOwner,
-           let shareURLString = publicRecord["shareURL"] as? String,
+        if let shareURLString = publicRecord["shareURL"] as? String,
            let shareURL = URL(string: shareURLString) {
             try? await acceptShare(at: shareURL)
         }
-        
-        var currentMembers = publicRecord["members"] as? [String] ?? []
-        if !currentMembers.contains(displayMember) {
-            currentMembers.append(displayMember)
-            publicRecord["members"] = currentMembers
-            _ = try? await publicDatabase.save(publicRecord)
+        return try await registerMember(displayMember, in: publicRecord)
+    }
+
+    private func registerMember(_ displayMember: String, in initialRecord: CKRecord,
+                                requiredLink: ClassroomInvitationLink? = nil) async throws -> ClassroomChannelModel {
+        let userID = try await fetchCurrentUserRecordID()
+        var record = initialRecord
+        for attempt in 0..<3 {
+            if let requiredLink { try requireCurrentInvitation(requiredLink, for: record) }
+            var members = record["members"] as? [String] ?? []
+            if !members.contains(displayMember) {
+                members.append(displayMember)
+                record["members"] = members
+                do { record = try await publicDatabase.save(record) }
+                catch let error as CKError where error.code == .serverRecordChanged && attempt < 2 {
+                    record = try await publicDatabase.record(for: record.recordID)
+                    continue
+                }
+            }
+            let owner = record.creatorUserRecordID?.recordName ?? record["ownerUserRecordID"] as? String
+            guard let channel = ClassroomChannelModel(record: record, isOwner: owner == userID.recordName) else {
+                throw JoinError.unreadable
+            }
+            // Only report a joined class after its membership is committed.
+            saveChannelInfoLocally(code: channel.code, name: channel.name)
+            return channel
         }
-        
-        guard let channel = ClassroomChannelModel(record: publicRecord, isOwner: isOwner) else {
-            throw JoinError.unreadable
+        throw CKError(.serverRecordChanged)
+    }
+
+    // MARK: - Invitation links
+
+    func previewInvitation(_ link: ClassroomInvitationLink) async throws -> ReceivedClassroomInvitation {
+        let (_, record) = try await invitationContext(for: link)
+        guard let code = record["code"] as? String, let name = record["name"] as? String else {
+            throw ClassroomInvitationError.unavailable
         }
-        
-        saveChannelInfoLocally(code: channel.code, name: channel.name)
-        return channel
+        return .init(link: link, channelRecordName: record.recordID.recordName, code: code,
+            name: name, teacherName: record["createdBy"] as? String ?? "Guru")
+    }
+
+    func joinInvitation(_ invitation: ReceivedClassroomInvitation, displayMember: String) async throws -> ClassroomChannelModel {
+        let (metadata, record) = try await invitationContext(for: invitation.link)
+        guard record.recordID.recordName == invitation.channelRecordName,
+              record["code"] as? String == invitation.code else { throw ClassroomInvitationError.unavailable }
+        try await acceptShare(metadata: metadata)
+        do { return try await registerMember(displayMember, in: record, requiredLink: invitation.link) }
+        catch let error as CKError where error.code == .unknownItem { throw ClassroomInvitationError.unavailable }
+    }
+
+    private func invitationContext(for link: ClassroomInvitationLink) async throws -> (CKShare.Metadata, CKRecord) {
+        guard try await checkAccountStatus() == .available else { throw ClassroomInvitationError.iCloudRequired }
+        let metadata: CKShare.Metadata
+        do { metadata = try await invitationMetadata(for: link.url) }
+        catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound || error.code == .permissionFailure {
+            throw ClassroomInvitationError.unavailable
+        }
+        try Task.checkCancellation()
+        try ClassroomInvitationValidation.validateContainer(metadata.containerIdentifier, expected: container.containerIdentifier)
+        try ClassroomInvitationValidation.validateShareType(metadata.share[CKShare.SystemFieldKey.shareType] as? String)
+        let currentUser = try await fetchCurrentUserRecordID().recordName
+        // Opening one's own share is not accepting an invitation as another user.
+        // Explain that case before interpreting participant-only preview data.
+        try ClassroomInvitationValidation.requireRecipient(isShareOwner: metadata.participantRole == .owner,
+            shareOwnerRecordName: metadata.ownerIdentity.userRecordID?.recordName, currentUserRecordName: currentUser)
+        let payload = try ClassroomInvitationValidation.payload(from: metadata.rootRecord)
+        let record: CKRecord
+        do { record = try await publicDatabase.record(for: CKRecord.ID(recordName: payload.channelRecordName)) }
+        catch let error as CKError where error.code == .unknownItem { throw ClassroomInvitationError.unavailable }
+        guard record.recordType == classroomChannelRecordType, record["code"] as? String == payload.code else {
+            throw ClassroomInvitationError.unavailable
+        }
+        try ClassroomInvitationValidation.validateOwner(classCreator: record.creatorUserRecordID?.recordName,
+            storedClassOwner: record["ownerUserRecordID"] as? String,
+            shareOwner: metadata.ownerIdentity.userRecordID?.recordName,
+            zoneOwner: payload.zoneOwner, currentUser: currentUser)
+        try requireCurrentInvitation(link, for: record)
+        return (metadata, record)
+    }
+
+    private func requireCurrentInvitation(_ link: ClassroomInvitationLink, for record: CKRecord) throws {
+        guard let rawURL = record["shareURL"] as? String, let url = URL(string: rawURL),
+              let current = try? ClassroomInvitationLink(url: url), current == link else {
+            throw ClassroomInvitationError.unavailable
+        }
+    }
+
+    /// Fetch the invitation preview without joining the share or adding a member.
+    private func invitationMetadata(for url: URL) async throws -> CKShare.Metadata {
+        let operation = CKFetchShareMetadataOperation(shareURLs: [url])
+        operation.shouldFetchRootRecord = true
+        operation.rootRecordDesiredKeys = ["schemaVersion", "channelCode", "channelRecordName", "name", "createdBy"]
+        operation.qualityOfService = .userInitiated
+        let resultBox = InvitationMetadataResultBox()
+        return try await withTaskCancellationHandler {
+            try Task.checkCancellation()
+            return try await withCheckedThrowingContinuation { continuation in
+                operation.perShareMetadataResultBlock = { _, result in resultBox.store(result) }
+                // Complete once, from the overall operation callback only.
+                operation.fetchShareMetadataResultBlock = { result in
+                    switch result {
+                    case .success: continuation.resume(with: resultBox.result() ?? .failure(CKError(.internalError)))
+                    case .failure(let error):
+                        if case .failure(let itemError)? = resultBox.result() { continuation.resume(throwing: itemError) }
+                        else { continuation.resume(throwing: error) }
+                    }
+                }
+                container.add(operation)
+            }
+        } onCancel: { operation.cancel() }
     }
     
     // MARK: - CKShare Acceptance
@@ -238,35 +330,11 @@ final class CloudKitManager {
     }
     
     func acceptShare(metadata: CKShare.Metadata) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let operation = CKAcceptSharesOperation(shareMetadatas: [metadata])
-            operation.qualityOfService = .userInitiated
-            operation.perShareResultBlock = { _, result in
-                switch result {
-                case .success:
-                    break
-                case .failure(let error):
-                    if let ckError = error as? CKError, ckError.code == .alreadyShared {
-                        return
-                    }
-                    continuation.resume(throwing: error)
-                    return
-                }
-            }
-            operation.acceptSharesResultBlock = { result in
-                switch result {
-                case .success:
-                    continuation.resume()
-                case .failure(let error):
-                    if let ckError = error as? CKError, ckError.code == .alreadyShared {
-                        continuation.resume()
-                    } else {
-                        continuation.resume(throwing: error)
-                    }
-                }
-            }
-            self.container.add(operation)
+        guard metadata.containerIdentifier == container.containerIdentifier else {
+            throw ClassroomInvitationError.wrongContainer
         }
+        guard metadata.participantRole != .owner, metadata.participantStatus != .accepted else { return }
+        _ = try await container.accept(metadata)
     }
     
     // MARK: - Materials Count & Fetch Helpers

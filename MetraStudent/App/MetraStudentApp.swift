@@ -10,8 +10,11 @@ import SwiftData
 
 @main
 struct MetraStudentApp: App {
+    @UIApplicationDelegateAdaptor(StudentCloudShareAppDelegate.self) private var appDelegate
     @AppStorage("hasCompletedStudentOnboarding") private var hasCompletedOnboarding = false
     @State private var coordinator: AppCoordinator
+    @State private var invitationInbox = ClassroomInvitationInbox.shared
+    @State private var routedInvitationID: String?
     private let modelContainer: ModelContainer
     
     init() {
@@ -55,14 +58,35 @@ struct MetraStudentApp: App {
     
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                ContentView(coordinator: coordinator)
-            } else {
-                OnboardingView {
-                    hasCompletedOnboarding = true
+            Group {
+                if hasCompletedOnboarding {
+                    ContentView(coordinator: coordinator)
+                } else {
+                    OnboardingView {
+                        hasCompletedOnboarding = true
+                    }
                 }
             }
+            .onOpenURL { invitationInbox.receive($0) }
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                if let url = activity.webpageURL { invitationInbox.receive(url) }
+            }
+            .onChange(of: invitationInbox.current, initial: true) { _, _ in routeInvitationIfReady() }
+            .onChange(of: hasCompletedOnboarding) { _, _ in routeInvitationIfReady() }
+            .alert(IndonesianSpeech.text("Undangan kelas"), isPresented: Binding(
+                get: { invitationInbox.errorMessage != nil },
+                set: { if !$0 { invitationInbox.errorMessage = nil } })) {
+                    Button(indonesian: "Tutup", role: .cancel) { invitationInbox.errorMessage = nil }
+                } message: { IndonesianSpeech.text(invitationInbox.errorMessage ?? "") }
         }
         .environment(\.locale, IndonesianSpeech.locale)
+    }
+
+    private func routeInvitationIfReady() {
+        guard hasCompletedOnboarding else { return }
+        guard let link = invitationInbox.current else { routedInvitationID = nil; return }
+        guard routedInvitationID != link.id else { return }
+        routedInvitationID = link.id
+        coordinator.navigate(to: .classroomInvitation(link))
     }
 }
