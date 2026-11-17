@@ -8,6 +8,7 @@ xcrun swiftc -parse-as-library -module-cache-path "$task_check_dir/module-cache"
   "$task_project_dir/MetraStudent/Domain/Models/ClassroomChannelModel.swift" \
   "$task_project_dir/MetraStudent/Domain/Models/ClassroomInvitationLink.swift" \
   "$task_project_dir/MetraStudent/Domain/Models/ClassroomInvitationValidation.swift" \
+  "$task_project_dir/MetraStudent/Domain/Models/StudentClassroomInvitationFailure.swift" \
   "$task_project_dir/MetraStudent/Domain/Models/ReceivedClassroomInvitation.swift" \
   "$task_project_dir/MetraStudent/App/ClassroomInvitationInbox.swift" \
   "$task_project_dir/MetraStudent/Presentation/Home/ViewModels/StudentClassroomInvitationViewModel.swift" \

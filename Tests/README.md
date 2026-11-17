@@ -2,6 +2,8 @@
 
 Untuk undangan kelas lewat link iCloud, lihat [ClassroomInvitations.md](ClassroomInvitations.md) dan jalankan `zsh Tests/run-classroom-invitation-checks.sh`.
 
+Untuk keanggotaan CloudKit yang terpisah dari record kelas guru, jalankan `zsh Tests/run-classroom-membership-checks.sh`.
+
 Run from the metra-student repository with Xcode 27 and macOS 27.
 
 ```sh

@@ -201,9 +201,17 @@ final class ChannelViewModel {
         }
     }
     
-    func leaveChannel(_ channel: ClassroomChannelModel) {
+    func leaveChannel(_ channel: ClassroomChannelModel) async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do { try await cloudKitManager.leaveChannel(channel) }
+        catch {
+            errorMessage = "Kamu belum bisa keluar dari kelas. Periksa koneksi iCloud, lalu coba lagi."
+            return
+        }
         membershipRevision += 1
-        cloudKitManager.removeSavedChannelCodeLocally(channel.code)
+        errorMessage = nil
         channels.removeAll { $0.code == channel.code }
         materialsByChannel.removeValue(forKey: channel.code.uppercased())
     }

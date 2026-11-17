@@ -44,8 +44,6 @@ final class CloudKitManager: ClassroomInvitationReceiving {
     private let savedChannelCodesKey = "metra.savedChannelCodes"
     private let savedChannelNamesKey = "metra.savedChannelNames"
     
-    private var cachedUserRecordID: CKRecord.ID?
-    
     // MARK: - Account & User Status
     
     func checkAccountStatus() async throws -> CKAccountStatus {
@@ -53,12 +51,8 @@ final class CloudKitManager: ClassroomInvitationReceiving {
     }
     
     func fetchCurrentUserRecordID() async throws -> CKRecord.ID {
-        if let cached = cachedUserRecordID {
-            return cached
-        }
-        let id = try await container.userRecordID()
-        self.cachedUserRecordID = id
-        return id
+        // CloudKit manages its own cache; don't retain a previous account's ID.
+        try await container.userRecordID()
     }
     
     // MARK: - Channel Persistence (UserDefaults)
@@ -192,7 +186,18 @@ final class CloudKitManager: ClassroomInvitationReceiving {
         let ownerRecordID = record["ownerUserRecordID"] as? String
         let isOwner = (ownerRecordID != nil && ownerRecordID == currentUserID?.recordName)
         
-        let channel = ClassroomChannelModel(record: record, isOwner: isOwner)
+        var channel = ClassroomChannelModel(record: record, isOwner: isOwner)
+        if let currentUserID,
+           let member = try await storedMembership(channelID: record.recordID, userID: currentUserID)?.membership {
+            let removed = Set(record[ClassroomMembership.removedMembershipsKey] as? [String] ?? [])
+            if removed.contains(member.enrollmentKey) && !isOwner {
+                removeSavedChannelCodeLocally(record["code"] as? String ?? code)
+                return nil
+            }
+            if let current = channel {
+                channel = current.updating(members: ClassroomMembership.roster(legacyMembers: current.members, memberships: [member]))
+            }
+        }
         if let channel = channel {
             saveChannelInfoLocally(code: channel.code, name: channel.name)
         }
@@ -217,28 +222,32 @@ final class CloudKitManager: ClassroomInvitationReceiving {
     private func registerMember(_ displayMember: String, in initialRecord: CKRecord,
                                 requiredLink: ClassroomInvitationLink? = nil) async throws -> ClassroomChannelModel {
         let userID = try await fetchCurrentUserRecordID()
-        var record = initialRecord
-        for attempt in 0..<3 {
-            if let requiredLink { try requireCurrentInvitation(requiredLink, for: record) }
-            var members = record["members"] as? [String] ?? []
-            if !members.contains(displayMember) {
-                members.append(displayMember)
-                record["members"] = members
-                do { record = try await publicDatabase.save(record) }
-                catch let error as CKError where error.code == .serverRecordChanged && attempt < 2 {
-                    record = try await publicDatabase.record(for: record.recordID)
-                    continue
-                }
-            }
-            let owner = record.creatorUserRecordID?.recordName ?? record["ownerUserRecordID"] as? String
-            guard let channel = ClassroomChannelModel(record: record, isOwner: owner == userID.recordName) else {
-                throw JoinError.unreadable
-            }
-            // Only report a joined class after its membership is committed.
-            saveChannelInfoLocally(code: channel.code, name: channel.name)
-            return channel
+        let result = try await ClassroomMembershipRegistration.register(classroomID: initialRecord.recordID,
+            userRecordName: userID.recordName, displayName: displayMember,
+            database: CloudKitMembershipDatabase(database: publicDatabase)) { record in
+                if let requiredLink { try self.requireCurrentInvitation(requiredLink, for: record) }
         }
-        throw CKError(.serverRecordChanged)
+        let owner = result.classroom.creatorUserRecordID?.recordName ?? result.classroom["ownerUserRecordID"] as? String
+        guard let base = ClassroomChannelModel(record: result.classroom,
+            isOwner: owner == userID.recordName || owner == CKCurrentUserDefaultName) else { throw JoinError.unreadable }
+        let channel = base.updating(members: ClassroomMembership.roster(legacyMembers: base.members, memberships: [result.membership]))
+        saveChannelInfoLocally(code: channel.code, name: channel.name)
+        return channel
+    }
+
+    private func storedMembership(channelID: CKRecord.ID, userID: CKRecord.ID) async throws -> StoredClassroomMembership? {
+        let id = ClassroomMembership.recordID(channelRecordName: channelID.recordName, memberUserRecordID: userID.recordName)
+        return try await CloudKitMembershipDatabase(database: publicDatabase).membership(for: id, currentUserRecordName: userID.recordName)
+    }
+
+    func leaveChannel(_ channel: ClassroomChannelModel) async throws {
+        let userID = try await fetchCurrentUserRecordID()
+        if let stored = try await storedMembership(channelID: channel.recordID, userID: userID) {
+            guard stored.membership.memberUserRecordID == userID.recordName else { throw ClassroomMembershipError.unreadable }
+            do { _ = try await publicDatabase.deleteRecord(withID: stored.record.recordID) }
+            catch let error as CKError where error.code == .unknownItem { }
+        }
+        removeSavedChannelCodeLocally(channel.code)
     }
 
     // MARK: - Invitation links
@@ -256,9 +265,10 @@ final class CloudKitManager: ClassroomInvitationReceiving {
         let (metadata, record) = try await invitationContext(for: invitation.link)
         guard record.recordID.recordName == invitation.channelRecordName,
               record["code"] as? String == invitation.code else { throw ClassroomInvitationError.unavailable }
-        try await acceptShare(metadata: metadata)
+        do { try await acceptShare(metadata: metadata) }
+        catch { throw StudentClassroomInvitationFailure.wrapping(error, stage: .acceptShare, containerIdentifier: container.containerIdentifier) }
         do { return try await registerMember(displayMember, in: record, requiredLink: invitation.link) }
-        catch let error as CKError where error.code == .unknownItem { throw ClassroomInvitationError.unavailable }
+        catch { throw StudentClassroomInvitationFailure.wrapping(error, stage: .saveMembership, containerIdentifier: container.containerIdentifier) }
     }
 
     private func invitationContext(for link: ClassroomInvitationLink) async throws -> (CKShare.Metadata, CKRecord) {

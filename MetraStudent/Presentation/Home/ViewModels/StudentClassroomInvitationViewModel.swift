@@ -48,7 +48,10 @@ final class StudentClassroomInvitationViewModel {
     }
 
     private func show(_ error: Error) {
-        if let error = error as? ClassroomInvitationValidationError {
+        if let error = error as? StudentClassroomInvitationFailure {
+            errorMessage = error.errorDescription
+            errorDetails = error.diagnosticDetails
+        } else if let error = error as? ClassroomInvitationValidationError {
             errorMessage = error.errorDescription
             errorDetails = error.diagnosticDetails
         } else if let error = error as? ClassroomInvitationError {

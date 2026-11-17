@@ -150,13 +150,13 @@ struct HomeView: View {
                         ChannelRow(
                             channel: channel,
                             onLeave: {
-                                channelViewModel.leaveChannel(channel)
+                                Task { await channelViewModel.leaveChannel(channel) }
                             }
                         )
                         .swipeActions {
                             if !isConverting {
                                 Button(indonesian: "Keluar", role: .destructive) {
-                                    channelViewModel.leaveChannel(channel)
+                                    Task { await channelViewModel.leaveChannel(channel) }
                                 }
                             }
                         }
