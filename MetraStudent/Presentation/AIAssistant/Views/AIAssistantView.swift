@@ -9,11 +9,13 @@ struct AIAssistantView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @State private var viewModel: AIAssistantViewModel
+    @FocusState private var isInputFocused: Bool
     @AccessibilityFocusState(for: .voiceOver) private var focused: Focus?
     private enum Focus: Hashable { case heading, error, record, processing, answer }
 
     private var isRecording: Bool { viewModel.phase == .recording }
     private var isProcessing: Bool { viewModel.phase == .transcribing || viewModel.phase == .thinking }
+    private var isComposerDisabled: Bool { viewModel.phase != .idle || viewModel.availabilityMessage != nil }
 
     private var showsReadyStatus: Bool {
         viewModel.phase == .idle && viewModel.canAsk &&
@@ -65,6 +67,9 @@ struct AIAssistantView: View {
         }
         .onChange(of: isRecording) { _, recording in
             if recording { focused = .record }
+        }
+        .onChange(of: isComposerDisabled) { _, disabled in
+            if disabled { isInputFocused = false }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { viewModel.interrupt() }
@@ -192,17 +197,31 @@ struct AIAssistantView: View {
             TextField(
                 "",
                 text: $viewModel.inputText,
-                prompt: IndonesianSpeech.text(isRecording ? "Mendengarkan pertanyaan…" : "Ketik pertanyaan…"),
+                prompt: IndonesianSpeech.text(isRecording ? "Mendengarkan pertanyaan…" : "Ketik pertanyaan…")
+                    .foregroundStyle(AppColor.secondaryText.opacity(0.8)),
                 axis: .vertical
             )
             .font(AppTypography.body)
             .lineLimit(1...4)
             .submitLabel(.send)
-            .disabled(viewModel.phase != .idle || viewModel.availabilityMessage != nil)
+            .focused($isInputFocused)
+            .disabled(isComposerDisabled)
             .onSubmit(viewModel.submitTypedQuestion)
+            .padding(.vertical, AppSize.Spacing.small)
+            .frame(maxWidth: .infinity, minHeight: AppSize.Height.tapTarget, alignment: .leading)
             .accessibilityLabel(IndonesianSpeech.text("Pertanyaan untuk Asisten Metra"))
             .accessibilityHint(IndonesianSpeech.text("Ketik pertanyaan lalu pilih Kirim, atau gunakan tombol mikrofon."))
             .accessibilityIdentifier("assistant-question-input")
+            .background {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if !isComposerDisabled {
+                            isInputFocused = true
+                        }
+                    }
+                    .accessibilityHidden(true)
+            }
 
             if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Button(action: viewModel.submitTypedQuestion) {
